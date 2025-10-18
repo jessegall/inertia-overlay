@@ -23,7 +23,7 @@ function overlay(id: string): OverlayHandle {
         status: 'closed'
     })
 
-    const rootUrl = ref<string>();
+    const previousUrl = ref<string>();
 
     // ----------[ Computed ]----------
 
@@ -42,7 +42,7 @@ function overlay(id: string): OverlayHandle {
 
             case 'opening':
                 registrar.register(id);
-                rootUrl.value = window.location.href;
+                previousUrl.value = window.location.href;
                 break;
 
             case 'closed':
@@ -119,8 +119,8 @@ function overlay(id: string): OverlayHandle {
 
         open, close, hasStatus,
 
-        get rootUrl() {
-            return rootUrl.value;
+        get previousUrl() {
+            return previousUrl.value;
         },
 
         get options() {

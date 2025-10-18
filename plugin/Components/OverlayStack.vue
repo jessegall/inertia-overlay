@@ -1,9 +1,8 @@
 <script setup lang="ts">
 
-import Overlay from "@/OverlaysV2/Components/Overlay.vue";
 import { computed, nextTick, onMounted, ref } from "vue";
-import OverlayBackdrop from "@/OverlaysV2/Components/OverlayBackdrop.vue";
-import { useOverlay } from "@/OverlaysV2/Composables/use-overlay";
+import OverlayBackdrop from "./OverlayBackdrop.vue";
+import { useOverlay } from "../Composables/use-overlay";
 
 interface Props {
     stack: string[];

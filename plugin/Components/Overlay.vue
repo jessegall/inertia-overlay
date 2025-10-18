@@ -1,10 +1,10 @@
 <script setup lang="ts">
 
 import { computed, defineAsyncComponent, onBeforeMount, shallowRef } from "vue";
-import OverlayModalWrapper from "@/OverlaysV2/Components/OverlayModalWrapper.vue";
-import OverlayPanelWrapper from "@/OverlaysV2/Components/OverlayPanelWrapper.vue";
-import { useOverlay } from "@/OverlaysV2/Composables/use-overlay";
-import { OVERLAY_COMPONENTS } from "@/Overlays/overlay-components";
+import { useOverlay } from "../Composables/use-overlay";
+import OverlayDrawer from "./OverlayDrawer.vue";
+import OverlayModal from "./OverlayModal.vue";
+import { OverlayVariant } from "../inertia-overlay";
 
 interface Props {
     id: string;
@@ -14,9 +14,9 @@ interface Emits {
     (e: 'close'): void,
 }
 
-const OVERLAY_WRAPPER_COMPONENTS = {
-    modal: OverlayModalWrapper,
-    panel: OverlayPanelWrapper,
+const OVERLAY_VARIANT_COMPONENTS: Record<OverlayVariant, any> = {
+    modal: OverlayModal,
+    drawer: OverlayDrawer,
 }
 
 // ----------[ Setup ]----------
@@ -48,8 +48,8 @@ onBeforeMount(() => {
     overlay.onStatusChange.listen((status) => {
         switch (status) {
             case 'open':
-                wrapper.value = OVERLAY_WRAPPER_COMPONENTS[overlay.options.variant];
-                component.value = defineAsyncComponent(OVERLAY_COMPONENTS[overlay.options.type]);
+                wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.options.variant];
+                component.value = defineAsyncComponent(OVERLAY_VARIANT_COMPONENTS[overlay.options.type]);
                 break;
         }
     });

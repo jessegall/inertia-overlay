@@ -1,11 +1,12 @@
 <script setup lang="ts">
 
 import { computed } from "vue";
-import { OVERLAY_SIZE } from "@/Overlays/overlay-size";
+import { overlaySizeClasses } from "../overlay-size-classes";
+import { OverlaySize } from "../inertia-overlay";
 
 interface Props {
     show: boolean;
-    size: string;
+    size: OverlaySize;
 }
 
 // ----------[ Setup ]----------
@@ -14,7 +15,7 @@ const props = defineProps<Props>();
 
 // ----------[ Computed ]----------
 
-const sizeClass = computed(() => OVERLAY_SIZE[props.size as keyof typeof OVERLAY_SIZE]);
+const sizeClass = computed(() => overlaySizeClasses[props.size]);
 
 </script>
 

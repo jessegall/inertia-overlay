@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { refLock } from "@/Utils/ref-lock";
-import { useOverlayBackdropCounter } from "@/OverlaysV2/Composables/use-overlay-backdrop-counter";
+import { useOverlayBackdropCounter } from "../Composables/use-overlay-backdrop-counter";
+import { ref } from "vue";
 
 interface Props {
     blur?: boolean;
@@ -13,11 +12,7 @@ const props = withDefaults(defineProps<Props>(), {
     minDuration: 250,
 });
 
-const blur = refLock(computed(() => props.blur), {
-    duration: props.minDuration,
-    condition: value => value,
-})
-
+const blur = ref(props.blur);
 const { isTop } = useOverlayBackdropCounter(blur);
 
 </script>

@@ -1,12 +1,11 @@
 <script setup lang="ts">
 
-import { useOverlayRegistrar } from "@/OverlaysV2/Composables/use-overlay-registrar";
-import OverlayStack from "@/OverlaysV2/Components/OverlayStack.vue";
+import { useOverlayRegistrar } from "../Composables/use-overlay-registrar";
+import OverlayStack from "./OverlayStack.vue";
 
 // ----------[ Data ]----------
 
 const { stack } = useOverlayRegistrar();
-
 
 </script>
 

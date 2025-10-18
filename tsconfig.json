@@ -12,6 +12,7 @@
         "noEmit": true,
         "skipLibCheck": true,
         "strictNullChecks": false,
+        "noImplicitAny": false
     },
     "include": [
         "plugin/**/*.ts",

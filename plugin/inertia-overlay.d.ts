@@ -34,3 +34,17 @@ export interface OverlayState {
 
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlayStatus = 'closed' | 'opening' | 'open' | 'closing';
+
+export type OverlaySize =
+    'sm'
+    | 'md'
+    | 'lg'
+    | 'xl'
+    | '2xl'
+    | '3xl'
+    | '4xl'
+    | '5xl'
+    | '6xl'
+    | '7xl'
+    | '80%'
+    | 'full';
