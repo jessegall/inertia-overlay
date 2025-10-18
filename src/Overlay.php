@@ -8,12 +8,9 @@ interface Overlay
 {
 
     public function variant(): OverlayVariant;
-    
+
     public function size(): OverlaySize;
 
     public function props(): array|Arrayable;
-
-    public static function fallbackUrl(): string;
-
 
 }

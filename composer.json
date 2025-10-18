@@ -39,5 +39,12 @@
     },
     "require": {
         "inertiajs/inertia-laravel": "^2.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "JesseGall\\InertiaOverlay\\ServiceProvider"
+            ]
+        }
     }
 }

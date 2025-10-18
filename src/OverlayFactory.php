@@ -59,7 +59,7 @@ readonly class OverlayFactory
 
     private function makeOverlay(OverlayContext $context): mixed
     {
-        if (is_subclass_of($context->class, '\Spatie\LaravelData\Data')) {
+        if (is_subclass_of($context->class, '\\Spatie\\LaravelData\\Data')) {
             return $context->class::from($context->args);
         }
 
