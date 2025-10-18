@@ -1,0 +1,23 @@
+<script setup lang="ts">
+
+import { useOverlayRegistrar } from "@/OverlaysV2/Composables/use-overlay-registrar";
+import OverlayStack from "@/OverlaysV2/Components/OverlayStack.vue";
+
+// ----------[ Data ]----------
+
+const { stack } = useOverlayRegistrar();
+
+
+</script>
+
+<template>
+    <Teleport to="body">
+        <template v-if="stack.length > 0">
+            <OverlayStack :stack="[...stack]"/>
+        </template>
+    </Teleport>
+</template>
+
+<style scoped>
+
+</style>
