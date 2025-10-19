@@ -2,7 +2,7 @@
 
 import { computed } from "vue";
 import { overlaySizeClasses } from "../overlay-size-classes";
-import { OverlaySize } from "../inertia-overlay";
+import { OverlaySize } from "../Types/inertia-overlay";
 
 interface Props {
     show: boolean;

@@ -4,7 +4,7 @@ import { computed, nextTick, reactive, ref } from "vue";
 import { useOverlayContext } from "./use-overlay-context";
 import { useOverlayEvent } from "./use-overlay-event";
 import { inertiaOverlayHeaders } from "../inertia-overlay-headers";
-import { OverlayHandle, OverlayState, OverlayStatus } from "../inertia-overlay";
+import { OverlayHandle, OverlayState, OverlayStatus } from "../Types/inertia-overlay";
 
 const instances = new Map<string, OverlayHandle>();
 
@@ -145,14 +145,25 @@ function overlayId(type: string, args: Record<string, string> = {}) {
 
 }
 
-export function useOverlay(id: string): OverlayHandle;
-export function useOverlay(type: string, args: Record<string, any>): OverlayHandle;
-export function useOverlay(idOrType: string, args?: Record<string, any>): OverlayHandle {
-    const id = args !== undefined ? overlayId(idOrType, args) : idOrType;
+type UseOverlayOptions = Record<string, string> & {
+    autoOpen?: boolean;
+};
+
+export function useOverlay(id: string, options?: UseOverlayOptions): OverlayHandle;
+export function useOverlay(type: string, args: Record<string, any>, options?: UseOverlayOptions): OverlayHandle;
+export function useOverlay(idOrType: string, argsOrOptions?: Record<string, any> | UseOverlayOptions, options?: UseOverlayOptions): OverlayHandle {
+    const hasArgs = argsOrOptions !== undefined && ! ('autoOpen' in argsOrOptions);
+    const id = hasArgs ? overlayId(idOrType, argsOrOptions) : idOrType;
+    const opts = hasArgs ? options : argsOrOptions as UseOverlayOptions;
+    const shouldAutoOpen = opts?.autoOpen ?? true;
 
     if (! instances.has(id)) {
         const instance = overlay(id);
         instances.set(id, instance);
+
+        if (shouldAutoOpen) {
+            instance.open();
+        }
     }
 
     return instances.get(id);

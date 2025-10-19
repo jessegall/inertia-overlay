@@ -1,4 +1,4 @@
-import { OverlaySize } from "./inertia-overlay";
+import { OverlaySize } from "./Types/inertia-overlay";
 
 export const overlaySizeClasses: Record<OverlaySize, string> = {
     'sm': 'max-w-sm',

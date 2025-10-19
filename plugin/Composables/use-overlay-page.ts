@@ -1,5 +1,7 @@
 import { ref } from "vue";
-import { OverlayOptions } from "../inertia-overlay";
+import { OverlayOptions } from "../Types/inertia-overlay";
+
+export type OverlayPage = ReturnType<typeof makeOverlayPage>;
 
 function makeOverlayPage() {
     const options = ref<OverlayOptions>(null);
@@ -20,9 +22,9 @@ function makeOverlayPage() {
     }
 }
 
-let overlayPage: ReturnType<typeof makeOverlayPage> = null;
+let overlayPage: OverlayPage = null;
 
-export function useOverlayPage() {
+export function useOverlayPage(): OverlayPage {
     if (! overlayPage) {
         overlayPage = makeOverlayPage();
     }

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 
-import { computed, defineAsyncComponent, onBeforeMount, shallowRef } from "vue";
+import { computed, onBeforeMount, shallowRef } from "vue";
 import { useOverlay } from "../Composables/use-overlay";
 import OverlayDrawer from "./OverlayDrawer.vue";
 import OverlayModal from "./OverlayModal.vue";
-import { OverlayVariant } from "../inertia-overlay";
+import { OverlayVariant } from "../Types/inertia-overlay";
+import { useOverlayComponentResolver } from "../Composables/use-overlay-component-resolver";
 
 interface Props {
     id: string;
@@ -36,6 +37,8 @@ const open = computed(() => overlay.state.status === 'open');
 
 // ----------[ Methods ]----------
 
+const { resolve: resolveOverlayComponent } = useOverlayComponentResolver();
+
 function close() {
     overlay.close();
     emit('close');
@@ -45,11 +48,11 @@ function close() {
 
 onBeforeMount(() => {
 
-    overlay.onStatusChange.listen((status) => {
+    overlay.onStatusChange.listen(async (status) => {
         switch (status) {
             case 'open':
                 wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.options.variant];
-                component.value = defineAsyncComponent(OVERLAY_VARIANT_COMPONENTS[overlay.options.type]);
+                component.value = await resolveOverlayComponent(overlay.options.type);
                 break;
         }
     });

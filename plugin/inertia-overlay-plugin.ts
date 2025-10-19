@@ -1,4 +1,4 @@
-import { h } from "vue";
+import { Component, h } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { useOverlayRegistrar } from "./Composables/use-overlay-registrar";
@@ -6,7 +6,16 @@ import { useOverlayPage } from "./Composables/use-overlay-page";
 import { useOverlay } from "./Composables/use-overlay";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers";
-import { OverlayOptions } from "./inertia-overlay";
+import { OverlayOptions } from "./Types/inertia-overlay";
+import Overlay from "./Components/Overlay.vue";
+import OverlayBackdrop from "./Components/OverlayBackdrop.vue";
+import OverlayDrawer from "./Components/OverlayDrawer.vue";
+import OverlayModal from "./Components/OverlayModal.vue";
+import OverlayStack from "./Components/OverlayStack.vue";
+
+type ResolveComponent = (name: string) => Component | Promise<Component>;
+
+let resolveComponent: ResolveComponent;
 
 function mount(app: any) {
     const originalRender = app._component.render;
@@ -72,22 +81,35 @@ function compareOverlayId() {
     }
 }
 
-export const inertiaOverlayPlugin = {
+export function createInertiaOverlayPlugin(resolve: ResolveComponent) {
+    resolveComponent = resolve;
 
-    install(app: any) {
+    return {
+        install(app: any) {
+            app.component('Overlay', Overlay);
+            app.component('OverlayBackdrop', OverlayBackdrop);
+            app.component('OverlayDrawer', OverlayDrawer);
+            app.component('OverlayModal', OverlayModal);
+            app.component('OverlayRoot', OverlayRoot);
+            app.component('OverlayStack', OverlayStack);
 
-        mount(app);
-        compareOverlayId();
-
-        router.on('before', event => {
-            injectOverlayHeaders(event.detail.visit);
-        });
-
-        router.on('success', event => {
-            registerOverlayOptions(event.detail.page);
+            mount(app);
             compareOverlayId();
-        })
 
-    }
+            router.on('before', event => {
+                injectOverlayHeaders(event.detail.visit);
+            });
 
+            router.on('success', event => {
+                registerOverlayOptions(event.detail.page);
+                compareOverlayId();
+            });
+
+            console.log('Inertia Overlay Plugin installed');
+        }
+    };
+}
+
+export function getOverlayComponentResolver() {
+    return resolveComponent;
 }

@@ -1,5 +1,7 @@
 import { computed, readonly, ref } from "vue";
 
+export type OverlayRegistrar = ReturnType<typeof makeOverlayRegister>
+
 function makeOverlayRegister() {
 
     // ----------[ Data ]----------
@@ -51,9 +53,9 @@ function makeOverlayRegister() {
 
 }
 
-let register: ReturnType<typeof makeOverlayRegister> = null;
+let register: OverlayRegistrar = null;
 
-export function useOverlayRegistrar() {
+export function useOverlayRegistrar(): OverlayRegistrar {
     if (! register) {
         register = makeOverlayRegister();
     }

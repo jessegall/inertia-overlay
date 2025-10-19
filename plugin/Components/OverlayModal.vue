@@ -1,8 +1,8 @@
 <script setup lang="ts">
 
 import { computed } from "vue";
-import { OverlaySize } from "../inertia-overlay";
 import { overlaySizeClasses } from "../overlay-size-classes";
+import { OverlaySize } from "../Types/inertia-overlay";
 
 interface Props {
     show: boolean;

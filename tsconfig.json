@@ -12,7 +12,10 @@
         "noEmit": true,
         "skipLibCheck": true,
         "strictNullChecks": false,
-        "noImplicitAny": false
+        "noImplicitAny": false,
+        "types": [
+            "vite/client"
+        ]
     },
     "include": [
         "plugin/**/*.ts",
