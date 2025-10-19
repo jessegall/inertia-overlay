@@ -94,12 +94,10 @@ export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
             mount(app);
 
             router.on('before', event => {
-                console.log('Inertia Overlay Plugin: before visit');
                 injectOverlayHeaders(event.detail.visit);
             });
 
             router.on('success', event => {
-                console.log('Inertia Overlay Plugin: success visit');
                 setOverlayData(event.detail.page);
                 compareOverlayId();
             });
