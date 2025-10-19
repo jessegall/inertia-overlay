@@ -15,13 +15,13 @@ const DEFAULT_OPTIONS: UseOverlayOptions = {
 
 const instances = new Map<string, OverlayHandle>();
 
-export function useOverlay(type: string, args: Record<string, any> = {}, options: Partial<UseOverlayOptions> = {}): OverlayHandle {
+export function useOverlay(typename: string, args: Record<string, any> = {}, options: Partial<UseOverlayOptions> = {}): OverlayHandle {
     options = {
         ...DEFAULT_OPTIONS,
         ...options
     };
 
-    const id = generateOverlayId(type, args);
+    const id = generateOverlayId(typename, args);
 
     if (! instances.has(id)) {
         instances.set(id, createOverlay(id));
@@ -36,14 +36,14 @@ export function useOverlay(type: string, args: Record<string, any> = {}, options
     return instance;
 }
 
-function generateOverlayId(type: string, args: Record<string, string> = {}) {
-    if (Object.keys(args).length === 0) return type;
+function generateOverlayId(typename: string, args: Record<string, string> = {}) {
+    if (Object.keys(args).length === 0) return typename;
 
     const json = JSON.stringify(args);
     const encoded = encodeURIComponent(json);
     const base64 = btoa(encoded);
 
-    return `${ type }:${ base64 }`;
+    return `${ typename }:${ base64 }`;
 }
 
 function createOverlay(id: string): OverlayHandle {

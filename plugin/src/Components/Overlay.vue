@@ -52,7 +52,7 @@ onMounted(() => {
         switch (status) {
             case 'open':
                 wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.options.variant];
-                component.value = await resolveOverlayComponent(overlay.options.type);
+                component.value = await resolveOverlayComponent(overlay.options.typename);
                 break;
         }
     });

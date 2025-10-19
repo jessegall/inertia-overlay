@@ -3,7 +3,7 @@ import { OverlayEventListeners } from "@/OverlaysV2/Composables/use-overlay-even
 
 export interface OverlayOptions {
     id: string;
-    type: string;
+    typename: string;
     size: string;
     props: string[];
     variant: OverlayVariant;
