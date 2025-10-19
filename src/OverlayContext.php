@@ -23,21 +23,17 @@ class OverlayContext
 
     public function isOpening(): bool
     {
-        return $this->matches() && $this->resolve(OverlayHeader::OVERLAY_OPENING);
+        return $this->isOverlayIdMatching() && $this->resolve(OverlayHeader::OVERLAY_OPENING);
     }
 
     public function isClosing(): bool
     {
-        return $this->matches() && $this->resolve(OverlayHeader::OVERLAY_CLOSING);
+        return $this->isOverlayIdMatching() && $this->resolve(OverlayHeader::OVERLAY_CLOSING);
     }
 
     public function isMounted(): bool
     {
-        if ($this->isOpening() || $this->isClosing()) {
-            return false;
-        }
-
-        return $this->matches();
+        return $this->isOverlayIdMatching() && ! $this->isOpening() && ! $this->isClosing();
     }
 
     public function getIndex(): int
@@ -91,12 +87,12 @@ class OverlayContext
 
     # ----------[ Internal ]----------
 
-    private function matches(): bool
+    private function isOverlayIdMatching(): bool
     {
         return $this->resolve(OverlayHeader::OVERLAY_ID) === $this->overlayId;
     }
 
-    private function resolve(string $target)
+    private function resolve(string $target): mixed
     {
         return session()->get($target) ?? request()->header($target);
     }
