@@ -11,9 +11,11 @@ const { stack } = useOverlayRegistrar();
 
 <template>
     <Teleport to="body">
-        <template v-if="stack.length > 0">
-            <OverlayStack :stack="[...stack]"/>
-        </template>
+        <div class="inertia-overlay">
+            <template v-if="stack.length > 0">
+                <OverlayStack :stack="[...stack]"/>
+            </template>
+        </div>
     </Teleport>
 </template>
 

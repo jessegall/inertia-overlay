@@ -1,5 +1,5 @@
-import { ref as i, computed as v, readonly as re, reactive as se, nextTick as V, watch as le, onBeforeMount as M, onBeforeUnmount as ce, defineComponent as O, createElementBlock as E, openBlock as f, normalizeClass as Y, unref as m, onMounted as ue, resolveComponent as T, createVNode as R, createBlock as h, createCommentVNode as D, Teleport as ie, createElementVNode as N, Transition as j, withCtx as U, withDirectives as G, renderSlot as H, vShow as K, shallowRef as $, resolveDynamicComponent as z, mergeProps as ve, h as B } from "vue";
-import { usePage as Q, router as C } from "@inertiajs/vue3";
+import { ref as i, computed as v, readonly as re, reactive as se, nextTick as N, watch as le, onBeforeMount as M, onBeforeUnmount as ce, defineComponent as O, createElementBlock as A, openBlock as f, normalizeClass as Y, unref as m, onMounted as ue, resolveComponent as $, createVNode as R, createBlock as h, createCommentVNode as D, Teleport as ie, createElementVNode as C, Transition as j, withCtx as U, withDirectives as G, renderSlot as H, vShow as K, shallowRef as T, resolveDynamicComponent as z, mergeProps as ve, h as B } from "vue";
+import { usePage as Q, router as E } from "@inertiajs/vue3";
 function pe() {
   const e = i([]);
   function t(s) {
@@ -27,9 +27,9 @@ function pe() {
     activeOverlayId: v(() => a() ? e.value[e.value.length - 1] : null)
   };
 }
-let S = null;
+let L = null;
 function g() {
-  return S || (S = pe()), S;
+  return L || (L = pe()), L;
 }
 function de() {
   const e = i(null);
@@ -45,9 +45,9 @@ function de() {
     setOptions: n
   };
 }
-let L = null;
+let b = null;
 function _() {
-  return L || (L = de()), L;
+  return b || (b = de()), b;
 }
 function fe(e) {
   const t = g(), n = Q(), o = i(), a = i({});
@@ -98,7 +98,7 @@ const d = {
   OVERLAY_ROOT_URL: "X-Inertia-Overlay-Root-Url",
   OVERLAY_PREVIOUS_URL: "X-Inertia-Overlay-Previous-Url",
   OVERLAY_PAGE_COMPONENT: "X-Inertia-Overlay-Page-Component"
-}, b = /* @__PURE__ */ new Map();
+}, P = /* @__PURE__ */ new Map();
 function me(e) {
   const t = g(), n = fe(e), [o, a] = ye(), r = se({
     status: "closed"
@@ -118,7 +118,7 @@ function me(e) {
     return p.includes(r.status);
   }
   function y() {
-    u("opening", "open") || (l("opening"), n.isContextActive() ? V(() => l("open")) : C.reload({
+    u("opening", "open") || (l("opening"), n.isContextActive() ? N(() => l("open")) : E.reload({
       headers: {
         [d.OVERLAY_OPENING_ID]: e
       },
@@ -137,7 +137,7 @@ function me(e) {
     if (!u("closing", "closed"))
       if (l("closing"), n.isContextActive()) {
         const p = Date.now();
-        C.reload({
+        E.reload({
           headers: {
             [d.OVERLAY_CLOSING_ID]: e
           },
@@ -150,7 +150,7 @@ function me(e) {
           }
         });
       } else
-        V(() => l("closed"));
+        N(() => l("closed"));
   }
   return {
     id: e,
@@ -176,17 +176,17 @@ function Oe(e, t = {}) {
   const n = JSON.stringify(t), o = btoa(decodeURI(encodeURIComponent(n)));
   return `${e}:${o}`;
 }
-function A(e, t, n) {
+function S(e, t, n) {
   const o = t !== void 0 && !("autoOpen" in t), a = o ? Oe(e, t) : e, r = o ? n : t, s = (r == null ? void 0 : r.autoOpen) ?? !0;
-  if (!b.has(a)) {
+  if (!P.has(a)) {
     const c = me(a);
-    b.set(a, c), s && c.open();
+    P.set(a, c), s && c.open();
   }
-  return b.get(a);
+  return P.get(a);
 }
-const x = i(0), k = i(0), P = i(0);
+const x = i(0), k = i(0), V = i(0);
 function _e(e) {
-  const t = i(P.value), n = i(0);
+  const t = i(V.value), n = i(0);
   function o() {
     n.value = x.value, x.value = t.value, k.value++, k.value === 1 && (document.body.style.overflow = "hidden");
   }
@@ -196,9 +196,9 @@ function _e(e) {
   return le(e, (r) => {
     r ? o() : a();
   }), M(() => {
-    P.value++;
+    V.value++;
   }), ce(() => {
-    P.value--, e.value && a();
+    V.value--, e.value && a();
   }), {
     index: t,
     isTop: () => t.value === x.value
@@ -212,7 +212,7 @@ const J = /* @__PURE__ */ O({
   },
   setup(e) {
     const t = e, n = v(() => t.blur), { isTop: o } = _e(n);
-    return (a, r) => (f(), E("div", {
+    return (a, r) => (f(), A("div", {
       class: Y(["backdrop-blur-component fixed inset-0 flex justify-center items-center bg-black backdrop-blur-sm transition-opacity opacity-0 pointer-events-none", { "opacity-20 pointer-events-auto": n.value && m(o)() }])
     }, null, 2));
   }
@@ -222,15 +222,15 @@ const J = /* @__PURE__ */ O({
     stack: {}
   },
   setup(e) {
-    const t = e, n = i(!1), o = v(() => t.stack[t.stack.length - 1]), a = v(() => t.stack.slice(1)), r = A(o.value);
-    return ue(() => V(() => {
+    const t = e, n = i(!1), o = v(() => t.stack[t.stack.length - 1]), a = v(() => t.stack.slice(1)), r = S(o.value);
+    return ue(() => N(() => {
       n.value = !0;
       const s = r.onStatusChange.listen((c) => {
         ["closing", "closed"].includes(c) && (n.value = !1, s());
       });
     })), (s, c) => {
-      const l = T("Overlay"), u = T("OverlayStack", !0);
-      return f(), E("div", he, [
+      const l = $("Overlay"), u = $("OverlayStack", !0);
+      return f(), A("div", he, [
         R(J, {
           blur: n.value,
           onClick: m(r).close
@@ -248,15 +248,17 @@ const J = /* @__PURE__ */ O({
   for (const [o, a] of t)
     n[o] = a;
   return n;
-}, F = /* @__PURE__ */ q(ge, [["__scopeId", "data-v-dad7d973"]]), W = /* @__PURE__ */ O({
+}, F = /* @__PURE__ */ q(ge, [["__scopeId", "data-v-dad7d973"]]), we = { class: "inertia-overlay" }, W = /* @__PURE__ */ O({
   __name: "OverlayRoot",
   setup(e) {
     const { stack: t } = g();
     return (n, o) => (f(), h(ie, { to: "body" }, [
-      m(t).length > 0 ? (f(), h(F, {
-        key: 0,
-        stack: [...m(t)]
-      }, null, 8, ["stack"])) : D("", !0)
+      C("div", we, [
+        m(t).length > 0 ? (f(), h(F, {
+          key: 0,
+          stack: [...m(t)]
+        }, null, 8, ["stack"])) : D("", !0)
+      ])
     ]));
   }
 }), Z = {
@@ -272,7 +274,7 @@ const J = /* @__PURE__ */ O({
   "7xl": "max-w-7xl",
   "80%": "max-w-[80%]",
   full: "max-w-[95%]"
-}, we = { class: "fixed inset-0 overflow-y-auto px-4 sm:px-0 z-50 pointer-events-none" }, xe = { class: "h-full w-full flex justify-end" }, ke = /* @__PURE__ */ O({
+}, xe = { class: "fixed inset-0 overflow-y-auto px-4 sm:px-0 z-50 pointer-events-none" }, ke = { class: "h-full w-full flex justify-end" }, Ie = /* @__PURE__ */ O({
   __name: "OverlayDrawer",
   props: {
     show: { type: Boolean },
@@ -280,14 +282,14 @@ const J = /* @__PURE__ */ O({
   },
   setup(e) {
     const t = e, n = v(() => Z[t.size]);
-    return (o, a) => (f(), E("div", we, [
-      N("div", xe, [
+    return (o, a) => (f(), A("div", xe, [
+      C("div", ke, [
         R(j, {
           name: "slide-right",
           appear: ""
         }, {
           default: U(() => [
-            G(N("div", {
+            G(C("div", {
               class: Y([n.value, "bg-white pointer-events-auto shadow-xl w-full transform transition-all"])
             }, [
               H(o.$slots, "default", {}, void 0, !0)
@@ -300,7 +302,7 @@ const J = /* @__PURE__ */ O({
       ])
     ]));
   }
-}), ee = /* @__PURE__ */ q(ke, [["__scopeId", "data-v-a636436a"]]), Ie = { class: "fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50 pointer-events-none" }, te = /* @__PURE__ */ O({
+}), ee = /* @__PURE__ */ q(Ie, [["__scopeId", "data-v-a636436a"]]), Re = { class: "fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50 pointer-events-none" }, te = /* @__PURE__ */ O({
   __name: "OverlayModal",
   props: {
     show: { type: Boolean },
@@ -308,7 +310,7 @@ const J = /* @__PURE__ */ O({
   },
   setup(e) {
     const t = e, n = v(() => Z[t.size]);
-    return (o, a) => (f(), E("div", Ie, [
+    return (o, a) => (f(), A("div", Re, [
       R(j, {
         "enter-active-class": "ease-out duration-150",
         "enter-from-class": "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95",
@@ -319,7 +321,7 @@ const J = /* @__PURE__ */ O({
         appear: ""
       }, {
         default: U(() => [
-          G(N("div", {
+          G(C("div", {
             class: Y([n.value, "mb-6 bg-white rounded-lg shadow-xl transform transition-all sm:w-full sm:mx-auto pointer-events-auto overflow-hidden"])
           }, [
             H(o.$slots, "default")
@@ -332,9 +334,9 @@ const J = /* @__PURE__ */ O({
     ]));
   }
 });
-function Re() {
+function Ce() {
   async function e(t) {
-    const n = Le();
+    const n = be();
     if (!n)
       throw new Error("Overlay component resolver not configured. Use createInertiaOverlayPlugin()");
     const o = await n(t);
@@ -344,7 +346,7 @@ function Re() {
     resolve: e
   };
 }
-const Ce = /* @__PURE__ */ O({
+const Ee = /* @__PURE__ */ O({
   __name: "Overlay",
   props: {
     id: {}
@@ -354,7 +356,7 @@ const Ce = /* @__PURE__ */ O({
     const n = {
       modal: te,
       drawer: ee
-    }, o = t, a = A(e.id), r = $(), s = $(), c = v(() => ["open", "closing"].includes(a.state.status)), l = v(() => a.state.status === "open"), { resolve: u } = Re();
+    }, o = t, a = S(e.id), r = T(), s = T(), c = v(() => ["open", "closing"].includes(a.state.status)), l = v(() => a.state.status === "open"), { resolve: u } = Ce();
     function y() {
       a.close(), o("close");
     }
@@ -379,7 +381,7 @@ const Ce = /* @__PURE__ */ O({
   }
 });
 let ne;
-function Ee(e) {
+function Ae(e) {
   const t = e._component.render;
   e._component.render = function() {
     return B("div", null, [
@@ -389,16 +391,16 @@ function Ee(e) {
   };
 }
 let I = null;
-function Ae(e) {
+function Se(e) {
   var n;
   const t = g();
   if (t.hasOverlays()) {
-    const o = A(t.activeOverlayId.value);
+    const o = S(t.activeOverlayId.value);
     e.preserveScroll = !0, !((n = e.only) != null && n.length) && !(o.index.value === 0 && o.hasStatus("closing")) && (e.only = ["__overlay-partial-reload-trigger__"]), !I && o.index.value === 0 && o.hasStatus("opening") && (I = window.location.href), e.headers[d.OVERLAY] = "true", e.headers[d.OVERLAY_ID] = o.id, e.headers[d.OVERLAY_INDEX] = o.index.value.toString(), e.headers[d.OVERLAY_STACK] = t.stack.value.join(","), e.headers[d.OVERLAY_PREVIOUS_URL] = o.previousUrl, e.headers[d.OVERLAY_ROOT_URL] = I, e.headers[d.OVERLAY_PAGE_COMPONENT] = Q().component;
   } else
     I = null;
 }
-function Se(e) {
+function Le(e) {
   const { setOptions: t } = _();
   e.overlay && t(e.overlay);
 }
@@ -407,25 +409,25 @@ function X() {
   if (o && o != e.value) {
     const a = t() === 0 ? 0 : 300;
     setTimeout(() => {
-      A(o).open();
+      S(o).open();
     }, a);
   }
 }
-function Ne(e) {
+function Ye(e) {
   return ne = e, {
     install(t) {
-      t.component("Overlay", Ce), t.component("OverlayBackdrop", J), t.component("OverlayDrawer", ee), t.component("OverlayModal", te), t.component("OverlayRoot", W), t.component("OverlayStack", F), Ee(t), X(), C.on("before", (n) => {
-        Ae(n.detail.visit);
-      }), C.on("success", (n) => {
-        Se(n.detail.page), X();
+      t.component("Overlay", Ee), t.component("OverlayBackdrop", J), t.component("OverlayDrawer", ee), t.component("OverlayModal", te), t.component("OverlayRoot", W), t.component("OverlayStack", F), Ae(t), X(), E.on("before", (n) => {
+        Se(n.detail.visit);
+      }), E.on("success", (n) => {
+        Le(n.detail.page), X();
       }), console.log("Inertia Overlay Plugin installed");
     }
   };
 }
-function Le() {
+function be() {
   return ne;
 }
 export {
-  Ne as createInertiaOverlayPlugin,
-  A as useOverlay
+  Ye as createInertiaOverlayPlugin,
+  S as useOverlay
 };
