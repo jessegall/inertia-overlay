@@ -70,18 +70,14 @@ function setOverlayData(page: Page & { overlay?: OverlayOptions }) {
 }
 
 function compareOverlayId() {
-    const { activeOverlayId, size } = useOverlayRegistrar();
+    const { activeOverlayId } = useOverlayRegistrar();
     const { overlayQueryParam } = useOverlayPage();
 
     const overlayId = overlayQueryParam();
 
     if (overlayId && overlayId != activeOverlayId.value) {
-        const delay = size() === 0 ? 0 : 300;
-
-        setTimeout(() => {
-            const overlay = useOverlay(overlayId);
-            overlay.open();
-        }, delay);
+        const overlay = useOverlay(overlayId);
+        overlay.open();
     }
 }
 

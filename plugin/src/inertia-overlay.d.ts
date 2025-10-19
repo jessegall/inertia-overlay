@@ -1,5 +1,14 @@
 import { ComputedRef } from "vue";
-import { OverlayEventListeners } from "@/OverlaysV2/Composables/use-overlay-event";
+
+export interface OverlayEventListener<T> {
+    listen: (listener: (payload: T) => void) => VoidFunction;
+    remove: (listener: (payload: T) => void) => void;
+}
+
+export type OverlayEvent<T> = [
+    listeners: OverlayEventListener<T>,
+    trigger: (payload: T) => void
+]
 
 export interface OverlayOptions {
     id: string;
@@ -15,7 +24,7 @@ export interface OverlayHandle {
     index: ComputedRef<number>;
     state: OverlayState;
 
-    onStatusChange: OverlayEventListeners<OverlayStatus>
+    onStatusChange: OverlayEventListener<OverlayStatus>
 
     open: () => void;
     close: () => void;

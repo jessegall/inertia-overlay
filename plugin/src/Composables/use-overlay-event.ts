@@ -1,18 +1,10 @@
-export interface OverlayEventListeners<T> {
-    listen: (listener: (payload: T) => void) => VoidFunction;
-    remove: (listener: (payload: T) => void) => void;
-}
-
-export type OverlayEvent<T> = [
-    listeners: OverlayEventListeners<T>,
-    trigger: (payload: T) => void
-]
+import { OverlayEvent } from "../inertia-overlay";
 
 export function useOverlayEvent<T>(): OverlayEvent<T> {
 
     const listeners = new Set<(payload: T) => any>();
 
-    function register(listener: (payload: T) => void): VoidFunction {
+    function listen(listener: (payload: T) => void): VoidFunction {
         listeners.add(listener);
         return () => remove(listener);
     }
@@ -27,6 +19,12 @@ export function useOverlayEvent<T>(): OverlayEvent<T> {
         });
     }
 
-    return [{ listen: register, remove, }, trigger];
+    return [
+        {
+            listen,
+            remove
+        },
+        trigger
+    ];
 
 }
