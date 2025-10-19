@@ -4,11 +4,12 @@ import dts from 'vite-plugin-dts';
 
 export default defineConfig({
     build: {
+        outDir: 'build',
         lib: {
-            entry: './plugin/index.ts',
-            name: 'InertiaOverlayPlugin',
-            fileName: (format) => `index.${format === 'es' ? 'mjs' : 'cjs'}`,
-            formats: ['es', 'cjs']
+            entry: './src/index.ts',
+            name: '@jessegall/inertia-overlay',
+            fileName: () => `index.mjs`,
+            formats: ['es']
         },
         cssCodeSplit: false,
         rollupOptions: {
@@ -18,8 +19,9 @@ export default defineConfig({
     plugins: [
         vue(),
         dts({
-            include: ['plugin/**/*.ts', 'plugin/**/*.d.ts'],
-            copyDtsFiles: true
+            include: ['src/**/*.ts', 'src/**/*.d.ts'],
+            copyDtsFiles: true,
+            outDir: 'build'
         })
     ]
 });

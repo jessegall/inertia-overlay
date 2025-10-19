@@ -1,11 +1,11 @@
 import { Component, h } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { Page, PendingVisit } from "@inertiajs/core";
-import { useOverlayRegistrar } from "./Composables/use-overlay-registrar";
-import { useOverlayPage } from "./Composables/use-overlay-page";
-import { useOverlay } from "./Composables/use-overlay";
+import { useOverlayRegistrar } from "./Composables/use-overlay-registrar.ts";
+import { useOverlayPage } from "./Composables/use-overlay-page.ts";
+import { useOverlay } from "./Composables/use-overlay.ts";
 import OverlayRoot from "./Components/OverlayRoot.vue";
-import { inertiaOverlayHeaders } from "./inertia-overlay-headers";
+import { inertiaOverlayHeaders } from "./inertia-overlay-headers.ts";
 import { OverlayOptions } from "./Types/inertia-overlay";
 
 type ResolveComponent = (name: string) => Component | Promise<Component>;

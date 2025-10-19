@@ -1,9 +1,9 @@
 import { router } from "@inertiajs/vue3";
-import { useOverlayRegistrar } from "./use-overlay-registrar";
+import { useOverlayRegistrar } from "./use-overlay-registrar.ts";
 import { computed, nextTick, reactive, ref } from "vue";
-import { useOverlayData } from "./use-overlay-data";
-import { useOverlayEvent } from "./use-overlay-event";
-import { inertiaOverlayHeaders } from "../inertia-overlay-headers";
+import { useOverlayData } from "./use-overlay-data.ts";
+import { useOverlayEvent } from "./use-overlay-event.ts";
+import { inertiaOverlayHeaders } from "../inertia-overlay-headers.ts";
 import { OverlayHandle, OverlayState, OverlayStatus } from "../Types/inertia-overlay";
 
 const instances = new Map<string, OverlayHandle>();

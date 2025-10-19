@@ -1,5 +1,5 @@
 import { Component } from "vue";
-import { getOverlayComponentResolver } from "../inertia-overlay-plugin";
+import { getOverlayComponentResolver } from "../inertia-overlay-plugin.ts";
 
 export function useOverlayComponentResolver() {
 

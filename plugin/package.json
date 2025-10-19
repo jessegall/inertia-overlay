@@ -1,24 +1,22 @@
 {
-    "name": "inertia-overlay-plugin",
+    "name": "@jessegall/inertia-overlay",
     "version": "0.0.0",
     "type": "module",
     "description": "",
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
+    "module": "./build/index.mjs",
+    "types": "./build/index.d.ts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
+            "types": "./build/index.d.ts",
+            "import": "./build/index.mjs"
         },
-        "./dist/style.css": "./dist/style.css",
+        "./build/style.css": "./build/style.css",
         "./types": {
-            "types": "./dist/Types/inertia-overlay.d.ts"
+            "types": "./build/Types/inertia-overlay.d.ts"
         }
     },
     "files": [
-        "dist"
+        "build"
     ],
     "scripts": {
         "build": "vite build",

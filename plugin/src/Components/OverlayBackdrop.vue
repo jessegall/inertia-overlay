@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useOverlayBackdropCounter } from "../Composables/use-overlay-backdrop-counter";
+import { useOverlayBackdropCounter } from "../Composables/use-overlay-backdrop-counter.ts";
 import { computed } from "vue";
 
 interface Props {

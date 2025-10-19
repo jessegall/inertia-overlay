@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { computed } from "vue";
-import { overlaySizeClasses } from "../overlay-size-classes";
+import { overlaySizeClasses } from "../overlay-size-classes.ts";
 import { OverlaySize } from "../Types/inertia-overlay";
 
 interface Props {

@@ -1,0 +1,23 @@
+src/
+*.ts
+!*.d.ts
+
+# Config files
+vite.config.ts
+tsconfig.json
+tailwind.config.*
+postcss.config.*
+
+# Development
+node_modules/
+.vscode/
+.idea/
+*.log
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.md
+!README.md
