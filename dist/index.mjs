@@ -1,6 +1,6 @@
-import { ref as i, computed as v, readonly as re, reactive as se, nextTick as N, watch as le, onBeforeMount as M, onBeforeUnmount as ce, defineComponent as O, createElementBlock as A, openBlock as f, normalizeClass as Y, unref as m, onMounted as ue, resolveComponent as $, createVNode as R, createBlock as h, createCommentVNode as D, Teleport as ie, createElementVNode as C, Transition as j, withCtx as U, withDirectives as G, renderSlot as H, vShow as K, shallowRef as T, resolveDynamicComponent as z, mergeProps as ve, h as B } from "vue";
-import { usePage as Q, router as E } from "@inertiajs/vue3";
-function pe() {
+import { ref as i, computed as v, readonly as Z, reactive as ee, nextTick as N, watch as te, onBeforeMount as X, onBeforeUnmount as ne, defineComponent as O, createElementBlock as A, openBlock as f, normalizeClass as Y, unref as m, createElementVNode as R, createVNode as C, Transition as M, withCtx as D, withDirectives as j, renderSlot as G, vShow as H, shallowRef as $, createBlock as h, createCommentVNode as U, resolveDynamicComponent as T, mergeProps as oe, onMounted as ae, resolveComponent as re, Teleport as se, h as z } from "vue";
+import { usePage as K, router as E } from "@inertiajs/vue3";
+function le() {
   const e = i([]);
   function t(s) {
     o(s) || e.value.push(s);
@@ -23,15 +23,15 @@ function pe() {
     hasOverlay: o,
     hasOverlays: a,
     size: r,
-    stack: re(e),
+    stack: Z(e),
     activeOverlayId: v(() => a() ? e.value[e.value.length - 1] : null)
   };
 }
 let L = null;
 function g() {
-  return L || (L = pe()), L;
+  return L || (L = le()), L;
 }
-function de() {
+function ce() {
   const e = i(null);
   function t() {
     return new URL(window.location.href).searchParams.get("overlay");
@@ -47,10 +47,10 @@ function de() {
 }
 let b = null;
 function _() {
-  return b || (b = de()), b;
+  return b || (b = ce()), b;
 }
-function fe(e) {
-  const t = g(), n = Q(), o = i(), a = i({});
+function ue(e) {
+  const t = g(), n = K(), o = i(), a = i({});
   function r() {
     var u;
     return new URL(`${window.location.host}${n.url}`).searchParams.has("overlay", e) && ((u = _().options.value) == null ? void 0 : u.id) === e && t.activeOverlayId.value === e;
@@ -73,7 +73,7 @@ function fe(e) {
     isContextActive: r
   };
 }
-function ye() {
+function ie() {
   const e = /* @__PURE__ */ new Set();
   function t(a) {
     return e.add(a), () => n(a);
@@ -99,8 +99,8 @@ const d = {
   OVERLAY_PREVIOUS_URL: "X-Inertia-Overlay-Previous-Url",
   OVERLAY_PAGE_COMPONENT: "X-Inertia-Overlay-Page-Component"
 }, P = /* @__PURE__ */ new Map();
-function me(e) {
-  const t = g(), n = fe(e), [o, a] = ye(), r = se({
+function ve(e) {
+  const t = g(), n = ue(e), [o, a] = ie(), r = ee({
     status: "closed"
   }), s = i(), c = v(() => t.stack.value.indexOf(e));
   function l(p) {
@@ -118,7 +118,7 @@ function me(e) {
     return p.includes(r.status);
   }
   function y() {
-    u("opening", "open") || (l("opening"), n.isContextActive() ? N(() => l("open")) : E.reload({
+    u("closed") && (l("opening"), n.isContextActive() ? N(() => l("open")) : E.reload({
       headers: {
         [d.OVERLAY_OPENING_ID]: e
       },
@@ -134,7 +134,7 @@ function me(e) {
     }));
   }
   function w() {
-    if (!u("closing", "closed"))
+    if (u("open"))
       if (l("closing"), n.isContextActive()) {
         const p = Date.now();
         E.reload({
@@ -142,8 +142,8 @@ function me(e) {
             [d.OVERLAY_CLOSING_ID]: e
           },
           onSuccess() {
-            const oe = Date.now() - p, ae = Math.max(0, 250 - oe);
-            setTimeout(() => l("closed"), ae);
+            const F = Date.now() - p, W = Math.max(0, 250 - F);
+            setTimeout(() => l("closed"), W);
           },
           onError() {
             l("open");
@@ -171,21 +171,19 @@ function me(e) {
     }
   };
 }
-function Oe(e, t = {}) {
+function pe(e, t = {}) {
   if (Object.keys(t).length === 0) return e;
   const n = JSON.stringify(t), o = btoa(decodeURI(encodeURIComponent(n)));
   return `${e}:${o}`;
 }
 function S(e, t, n) {
-  const o = t !== void 0 && !("autoOpen" in t), a = o ? Oe(e, t) : e, r = o ? n : t, s = (r == null ? void 0 : r.autoOpen) ?? !0;
-  if (!P.has(a)) {
-    const c = me(a);
-    P.set(a, c), s && c.open();
-  }
-  return P.get(a);
+  const o = t !== void 0 && !("autoOpen" in t), a = o ? pe(e, t) : e, r = o ? n : t, s = (r == null ? void 0 : r.autoOpen) ?? !0;
+  P.has(a) || P.set(a, ve(a));
+  const c = P.get(a);
+  return s && c.open(), c;
 }
 const x = i(0), k = i(0), V = i(0);
-function _e(e) {
+function de(e) {
   const t = i(V.value), n = i(0);
   function o() {
     n.value = x.value, x.value = t.value, k.value++, k.value === 1 && (document.body.style.overflow = "hidden");
@@ -193,75 +191,30 @@ function _e(e) {
   function a() {
     x.value = n.value, k.value--, k.value === 0 && (document.body.style.overflow = "");
   }
-  return le(e, (r) => {
+  return te(e, (r) => {
     r ? o() : a();
-  }), M(() => {
+  }), X(() => {
     V.value++;
-  }), ce(() => {
+  }), ne(() => {
     V.value--, e.value && a();
   }), {
     index: t,
     isTop: () => t.value === x.value
   };
 }
-const J = /* @__PURE__ */ O({
+const fe = /* @__PURE__ */ O({
   __name: "OverlayBackdrop",
   props: {
     blur: { type: Boolean, default: !1 },
     minDuration: { default: 250 }
   },
   setup(e) {
-    const t = e, n = v(() => t.blur), { isTop: o } = _e(n);
+    const t = e, n = v(() => t.blur), { isTop: o } = de(n);
     return (a, r) => (f(), A("div", {
       class: Y(["backdrop-blur-component fixed inset-0 flex justify-center items-center bg-black backdrop-blur-sm transition-opacity opacity-0 pointer-events-none", { "opacity-20 pointer-events-auto": n.value && m(o)() }])
     }, null, 2));
   }
-}), he = { class: "overlay-stack" }, ge = /* @__PURE__ */ O({
-  __name: "OverlayStack",
-  props: {
-    stack: {}
-  },
-  setup(e) {
-    const t = e, n = i(!1), o = v(() => t.stack[t.stack.length - 1]), a = v(() => t.stack.slice(1)), r = S(o.value);
-    return ue(() => N(() => {
-      n.value = !0;
-      const s = r.onStatusChange.listen((c) => {
-        ["closing", "closed"].includes(c) && (n.value = !1, s());
-      });
-    })), (s, c) => {
-      const l = $("Overlay"), u = $("OverlayStack", !0);
-      return f(), A("div", he, [
-        R(J, {
-          blur: n.value,
-          onClick: m(r).close
-        }, null, 8, ["blur", "onClick"]),
-        R(l, { id: o.value }, null, 8, ["id"]),
-        a.value.length > 0 ? (f(), h(u, {
-          key: 0,
-          stack: a.value
-        }, null, 8, ["stack"])) : D("", !0)
-      ]);
-    };
-  }
-}), q = (e, t) => {
-  const n = e.__vccOpts || e;
-  for (const [o, a] of t)
-    n[o] = a;
-  return n;
-}, F = /* @__PURE__ */ q(ge, [["__scopeId", "data-v-dad7d973"]]), we = { class: "inertia-overlay" }, W = /* @__PURE__ */ O({
-  __name: "OverlayRoot",
-  setup(e) {
-    const { stack: t } = g();
-    return (n, o) => (f(), h(ie, { to: "body" }, [
-      C("div", we, [
-        m(t).length > 0 ? (f(), h(F, {
-          key: 0,
-          stack: [...m(t)]
-        }, null, 8, ["stack"])) : D("", !0)
-      ])
-    ]));
-  }
-}), Z = {
+}), Q = {
   sm: "max-w-sm",
   md: "max-w-md",
   lg: "max-w-lg",
@@ -274,27 +227,27 @@ const J = /* @__PURE__ */ O({
   "7xl": "max-w-7xl",
   "80%": "max-w-[80%]",
   full: "max-w-[95%]"
-}, xe = { class: "fixed inset-0 overflow-y-auto px-4 sm:px-0 z-50 pointer-events-none" }, ke = { class: "h-full w-full flex justify-end" }, Ie = /* @__PURE__ */ O({
+}, ye = { class: "fixed inset-0 overflow-y-auto px-4 sm:px-0 z-50 pointer-events-none" }, me = { class: "h-full w-full flex justify-end" }, Oe = /* @__PURE__ */ O({
   __name: "OverlayDrawer",
   props: {
     show: { type: Boolean },
     size: {}
   },
   setup(e) {
-    const t = e, n = v(() => Z[t.size]);
-    return (o, a) => (f(), A("div", xe, [
-      C("div", ke, [
-        R(j, {
+    const t = e, n = v(() => Q[t.size]);
+    return (o, a) => (f(), A("div", ye, [
+      R("div", me, [
+        C(M, {
           name: "slide-right",
           appear: ""
         }, {
-          default: U(() => [
-            G(C("div", {
+          default: D(() => [
+            j(R("div", {
               class: Y([n.value, "bg-white pointer-events-auto shadow-xl w-full transform transition-all"])
             }, [
-              H(o.$slots, "default", {}, void 0, !0)
+              G(o.$slots, "default", {}, void 0, !0)
             ], 2), [
-              [K, e.show]
+              [H, e.show]
             ])
           ]),
           _: 3
@@ -302,16 +255,21 @@ const J = /* @__PURE__ */ O({
       ])
     ]));
   }
-}), ee = /* @__PURE__ */ q(Ie, [["__scopeId", "data-v-a636436a"]]), Re = { class: "fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50 pointer-events-none" }, te = /* @__PURE__ */ O({
+}), J = (e, t) => {
+  const n = e.__vccOpts || e;
+  for (const [o, a] of t)
+    n[o] = a;
+  return n;
+}, _e = /* @__PURE__ */ J(Oe, [["__scopeId", "data-v-a636436a"]]), he = { class: "fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50 pointer-events-none" }, ge = /* @__PURE__ */ O({
   __name: "OverlayModal",
   props: {
     show: { type: Boolean },
     size: {}
   },
   setup(e) {
-    const t = e, n = v(() => Z[t.size]);
-    return (o, a) => (f(), A("div", Re, [
-      R(j, {
+    const t = e, n = v(() => Q[t.size]);
+    return (o, a) => (f(), A("div", he, [
+      C(M, {
         "enter-active-class": "ease-out duration-150",
         "enter-from-class": "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95",
         "enter-to-class": "opacity-100 translate-y-0 sm:scale-100",
@@ -320,13 +278,13 @@ const J = /* @__PURE__ */ O({
         "leave-to-class": "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95",
         appear: ""
       }, {
-        default: U(() => [
-          G(C("div", {
+        default: D(() => [
+          j(R("div", {
             class: Y([n.value, "mb-6 bg-white rounded-lg shadow-xl transform transition-all sm:w-full sm:mx-auto pointer-events-auto overflow-hidden"])
           }, [
-            H(o.$slots, "default")
+            G(o.$slots, "default")
           ], 2), [
-            [K, e.show]
+            [H, e.show]
           ])
         ]),
         _: 3
@@ -334,7 +292,7 @@ const J = /* @__PURE__ */ O({
     ]));
   }
 });
-function Ce() {
+function we() {
   async function e(t) {
     const n = be();
     if (!n)
@@ -346,7 +304,7 @@ function Ce() {
     resolve: e
   };
 }
-const Ee = /* @__PURE__ */ O({
+const xe = /* @__PURE__ */ O({
   __name: "Overlay",
   props: {
     id: {}
@@ -354,13 +312,13 @@ const Ee = /* @__PURE__ */ O({
   emits: ["close"],
   setup(e, { emit: t }) {
     const n = {
-      modal: te,
-      drawer: ee
-    }, o = t, a = S(e.id), r = T(), s = T(), c = v(() => ["open", "closing"].includes(a.state.status)), l = v(() => a.state.status === "open"), { resolve: u } = Ce();
+      modal: ge,
+      drawer: _e
+    }, o = t, a = S(e.id), r = $(), s = $(), c = v(() => ["open", "closing"].includes(a.state.status)), l = v(() => a.state.status === "open"), { resolve: u } = we();
     function y() {
       a.close(), o("close");
     }
-    return M(() => {
+    return X(() => {
       a.onStatusChange.listen(async (w) => {
         switch (w) {
           case "open":
@@ -368,25 +326,65 @@ const Ee = /* @__PURE__ */ O({
             break;
         }
       });
-    }), (w, p) => c.value ? (f(), h(z(r.value), {
+    }), (w, p) => c.value ? (f(), h(T(r.value), {
       key: 0,
       show: l.value,
       size: m(a).options.size
     }, {
-      default: U(() => [
-        (f(), h(z(s.value), ve(m(a).props, { onClose: y }), null, 16))
+      default: D(() => [
+        (f(), h(T(s.value), oe(m(a).props, { onClose: y }), null, 16))
       ]),
       _: 1
-    }, 8, ["show", "size"])) : D("", !0);
+    }, 8, ["show", "size"])) : U("", !0);
+  }
+}), ke = { class: "overlay-stack" }, Ie = /* @__PURE__ */ O({
+  __name: "OverlayStack",
+  props: {
+    stack: {}
+  },
+  setup(e) {
+    const t = e, n = i(!1), o = v(() => t.stack[t.stack.length - 1]), a = v(() => t.stack.slice(1)), r = S(o.value);
+    return ae(() => N(() => {
+      n.value = !0;
+      const s = r.onStatusChange.listen((c) => {
+        ["closing", "closed"].includes(c) && (n.value = !1, s());
+      });
+    })), (s, c) => {
+      const l = re("OverlayStack", !0);
+      return f(), A("div", ke, [
+        C(fe, {
+          blur: n.value,
+          onClick: m(r).close
+        }, null, 8, ["blur", "onClick"]),
+        C(xe, { id: o.value }, null, 8, ["id"]),
+        a.value.length > 0 ? (f(), h(l, {
+          key: 0,
+          stack: a.value
+        }, null, 8, ["stack"])) : U("", !0)
+      ]);
+    };
+  }
+}), Re = /* @__PURE__ */ J(Ie, [["__scopeId", "data-v-8455ff65"]]), Ce = { class: "inertia-overlay" }, Ee = /* @__PURE__ */ O({
+  __name: "OverlayRoot",
+  setup(e) {
+    const { stack: t } = g();
+    return (n, o) => (f(), h(se, { to: "body" }, [
+      R("div", Ce, [
+        m(t).length > 0 ? (f(), h(Re, {
+          key: 0,
+          stack: [...m(t)]
+        }, null, 8, ["stack"])) : U("", !0)
+      ])
+    ]));
   }
 });
-let ne;
+let q;
 function Ae(e) {
   const t = e._component.render;
   e._component.render = function() {
-    return B("div", null, [
+    return z("div", null, [
       t.call(this),
-      B(W)
+      z(Ee)
     ]);
   };
 }
@@ -396,7 +394,7 @@ function Se(e) {
   const t = g();
   if (t.hasOverlays()) {
     const o = S(t.activeOverlayId.value);
-    e.preserveScroll = !0, !((n = e.only) != null && n.length) && !(o.index.value === 0 && o.hasStatus("closing")) && (e.only = ["__overlay-partial-reload-trigger__"]), !I && o.index.value === 0 && o.hasStatus("opening") && (I = window.location.href), e.headers[d.OVERLAY] = "true", e.headers[d.OVERLAY_ID] = o.id, e.headers[d.OVERLAY_INDEX] = o.index.value.toString(), e.headers[d.OVERLAY_STACK] = t.stack.value.join(","), e.headers[d.OVERLAY_PREVIOUS_URL] = o.previousUrl, e.headers[d.OVERLAY_ROOT_URL] = I, e.headers[d.OVERLAY_PAGE_COMPONENT] = Q().component;
+    e.preserveScroll = !0, !((n = e.only) != null && n.length) && !(o.index.value === 0 && o.hasStatus("closing")) && (e.only = ["__overlay-partial-reload-trigger__"]), !I && o.index.value === 0 && o.hasStatus("opening") && (I = window.location.href), e.headers[d.OVERLAY] = "true", e.headers[d.OVERLAY_ID] = o.id, e.headers[d.OVERLAY_INDEX] = o.index.value.toString(), e.headers[d.OVERLAY_STACK] = t.stack.value.join(","), e.headers[d.OVERLAY_PREVIOUS_URL] = o.previousUrl, e.headers[d.OVERLAY_ROOT_URL] = I, e.headers[d.OVERLAY_PAGE_COMPONENT] = K().component;
   } else
     I = null;
 }
@@ -404,7 +402,7 @@ function Le(e) {
   const { setOptions: t } = _();
   e.overlay && t(e.overlay);
 }
-function X() {
+function B() {
   const { activeOverlayId: e, size: t } = g(), { overlayQueryParam: n } = _(), o = n();
   if (o && o != e.value) {
     const a = t() === 0 ? 0 : 300;
@@ -414,18 +412,18 @@ function X() {
   }
 }
 function Ye(e) {
-  return ne = e, {
+  return q = e, {
     install(t) {
-      t.component("Overlay", Ee), t.component("OverlayBackdrop", J), t.component("OverlayDrawer", ee), t.component("OverlayModal", te), t.component("OverlayRoot", W), t.component("OverlayStack", F), Ae(t), X(), E.on("before", (n) => {
+      Ae(t), B(), E.on("before", (n) => {
         Se(n.detail.visit);
       }), E.on("success", (n) => {
-        Le(n.detail.page), X();
+        Le(n.detail.page), B();
       }), console.log("Inertia Overlay Plugin installed");
     }
   };
 }
 function be() {
-  return ne;
+  return q;
 }
 export {
   Ye as createInertiaOverlayPlugin,

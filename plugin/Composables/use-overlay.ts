@@ -1,7 +1,7 @@
 import { router } from "@inertiajs/vue3";
 import { useOverlayRegistrar } from "./use-overlay-registrar";
 import { computed, nextTick, reactive, ref } from "vue";
-import { useOverlayContext } from "./use-overlay-context";
+import { useOverlayData } from "./use-overlay-data";
 import { useOverlayEvent } from "./use-overlay-event";
 import { inertiaOverlayHeaders } from "../inertia-overlay-headers";
 import { OverlayHandle, OverlayState, OverlayStatus } from "../Types/inertia-overlay";
@@ -11,7 +11,7 @@ const instances = new Map<string, OverlayHandle>();
 function overlay(id: string): OverlayHandle {
 
     const registrar = useOverlayRegistrar();
-    const context = useOverlayContext(id);
+    const data = useOverlayData(id);
 
     // ----------[ Events ]----------
 
@@ -59,11 +59,11 @@ function overlay(id: string): OverlayHandle {
     }
 
     function open() {
-        if (hasStatus('opening', 'open')) return;
+        if (! hasStatus('closed')) return;
 
         setStatus('opening');
 
-        if (! context.isContextActive()) {
+        if (! data.isContextActive()) {
             router.reload({
                 headers: {
                     [inertiaOverlayHeaders.OVERLAY_OPENING_ID]: id,
@@ -84,11 +84,11 @@ function overlay(id: string): OverlayHandle {
     }
 
     function close() {
-        if (hasStatus('closing', 'closed')) return;
+        if (! hasStatus('open')) return;
 
         setStatus('closing');
 
-        if (context.isContextActive()) {
+        if (data.isContextActive()) {
             const start = Date.now();
 
             router.reload({
@@ -124,11 +124,11 @@ function overlay(id: string): OverlayHandle {
         },
 
         get options() {
-            return context.options.value;
+            return data.options.value;
         },
 
         get props() {
-            return context.props.value;
+            return data.props.value;
         }
 
     }
@@ -158,13 +158,14 @@ export function useOverlay(idOrType: string, argsOrOptions?: Record<string, any>
     const shouldAutoOpen = opts?.autoOpen ?? true;
 
     if (! instances.has(id)) {
-        const instance = overlay(id);
-        instances.set(id, instance);
-
-        if (shouldAutoOpen) {
-            instance.open();
-        }
+        instances.set(id, overlay(id));
     }
 
-    return instances.get(id);
+    const instance = instances.get(id);
+
+    if (shouldAutoOpen) {
+        instance.open();
+    }
+
+    return instance;
 }

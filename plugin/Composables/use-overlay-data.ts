@@ -4,7 +4,7 @@ import { OverlayOptions } from "../Types/inertia-overlay";
 import { useOverlayRegistrar } from "./use-overlay-registrar";
 import { useOverlayPage } from "./use-overlay-page";
 
-export function useOverlayContext(id: string) {
+export function useOverlayData(id: string) {
 
     const registrar = useOverlayRegistrar();
     const page = usePage();

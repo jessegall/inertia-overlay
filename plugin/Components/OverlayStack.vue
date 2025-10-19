@@ -2,6 +2,7 @@
 
 import { computed, nextTick, onMounted, ref } from "vue";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
+import Overlay from "./Overlay.vue";
 import { useOverlay } from "../Composables/use-overlay";
 
 interface Props {

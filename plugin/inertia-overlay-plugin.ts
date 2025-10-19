@@ -7,11 +7,6 @@ import { useOverlay } from "./Composables/use-overlay";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers";
 import { OverlayOptions } from "./Types/inertia-overlay";
-import Overlay from "./Components/Overlay.vue";
-import OverlayBackdrop from "./Components/OverlayBackdrop.vue";
-import OverlayDrawer from "./Components/OverlayDrawer.vue";
-import OverlayModal from "./Components/OverlayModal.vue";
-import OverlayStack from "./Components/OverlayStack.vue";
 
 type ResolveComponent = (name: string) => Component | Promise<Component>;
 
@@ -86,13 +81,6 @@ export function createInertiaOverlayPlugin(resolve: ResolveComponent) {
 
     return {
         install(app: any) {
-            app.component('Overlay', Overlay);
-            app.component('OverlayBackdrop', OverlayBackdrop);
-            app.component('OverlayDrawer', OverlayDrawer);
-            app.component('OverlayModal', OverlayModal);
-            app.component('OverlayRoot', OverlayRoot);
-            app.component('OverlayStack', OverlayStack);
-
             mount(app);
             compareOverlayId();
 
