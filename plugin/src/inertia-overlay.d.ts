@@ -33,6 +33,7 @@ export interface OverlayState {
 }
 
 export type OverlayVariant = 'modal' | 'drawer';
+
 export type OverlayStatus = 'closed' | 'opening' | 'open' | 'closing';
 
 export type OverlaySize =

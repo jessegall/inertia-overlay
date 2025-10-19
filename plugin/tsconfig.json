@@ -21,9 +21,9 @@
         "strictNullChecks": false
     },
     "include": [
-        "./**/*.ts",
-        "./**/*.d.ts",
-        "./**/*.vue"
+        "./src/**/*.ts",
+        "./src/**/*.d.ts",
+        "./src/**/*.vue"
     ],
     "exclude": [
         "node_modules",

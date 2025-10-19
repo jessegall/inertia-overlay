@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { OverlayOptions } from "../Types/inertia-overlay";
+import { OverlayOptions } from "../inertia-overlay";
 
 export type OverlayPage = ReturnType<typeof makeOverlayPage>;
 

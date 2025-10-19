@@ -10,10 +10,7 @@
             "types": "./build/index.d.ts",
             "import": "./build/index.mjs"
         },
-        "./build/style.css": "./build/style.css",
-        "./types": {
-            "types": "./build/Types/inertia-overlay.d.ts"
-        }
+        "./build/style.css": "./build/style.css"
     },
     "files": [
         "build"

@@ -4,7 +4,7 @@ import { computed, nextTick, reactive, ref } from "vue";
 import { useOverlayData } from "./use-overlay-data.ts";
 import { useOverlayEvent } from "./use-overlay-event.ts";
 import { inertiaOverlayHeaders } from "../inertia-overlay-headers.ts";
-import { OverlayHandle, OverlayState, OverlayStatus } from "../Types/inertia-overlay";
+import { OverlayHandle, OverlayState, OverlayStatus } from "../inertia-overlay";
 
 const instances = new Map<string, OverlayHandle>();
 

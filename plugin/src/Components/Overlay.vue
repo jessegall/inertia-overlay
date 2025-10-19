@@ -1,10 +1,10 @@
 <script setup lang="ts">
 
-import { computed, onBeforeMount, shallowRef } from "vue";
+import { computed, onMounted, shallowRef } from "vue";
 import { useOverlay } from "../Composables/use-overlay.ts";
 import OverlayDrawer from "./OverlayDrawer.vue";
 import OverlayModal from "./OverlayModal.vue";
-import { OverlayVariant } from "../Types/inertia-overlay";
+import { OverlayVariant } from "../inertia-overlay";
 import { useOverlayComponentResolver } from "../Composables/use-overlay-component-resolver.ts";
 
 interface Props {
@@ -46,7 +46,7 @@ function close() {
 
 // ----------[ Lifecycle ]----------
 
-onBeforeMount(() => {
+onMounted(() => {
 
     overlay.onStatusChange.listen(async (status) => {
         switch (status) {

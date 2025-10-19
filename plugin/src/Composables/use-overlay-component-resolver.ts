@@ -1,20 +1,31 @@
-import { Component } from "vue";
-import { getOverlayComponentResolver } from "../inertia-overlay-plugin.ts";
+import { Component, getCurrentInstance } from "vue";
 
 export function useOverlayComponentResolver() {
 
+    const instance = getCurrentInstance();
+
+    if (! instance) {
+        throw new Error('resolveOverlayComponent must be called within a Vue component setup function.');
+    }
+
     async function resolve(type: string): Promise<Component> {
-        const resolver = getOverlayComponentResolver();
+        const resolver = instance.appContext.config.globalProperties.$inertiaOverlay?.resolve;
 
         if (! resolver) {
-            throw new Error('Overlay component resolver not configured. Use createInertiaOverlayPlugin()');
+            throw new Error('Overlay component resolver not configured.');
         }
 
-        const component = await resolver(type);
+        const component = await resolver(type)?.();
 
-        return typeof component === 'object' && 'default' in component
-            ? component.default
-            : component;
+        if (! component) {
+            throw new Error(`Overlay component for type "${ type }" not found.`);
+        }
+
+        if (typeof component === 'object' && 'default' in component) {
+            return component.default;
+        }
+
+        return component;
     }
 
     return {

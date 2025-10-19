@@ -1,4 +1,4 @@
-import { Component, h } from "vue";
+import { App, h, nextTick } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { useOverlayRegistrar } from "./Composables/use-overlay-registrar.ts";
@@ -6,11 +6,8 @@ import { useOverlayPage } from "./Composables/use-overlay-page.ts";
 import { useOverlay } from "./Composables/use-overlay.ts";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers.ts";
-import { OverlayOptions } from "./Types/inertia-overlay";
-
-type ResolveComponent = (name: string) => Component | Promise<Component>;
-
-let resolveComponent: ResolveComponent;
+import { OverlayOptions } from "./inertia-overlay";
+import { OverlayPluginOptions } from "./types";
 
 function mount(app: any) {
     const originalRender = app._component.render;
@@ -52,7 +49,7 @@ function injectOverlayHeaders(visit: PendingVisit) {
     }
 }
 
-function registerOverlayOptions(page: Page & { overlay?: OverlayOptions }) {
+function setOverlayData(page: Page & { overlay?: OverlayOptions }) {
     const { setOptions } = useOverlayPage();
 
     if (page.overlay) {
@@ -76,28 +73,27 @@ function compareOverlayId() {
     }
 }
 
-export function createInertiaOverlayPlugin(resolve: ResolveComponent) {
-    resolveComponent = resolve;
-
+export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
     return {
-        install(app: any) {
+        install(app: App) {
+
+            app.config.globalProperties.$inertiaOverlay = options;
+
             mount(app);
-            compareOverlayId();
 
             router.on('before', event => {
                 injectOverlayHeaders(event.detail.visit);
             });
 
             router.on('success', event => {
-                registerOverlayOptions(event.detail.page);
+                setOverlayData(event.detail.page);
                 compareOverlayId();
             });
 
-            console.log('Inertia Overlay Plugin installed');
+            nextTick(() => {
+                compareOverlayId();
+            })
+
         }
     };
-}
-
-export function getOverlayComponentResolver() {
-    return resolveComponent;
 }

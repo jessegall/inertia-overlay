@@ -1,6 +1,6 @@
 import { usePage } from "@inertiajs/vue3";
 import { computed, ref } from "vue";
-import { OverlayOptions } from "../Types/inertia-overlay";
+import { OverlayOptions } from "../inertia-overlay";
 import { useOverlayRegistrar } from "./use-overlay-registrar.ts";
 import { useOverlayPage } from "./use-overlay-page.ts";
 
