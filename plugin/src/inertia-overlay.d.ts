@@ -21,11 +21,10 @@ export interface OverlayHandle {
     close: () => void;
     hasStatus: (...status: OverlayStatus[]) => boolean;
 
-    get previousUrl(): string | null;
-
     get options(): OverlayOptions;
 
     get props(): Record<string, any>;
+
 }
 
 export interface OverlayState {

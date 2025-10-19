@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
@@ -13,7 +14,14 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->registerFactory();
     }
 
-    function registerRegistrar(): void
+    public function boot(): void
+    {
+        $this->bootMacros();
+    }
+
+    # ----------[ Internal ]----------
+
+    private function registerRegistrar(): void
     {
         $this->app->singleton(OverlayRegistrar::class, function (Application $app) {
             $registrar = new OverlayRegistrar();
@@ -28,9 +36,18 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         });
     }
 
-    public function registerFactory(): void
+    private function registerFactory(): void
     {
         $this->app->singleton(OverlayFactory::class);
+    }
+
+    private function bootMacros(): void
+    {
+        Request::macro('inertiaOverlay', function (): bool {
+            /** @var Request $this */
+            return $this->inertia()
+                && $this->header(OverlayHeader::OVERLAY);
+        });
     }
 
 }

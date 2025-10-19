@@ -1,14 +1,52 @@
 import { router } from "@inertiajs/vue3";
 import { useOverlayRegistrar } from "./use-overlay-registrar.ts";
-import { computed, nextTick, reactive, ref } from "vue";
+import { computed, nextTick, reactive } from "vue";
 import { useOverlayData } from "./use-overlay-data.ts";
 import { useOverlayEvent } from "./use-overlay-event.ts";
-import { inertiaOverlayHeaders } from "../inertia-overlay-headers.ts";
 import { OverlayHandle, OverlayState, OverlayStatus } from "../inertia-overlay";
+
+interface UseOverlayOptions {
+    autoOpen: boolean;
+}
+
+const DEFAULT_OPTIONS: UseOverlayOptions = {
+    autoOpen: true,
+}
 
 const instances = new Map<string, OverlayHandle>();
 
-function overlay(id: string): OverlayHandle {
+export function useOverlay(type: string, args: Record<string, any> = {}, options: Partial<UseOverlayOptions> = {}): OverlayHandle {
+    options = {
+        ...DEFAULT_OPTIONS,
+        ...options
+    };
+
+    const id = generateOverlayId(type, args);
+
+    if (! instances.has(id)) {
+        instances.set(id, createOverlay(id));
+    }
+
+    const instance = instances.get(id);
+
+    if (options.autoOpen) {
+        instance.open();
+    }
+
+    return instance;
+}
+
+function generateOverlayId(type: string, args: Record<string, string> = {}) {
+    if (Object.keys(args).length === 0) return type;
+
+    const json = JSON.stringify(args);
+    const encoded = encodeURIComponent(json);
+    const base64 = btoa(encoded);
+
+    return `${ type }:${ base64 }`;
+}
+
+function createOverlay(id: string): OverlayHandle {
 
     const registrar = useOverlayRegistrar();
     const data = useOverlayData(id);
@@ -22,8 +60,6 @@ function overlay(id: string): OverlayHandle {
     const state = reactive<OverlayState>({
         status: 'closed'
     })
-
-    const previousUrl = ref<string>();
 
     // ----------[ Computed ]----------
 
@@ -42,7 +78,6 @@ function overlay(id: string): OverlayHandle {
 
             case 'opening':
                 registrar.register(id);
-                previousUrl.value = window.location.href;
                 break;
 
             case 'closed':
@@ -65,9 +100,6 @@ function overlay(id: string): OverlayHandle {
 
         if (! data.isContextActive()) {
             router.reload({
-                headers: {
-                    [inertiaOverlayHeaders.OVERLAY_OPENING_ID]: id,
-                },
                 data: {
                     overlay: id,
                 },
@@ -92,9 +124,6 @@ function overlay(id: string): OverlayHandle {
             const start = Date.now();
 
             router.reload({
-                headers: {
-                    [inertiaOverlayHeaders.OVERLAY_CLOSING_ID]: id,
-                },
                 onSuccess() {
                     const minDuration = 250;
                     const elapsed = Date.now() - start;
@@ -119,10 +148,6 @@ function overlay(id: string): OverlayHandle {
 
         open, close, hasStatus,
 
-        get previousUrl() {
-            return previousUrl.value;
-        },
-
         get options() {
             return data.options.value;
         },
@@ -133,39 +158,4 @@ function overlay(id: string): OverlayHandle {
 
     }
 
-}
-
-function overlayId(type: string, args: Record<string, string> = {}) {
-
-    if (Object.keys(args).length === 0) return type;
-
-    const json = JSON.stringify(args);
-    const base64 = btoa(decodeURI(encodeURIComponent(json)));
-    return `${ type }:${ base64 }`;
-
-}
-
-type UseOverlayOptions = Record<string, string> & {
-    autoOpen?: boolean;
-};
-
-export function useOverlay(id: string, options?: UseOverlayOptions): OverlayHandle;
-export function useOverlay(type: string, args: Record<string, any>, options?: UseOverlayOptions): OverlayHandle;
-export function useOverlay(idOrType: string, argsOrOptions?: Record<string, any> | UseOverlayOptions, options?: UseOverlayOptions): OverlayHandle {
-    const hasArgs = argsOrOptions !== undefined && ! ('autoOpen' in argsOrOptions);
-    const id = hasArgs ? overlayId(idOrType, argsOrOptions) : idOrType;
-    const opts = hasArgs ? options : argsOrOptions as UseOverlayOptions;
-    const shouldAutoOpen = opts?.autoOpen ?? true;
-
-    if (! instances.has(id)) {
-        instances.set(id, overlay(id));
-    }
-
-    const instance = instances.get(id);
-
-    if (shouldAutoOpen) {
-        instance.open();
-    }
-
-    return instance;
 }

@@ -20,7 +20,7 @@ readonly class OverlayResponse implements Responsable
 
         $data['overlay'] = [
             'id' => $this->overlay->context->overlayId,
-            'type' => $this->overlay->context->type,
+            'type' => $this->overlay->context->typename,
             'variant' => $this->overlay->variant(),
             'size' => $this->overlay->size(),
             'props' => $this->overlay->keys(),

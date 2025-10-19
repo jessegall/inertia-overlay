@@ -23,7 +23,16 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
-        $overlay = $this->factory->make($overlayId);
+        $overlay = $this->factory->makeFromId($overlayId);
+
+        ray(
+            $overlay->context->overlayId,
+            $overlay->context->getPreviousId(),
+            $overlay->context->getIndex(),
+            "opening: {$overlay->context->isOpening()}",
+            "closing: {$overlay->context->isClosing()}",
+            "mounted: {$overlay->context->isMounted()}",
+        );
 
         // Redirect to a URL that only contains the overlay query parameter to make sure no state is transferred.
         if ($overlay->context->isOpening() && count($request->query()) > 1) {
@@ -36,7 +45,7 @@ readonly class HandleInertiaOverlayRequests
         }
 
         // If the overlay is not yet active, we need to add its props to the partial data header so they are included in the response.
-        if (! $overlay->context->isActive()) {
+        if (! $overlay->context->isMounted()) {
             $this->addOverlayPropsToPartialOnlyHeader($request, $overlay);
         }
 
@@ -71,16 +80,19 @@ readonly class HandleInertiaOverlayRequests
 
     private function resolveCloseUrl(ContextAwareOverlay $overlay): string
     {
-        if ($overlay->context->index() === 0) {
-            return $this->unsetOverlayQueryParam($overlay->context->rootUrl());
+        if ($overlay->context->getIndex() === 0) {
+            return $this->unsetOverlayQueryParam($overlay->context->getRootUrl());
         }
 
-        return $overlay->context->previousUrl();
+        [$url] = explode('?', $overlay->context->getRootUrl());
+        $previousId = $overlay->context->getPreviousId();
+
+        return "{$url}?overlay={$previousId}";
     }
 
     private function buildResponse(Request $request, ContextAwareOverlay $overlay): OverlayResponse
     {
-        $response = Inertia::render($overlay->context->pageComponent())->toResponse($request);
+        $response = Inertia::render($overlay->context->getPageComponent())->toResponse($request);
 
         return new OverlayResponse($overlay, $response);
     }

@@ -37,13 +37,25 @@ function injectOverlayHeaders(visit: PendingVisit) {
             rootUrl = window.location.href;
         }
 
-        visit.headers[inertiaOverlayHeaders.OVERLAY] = 'true';
-        visit.headers[inertiaOverlayHeaders.OVERLAY_ID] = overlay.id;
+        visit.headers[inertiaOverlayHeaders.OVERLAY] = '1';
         visit.headers[inertiaOverlayHeaders.OVERLAY_INDEX] = overlay.index.value.toString();
-        visit.headers[inertiaOverlayHeaders.OVERLAY_STACK] = registrar.stack.value.join(',');
-        visit.headers[inertiaOverlayHeaders.OVERLAY_PREVIOUS_URL] = overlay.previousUrl;
         visit.headers[inertiaOverlayHeaders.OVERLAY_ROOT_URL] = rootUrl;
         visit.headers[inertiaOverlayHeaders.OVERLAY_PAGE_COMPONENT] = usePage().component;
+
+        visit.headers[inertiaOverlayHeaders.OVERLAY_ID] = overlay.id;
+
+        if (registrar.size() > 1) {
+            visit.headers[inertiaOverlayHeaders.OVERLAY_PREVIOUS_ID] = registrar.stack.value[overlay.index.value - 1];
+        }
+
+        if (overlay.hasStatus('opening')) {
+            visit.headers[inertiaOverlayHeaders.OVERLAY_OPENING] = '1';
+        }
+
+        if (overlay.hasStatus('closing')) {
+            visit.headers[inertiaOverlayHeaders.OVERLAY_CLOSING] = '1';
+        }
+
     } else {
         rootUrl = null;
     }
@@ -82,10 +94,12 @@ export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
             mount(app);
 
             router.on('before', event => {
+                console.log('Inertia Overlay Plugin: before visit');
                 injectOverlayHeaders(event.detail.visit);
             });
 
             router.on('success', event => {
+                console.log('Inertia Overlay Plugin: success visit');
                 setOverlayData(event.detail.page);
                 compareOverlayId();
             });

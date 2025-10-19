@@ -5,7 +5,10 @@
     "autoload": {
         "psr-4": {
             "JesseGall\\InertiaOverlay\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "authors": [
         {

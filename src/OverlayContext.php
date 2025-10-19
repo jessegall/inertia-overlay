@@ -5,18 +5,62 @@ namespace JesseGall\InertiaOverlay;
 class OverlayContext
 {
 
+
     /**
      * @param string $overlayId
+     * @param string $typename
      * @param class-string<Overlay> $class
-     * @param string $type
      * @param array $args
      */
     public function __construct(
         public string $overlayId,
+        public string $typename,
         public string $class,
-        public string $type,
-        public array $args = [],
+        public array $args,
     ) {}
+
+    # ----------[ Headers ]----------
+
+    public function isOpening(): bool
+    {
+        return $this->matches() && $this->resolve(OverlayHeader::OVERLAY_OPENING);
+    }
+
+    public function isClosing(): bool
+    {
+        return $this->matches() && $this->resolve(OverlayHeader::OVERLAY_CLOSING);
+    }
+
+    public function isMounted(): bool
+    {
+        if ($this->isOpening() || $this->isClosing()) {
+            return false;
+        }
+
+        return $this->matches();
+    }
+
+    public function getIndex(): int
+    {
+        return (int)$this->resolve(OverlayHeader::OVERLAY_INDEX);
+    }
+
+    public function getRootUrl(): string|null
+    {
+        return $this->resolve(OverlayHeader::OVERLAY_ROOT_URL);
+    }
+
+    public function getPreviousId(): string|null
+    {
+        return $this->resolve(OverlayHeader::OVERLAY_PREVIOUS_ID);
+    }
+
+    public function getPageComponent(): string
+    {
+        return $this->resolve(OverlayHeader::OVERLAY_PAGE_COMPONENT);
+    }
+
+    # ----------[ Arguments ]----------
 
     public function getArgument(string $key): mixed
     {
@@ -30,47 +74,31 @@ class OverlayContext
 
     public function setArgument(string $key, mixed $value): void
     {
-        $this->args[$key] = $value;
+        data_set($this->args, $key, $value);
     }
 
-    public function isOpening(): bool
-    {
-        return request()->header('X-Inertia-Overlay-Opening-Id') === $this->overlayId;
-    }
+    # ----------[ Middleware ]----------
 
-    public function isClosing(): bool
+    /** @return OverlayMiddleware[] */
+    public function getMiddleware(): array
     {
-        return request()->header('X-Inertia-Overlay-Closing-Id') === $this->overlayId;
-    }
-
-    public function isActive(): bool
-    {
-        if ($this->isOpening() || $this->isClosing()) {
-            return false;
+        if (is_a($this->class, SupportsMiddleware::class, true)) {
+            return $this->class::middleware();
         }
 
-        return request()->header('X-Inertia-Overlay-Id') === $this->overlayId;
+        return [];
     }
 
-    public function index(): int
+    # ----------[ Internal ]----------
+
+    private function matches(): bool
     {
-        return (int)request()->header('X-Inertia-Overlay-Index');
+        return $this->resolve(OverlayHeader::OVERLAY_ID) === $this->overlayId;
     }
 
-    public function rootUrl(): string|null
+    private function resolve(string $target)
     {
-        return request()->header('X-Inertia-Overlay-Root-Url');
+        return session()->get($target) ?? request()->header($target);
     }
-
-    public function previousUrl(): string|null
-    {
-        return request()->header('X-Inertia-Overlay-Previous-Url');
-    }
-
-    public function pageComponent(): string|null
-    {
-        return request()->header('X-Inertia-Overlay-Page-Component');
-    }
-
 
 }
