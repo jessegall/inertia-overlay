@@ -16,5 +16,7 @@ class OverlayHeader
     public const string OVERLAY_OPENING = 'X-Inertia-Overlay-Opening';
     public const string OVERLAY_CLOSING = 'X-Inertia-Overlay-Closing';
 
+    public const string OVERLAY_REDIRECTED_ID = 'X-Inertia-Overlay-Force-Include-Props';
+
 
 }

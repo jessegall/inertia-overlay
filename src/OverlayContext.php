@@ -36,6 +36,12 @@ class OverlayContext
         return $this->isOverlayIdMatching() && ! $this->isOpening() && ! $this->isClosing();
     }
 
+    public function isRedirected(): bool
+    {
+        return $this->isOverlayIdMatching()
+            && $this->resolve(OverlayHeader::OVERLAY_REDIRECTED_ID) === $this->overlayId;
+    }
+
     public function getIndex(): int
     {
         return (int)$this->resolve(OverlayHeader::OVERLAY_INDEX);

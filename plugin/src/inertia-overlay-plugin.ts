@@ -54,7 +54,6 @@ function injectOverlayHeaders(visit: PendingVisit) {
         if (overlay.hasStatus('closing')) {
             visit.headers[inertiaOverlayHeaders.OVERLAY_CLOSING] = '1';
         }
-
     } else {
         rootUrl = null;
     }

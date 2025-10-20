@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
 use JesseGall\InertiaOverlay\OverlayFactory;
+use JesseGall\InertiaOverlay\OverlayHeader;
 
 readonly class HandleInertiaOverlayRequests
 {
@@ -14,9 +15,19 @@ readonly class HandleInertiaOverlayRequests
         private OverlayFactory $factory,
     ) {}
 
+    /** @param \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response) $next */
     public function handle(Request $request, Closure $next)
     {
-        if (! $request->inertiaOverlay() || ! $overlayId = $this->resolveOverlayId($request)) {
+        if (! $request->inertiaOverlay()) {
+            return $next($request);
+        }
+
+        if (! $overlayId = $this->resolveOverlayId($request)) {
+            return $next($request);
+        }
+
+        if ($request->getMethod() !== 'GET') {
+            $this->flagOverlayAsRedirected($overlayId);
             return $next($request);
         }
 
@@ -27,7 +38,16 @@ readonly class HandleInertiaOverlayRequests
 
     private function resolveOverlayId(Request $request): string|null
     {
-        return $request->query('overlay');
+        if ($request->method() === 'GET') {
+            return $request->query('overlay');
+        }
+
+        return $request->header(OverlayHeader::OVERLAY_ID);
+    }
+
+    private function flagOverlayAsRedirected(string $overlayId): void
+    {
+        session()->flash(OverlayHeader::OVERLAY_REDIRECTED_ID, $overlayId);
     }
 
 
