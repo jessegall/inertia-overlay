@@ -6,7 +6,7 @@ const overlayRegistrar = useSingleton(() => {
 
     // ----------[ Events ]----------
 
-    const [onStackChange, onStackChangeTrigger] = useEvent<string[]>();
+    const onStackChange = useEvent<string[]>();
 
     // ----------[ Data ]----------
 
@@ -17,13 +17,13 @@ const overlayRegistrar = useSingleton(() => {
     function register(id: string) {
         if (hasOverlay(id)) return;
         stack.value.push(id);
-        onStackChangeTrigger([...stack.value]);
+        onStackChange.trigger([...stack.value]);
     }
 
     function unregister(id: string) {
         if (! hasOverlay(id)) return;
         stack.value = stack.value.filter(i => i !== id);
-        onStackChangeTrigger([...stack.value]);
+        onStackChange.trigger([...stack.value]);
     }
 
     function hasOverlay(id: string) {

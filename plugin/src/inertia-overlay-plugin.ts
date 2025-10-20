@@ -82,26 +82,30 @@ function compareOverlayId() {
 }
 
 export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
+
+    function install(app: App) {
+        app.config.globalProperties.$inertiaOverlay = options;
+
+        mount(app);
+
+        nextTick(() => {
+            initialize();
+            compareOverlayId();
+        })
+    }
+
+    function initialize() {
+        router.on('before', event => {
+            injectOverlayHeaders(event.detail.visit);
+        });
+
+        router.on('success', event => {
+            setOverlayData(event.detail.page);
+            compareOverlayId();
+        });
+    }
+
     return {
-        install(app: App) {
-
-            app.config.globalProperties.$inertiaOverlay = options;
-
-            mount(app);
-
-            router.on('before', event => {
-                injectOverlayHeaders(event.detail.visit);
-            });
-
-            router.on('success', event => {
-                setOverlayData(event.detail.page);
-                compareOverlayId();
-            });
-
-            nextTick(() => {
-                compareOverlayId();
-            })
-
-        }
+        install,
     };
 }

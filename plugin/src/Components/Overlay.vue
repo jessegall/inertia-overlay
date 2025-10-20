@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { computed, onMounted, shallowRef } from "vue";
+import { computed, shallowRef, watch } from "vue";
 import { useOverlay } from "../Composables/use-overlay.ts";
 import OverlayDrawer from "./OverlayDrawer.vue";
 import OverlayModal from "./OverlayModal.vue";
@@ -44,20 +44,20 @@ function close() {
     emit('close');
 }
 
-// ----------[ Lifecycle ]----------
+// ----------[ Watchers ]----------
 
-onMounted(() => {
-
-    overlay.onStatusChange.listen(async (status) => {
-        switch (status) {
-            case 'open':
-                wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.options.variant];
-                component.value = await resolveOverlayComponent(overlay.options.typename);
-                break;
+const activeWatcherHandle = watch(active,
+    async (active) => {
+        if (active) {
+            wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.options.variant];
+            component.value = await resolveOverlayComponent(overlay.options.typename);
+            activeWatcherHandle.stop()
         }
-    });
-
-})
+    },
+    {
+        immediate: true,
+    }
+)
 
 </script>
 
@@ -68,7 +68,7 @@ onMounted(() => {
             :show="open"
             :size="overlay.options.size"
         >
-            
+
             <Component
                 :is="component"
                 v-bind="overlay.props"

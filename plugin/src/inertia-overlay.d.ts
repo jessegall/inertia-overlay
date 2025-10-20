@@ -1,14 +1,13 @@
 import { ComputedRef } from "vue";
 
-export interface EventListener<T> {
-    listen: (listener: (payload: T) => void) => VoidFunction;
-    remove: (listener: (payload: T) => void) => void;
-}
+export type EventListener<T> = (payload: T) => void;
 
-export type Event<T> = [
-    listeners: EventListener<T>,
+export type Event<T> = {
+    listen: (listener: EventListener<T>) => VoidFunction;
+    remove: (listener: EventListener<T>) => void;
     trigger: (payload: T) => void,
-]
+    clear: () => void,
+}
 
 export interface OverlayOptions {
     id: string;
@@ -24,9 +23,9 @@ export interface OverlayInstance {
     index: ComputedRef<number>;
     state: OverlayState;
 
-    onStatusChange: EventListener<OverlayStatus>
-    onFocus: EventListener<void>
-    onBlur: EventListener<void>
+    onStatusChange: Event<OverlayStatus>
+    onFocus: Event<void>
+    onBlur: Event<void>
 
     open: () => void;
     close: () => void;

@@ -1,6 +1,6 @@
 import { router } from "@inertiajs/vue3";
 import { useOverlayRegistrar } from "./use-overlay-registrar.ts";
-import { computed, nextTick, reactive } from "vue";
+import { computed, reactive } from "vue";
 import { useOverlayData } from "./use-overlay-data.ts";
 import { useEvent } from "./use-event.ts";
 import { OverlayInstance, OverlayState, OverlayStatus } from "../inertia-overlay";
@@ -8,11 +8,6 @@ import { OverlayInstance, OverlayState, OverlayStatus } from "../inertia-overlay
 interface UseOverlayOptions {
     autoOpen: boolean;
     destroyOnClose?: boolean;
-}
-
-interface ReloadOptions {
-    onSuccess?: () => void;
-    onError?: () => void;
 }
 
 const DEFAULT_OPTIONS: UseOverlayOptions = {
@@ -30,17 +25,19 @@ export function useOverlay(typename: string, args: Record<string, any> = {}, opt
 
     const id = generateOverlayId(typename, args);
 
-    if (! instances.has(id)) {
-        instances.set(id, createOverlay(id));
+    if (instances.has(id)) {
+        return instances.get(id);
     }
 
-    const instance = instances.get(id);
+    const instance = createOverlay(id);
+
+    instances.set(id, instance);
 
     if (options.destroyOnClose) {
         instance.onStatusChange.listen((status) => {
             if (status === 'closed') {
-                instances.delete(id);
                 instance.destroy();
+                instances.delete(id);
             }
         });
     }
@@ -71,9 +68,9 @@ function createOverlay(id: string): OverlayInstance {
 
     // ----------[ Events ]----------
 
-    const [onStatusChange, onStatusChangeTrigger] = useEvent<OverlayStatus>();
-    const [onFocus, onFocusTrigger] = useEvent<void>();
-    const [onBlur, onBlurTrigger] = useEvent<void>();
+    const onStatusChange = useEvent<OverlayStatus>();
+    const onFocus = useEvent<void>();
+    const onBlur = useEvent<void>();
 
     // ----------[ State ]----------
 
@@ -92,6 +89,8 @@ function createOverlay(id: string): OverlayInstance {
     function setStatus(status: OverlayStatus) {
         state.status = status;
 
+        console.log(`Overlay [${ id }] status changed to [${ status }].`);
+
         switch (status) {
 
             case 'opening':
@@ -104,64 +103,73 @@ function createOverlay(id: string): OverlayInstance {
 
         }
 
-        onStatusChangeTrigger(status);
+        onStatusChange.trigger(status);
     }
 
     function hasStatus(...status: OverlayStatus[]): boolean {
         return status.includes(state.status);
     }
 
-    function open() {
+    async function open() {
         if (! hasStatus('closed')) return;
 
-        setStatus('opening');
+        console.log(`Opening overlay [${ id }].`);
 
-        load({
-            onSuccess: () => setStatus('open'),
-            onError: () => setStatus('closed'),
-        });
-    }
+        try {
+            setStatus('opening');
 
-    function close() {
-        if (! hasStatus('open')) return;
+            if (! data.isContextActive()) {
+                await reload();
+            }
 
-        setStatus('closing');
-
-        unload({
-            onSuccess: () => setStatus('closed'),
-            onError: () => setStatus('open'),
-        });
-    }
-
-    function focus() {
-        onFocusTrigger();
-    }
-
-    function blur() {
-        onBlurTrigger();
-    }
-
-    function load(options: ReloadOptions) {
-        if (! data.isContextActive()) {
-            router.reload({
-                data: { overlay: id },
-                ...options,
-            })
-        } else {
-            nextTick(() => options?.onSuccess());
+            setStatus('open');
+        } catch(error) {
+            setStatus('closed');
         }
     }
 
-    function unload(options: ReloadOptions) {
-        if (data.isContextActive()) {
-            router.reload(options);
-        } else {
-            nextTick(() => options?.onSuccess());
+    async function close() {
+        if (! hasStatus('open')) return;
+
+        try {
+            setStatus('closing');
+
+            if (data.isContextActive()) {
+                await reload();
+            }
+
+            setStatus('closed');
+        } catch {
+            setStatus('open');
         }
     }
 
     function destroy() {
+        console.log(`Destroying overlay [${ id }]`);
         registrar.onStackChange.remove(onRegistrarStackChange);
+        onStatusChange.clear();
+        onFocus.clear();
+        onBlur.clear();
+    }
+
+    function focus() {
+        onFocus.trigger();
+    }
+
+    function blur() {
+        onBlur.trigger();
+    }
+
+    async function reload() {
+        await new Promise((resolve, error) => {
+            router.reload({
+                data: {
+                    overlay: id,
+                },
+                onSuccess: resolve,
+                onError: error,
+            });
+        })
     }
 
     // ----------[ Event Handlers ]----------

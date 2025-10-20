@@ -14,17 +14,20 @@ export function useEvent<T>(): Event<T> {
     }
 
     function trigger(payload: T) {
-        listeners.forEach(listener => {
+        for (const listener of Array.from(listeners)) {
             listener(payload);
-        });
+        }
     }
 
-    return [
-        {
-            listen,
-            remove
-        },
+    function clear() {
+        listeners.clear();
+    }
+
+    return {
+        listen,
+        remove,
         trigger,
-    ];
+        clear,
+    };
 
 }
