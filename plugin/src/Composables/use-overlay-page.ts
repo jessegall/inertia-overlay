@@ -9,15 +9,10 @@ const overlayPage = useSingleton(() => {
         const url = new URL(window.location.href);
         return url.searchParams.get('overlay') as string;
     }
-
-    function setOptions(next: OverlayConfig) {
-        options.value = next;
-    }
-
+    
     return {
         options,
         overlayQueryParam,
-        setOptions,
     }
 });
 

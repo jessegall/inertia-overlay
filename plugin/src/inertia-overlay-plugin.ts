@@ -1,12 +1,11 @@
 import { App, h, nextTick } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
-import { Page, PendingVisit } from "@inertiajs/core";
+import { PendingVisit } from "@inertiajs/core";
 import { useOverlayRegistrar } from "./Composables/use-overlay-registrar.ts";
 import { useOverlayPage } from "./Composables/use-overlay-page.ts";
 import { useOverlay } from "./Composables/use-overlay.ts";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers.ts";
-import { OverlayConfig } from "./inertia-overlay";
 import { OverlayPluginOptions } from "./types";
 
 function mount(app: any) {
@@ -61,21 +60,12 @@ function injectOverlayHeaders(visit: PendingVisit) {
     }
 }
 
-function setOverlayData(page: Page & { overlay?: OverlayConfig }) {
-    const { setOptions } = useOverlayPage();
-
-    if (page.overlay) {
-        setOptions(page.overlay);
-    }
-}
-
 function compareOverlayId() {
-    const { activeOverlayId } = useOverlayRegistrar();
-    const { overlayQueryParam } = useOverlayPage();
+    const registrar = useOverlayRegistrar();
+    const page = useOverlayPage();
 
-    const overlayId = overlayQueryParam();
-
-    if (overlayId && overlayId != activeOverlayId.value) {
+    const overlayId = page.overlayQueryParam();
+    if (overlayId && ! registrar.hasOverlay(overlayId)) {
         const overlay = useOverlay(overlayId);
         overlay.open();
     }
@@ -99,8 +89,7 @@ export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
             injectOverlayHeaders(event.detail.visit);
         });
 
-        router.on('success', event => {
-            setOverlayData(event.detail.page);
+        router.on('success', () => {
             compareOverlayId();
         });
     }
