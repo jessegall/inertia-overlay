@@ -10,3 +10,7 @@ export function getCurrentOverlayInstance() {
 
     return useOverlay(registrar.activeOverlayId.value);
 }
+
+export function clone(value: any): any {
+    return JSON.parse(JSON.stringify(value));
+}

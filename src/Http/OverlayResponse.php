@@ -18,18 +18,17 @@ readonly class OverlayResponse implements Responsable
     public function toResponse($request)
     {
         // Redirect to a URL that only contains the overlay query parameter to make sure no state is transferred.
-        if ($this->overlay->context->isOpening() && count($request->query()) > 1) {
-            return redirect()->to($request->url() . '?overlay=' . $this->overlay->context->overlayId);
+        if ($this->overlay->context->isOpening()) {
+            if (count($request->query()) > 1) {
+                return redirect()->to($request->url() . '?overlay=' . $this->overlay->context->overlayId);
+            } else {
+                $this->addOverlayPropsToPartialOnlyHeader($request);
+            }
         }
 
         // Handle closing overlays by redirecting to the previous URL.
         if ($this->overlay->context->isClosing()) {
             return redirect()->to($this->resolveCloseUrl());
-        }
-
-        // If the overlay is not active, we need to add its props to the partial data header so they are included in the response.
-        if (! $this->overlay->context->isActive()) {
-            $this->addOverlayPropsToPartialOnlyHeader($request);
         }
 
         $response = Inertia::render($this->overlay->context->getPageComponent(), $this->overlay->props())

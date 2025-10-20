@@ -1,9 +1,10 @@
-import { router } from "@inertiajs/vue3";
+import { router, usePage } from "@inertiajs/vue3";
 import { useOverlayRegistrar } from "./use-overlay-registrar.ts";
-import { computed, reactive } from "vue";
-import { useOverlayData } from "./use-overlay-data.ts";
+import { computed, nextTick, reactive } from "vue";
 import { useEvent } from "./use-event.ts";
-import { OverlayInstance, OverlayState, OverlayStatus } from "../inertia-overlay";
+import { OverlayConfig, OverlayInstance, OverlayPage, OverlayState, OverlayStatus } from "../inertia-overlay";
+import { GlobalEvent } from "@inertiajs/core";
+import { clone } from "../helpers.ts";
 
 interface UseOverlayOptions {
     autoOpen: boolean;
@@ -16,6 +17,10 @@ const DEFAULT_OPTIONS: UseOverlayOptions = {
 }
 
 const instances = new Map<string, OverlayInstance>();
+
+const onRouterSuccess = useEvent<GlobalEvent<'success'>>();
+
+router.on('success', event => onRouterSuccess.trigger(event));
 
 export function useOverlay(typename: string, args: Record<string, any> = {}, options: Partial<UseOverlayOptions> = {}): OverlayInstance {
     options = {
@@ -36,8 +41,10 @@ export function useOverlay(typename: string, args: Record<string, any> = {}, opt
     if (options.destroyOnClose) {
         instance.onStatusChange.listen((status) => {
             if (status === 'closed') {
-                instance.destroy();
-                instances.delete(id);
+                nextTick(() => {
+                    instance.destroy();
+                    instances.delete(id);
+                })
             }
         });
     }
@@ -62,9 +69,11 @@ function generateOverlayId(typename: string, args: Record<string, string> = {}) 
 function createOverlay(id: string): OverlayInstance {
 
     const registrar = useOverlayRegistrar();
-    const data = useOverlayData(id);
 
-    registrar.onStackChange.listen(onRegistrarStackChange);
+    const onRouterSuccessHandle = onRouterSuccess.listen({
+        callback: handleOnRouterSuccess,
+        priority: () => index.value,
+    });
 
     // ----------[ Events ]----------
 
@@ -72,10 +81,13 @@ function createOverlay(id: string): OverlayInstance {
     const onFocus = useEvent<void>();
     const onBlur = useEvent<void>();
 
-    // ----------[ State ]----------
+    // ----------[ Data ]----------
 
     const state = reactive<OverlayState>({
-        status: 'closed'
+        focused: false,
+        status: 'closed',
+        config: null,
+        props: {},
     })
 
     // ----------[ Computed ]----------
@@ -90,18 +102,33 @@ function createOverlay(id: string): OverlayInstance {
         state.status = status;
 
         switch (status) {
-
             case 'opening':
                 registrar.register(id);
                 break;
-
             case 'closed':
                 registrar.unregister(id);
                 break;
-
         }
 
         onStatusChange.trigger(status);
+    }
+
+    function setConfig(config: OverlayConfig) {
+        state.config = config;
+    }
+
+    function setProps(props: Record<string, any>) {
+        for (const key of state.config.props) {
+            state.props[key] = props[key];
+        }
+    }
+
+    function isFocused(): boolean {
+        return state.focused;
+    }
+
+    function isBlurred(): boolean {
+        return ! state.focused;
     }
 
     function hasStatus(...status: OverlayStatus[]): boolean {
@@ -114,7 +141,7 @@ function createOverlay(id: string): OverlayInstance {
         try {
             setStatus('opening');
 
-            if (! data.isContextActive()) {
+            if (isBlurred()) {
                 await reload();
             }
 
@@ -130,7 +157,7 @@ function createOverlay(id: string): OverlayInstance {
         try {
             setStatus('closing');
 
-            if (data.isContextActive()) {
+            if (isFocused()) {
                 await reload();
             }
 
@@ -141,17 +168,21 @@ function createOverlay(id: string): OverlayInstance {
     }
 
     function destroy() {
-        registrar.onStackChange.remove(onRegistrarStackChange);
+        onRouterSuccessHandle.stop();
         onStatusChange.clear();
         onFocus.clear();
         onBlur.clear();
     }
 
     function focus() {
+        if (isFocused()) return;
+        state.focused = true;
         onFocus.trigger();
     }
 
     function blur() {
+        if (isBlurred()) return;
+        state.focused = false;
         onBlur.trigger();
     }
 
@@ -167,12 +198,40 @@ function createOverlay(id: string): OverlayInstance {
         })
     }
 
+    function restoreOverlayPageProps() {
+        const page = usePage();
+        for (const key of state.config.props) {
+            page.props[key] = clone(state.props[key])
+        }
+    }
+
+    function deleteOverlayPageProps() {
+        const page = usePage();
+        for (const key of state.config.props) {
+            delete page.props[key];
+        }
+    }
+
     // ----------[ Event Handlers ]----------
 
-    function onRegistrarStackChange(stack: string[]) {
-        if (id === stack[stack.length - 1]) {
+    function handleOnRouterSuccess(event: GlobalEvent<'success'>) {
+        const page = event.detail.page as OverlayPage;
+
+        if (page.overlay?.id === id) {
+            setConfig(page.overlay);
+
+            if (hasStatus('open') && isBlurred()) {
+                restoreOverlayPageProps();
+            } else {
+                setProps(page.props);
+            }
+
             focus();
-        } else if (id === stack[stack.length - 2]) {
+        } else {
+            if (hasStatus('closing') && isFocused() && index.value > 0) {
+                deleteOverlayPageProps();
+            }
+
             blur();
         }
     }
@@ -180,21 +239,9 @@ function createOverlay(id: string): OverlayInstance {
     // ----------[ Api ]----------
 
     return {
-
         id, state, index,
-
         onStatusChange, onFocus, onBlur,
-
         open, close, hasStatus, destroy,
-
-        get options() {
-            return data.options.value;
-        },
-
-        get props() {
-            return data.props.value;
-        }
-
     }
 
 }

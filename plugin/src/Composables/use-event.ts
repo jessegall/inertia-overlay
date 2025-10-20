@@ -1,21 +1,46 @@
-import { Event } from "../inertia-overlay";
+import { Event, EventHandle, EventListener } from "../inertia-overlay";
 
 export function useEvent<T>(): Event<T> {
 
-    const listeners = new Set<(payload: T) => any>();
+    const listeners = new Map<EventListener<T>>();
+    let index = 0;
 
-    function listen(listener: (payload: T) => void): VoidFunction {
-        listeners.add(listener);
-        return () => remove(listener);
+    function generateListenerId() {
+        index += 1;
+        return index.toString();
     }
 
-    function remove(listener: (payload: T) => void) {
-        listeners.delete(listener);
+    function listen(listener: (payload: T) => void | EventListener<T>): EventHandle<T> {
+        if (typeof listener === 'function') {
+            listener = {
+                callback: listener,
+                priority: 0,
+            };
+        }
+
+        const listenerId = generateListenerId();
+        listeners.set(listenerId, listener as EventListener<T>);
+
+        return {
+            stop: () => remove(listenerId),
+        }
+    }
+
+    function remove(listenerId: string) {
+        listeners.delete(listenerId);
     }
 
     function trigger(payload: T) {
-        for (const listener of Array.from(listeners)) {
-            listener(payload);
+        const callbacks = Array.from(listeners.values())
+            .sort((a, b) => {
+                const priorityA = typeof a.priority === 'function' ? a.priority() : a.priority;
+                const priorityB = typeof b.priority === 'function' ? b.priority() : b.priority;
+                return priorityB - priorityA;
+            })
+            .map(l => l.callback);
+
+        for (const callback of callbacks) {
+            callback(payload);
         }
     }
 

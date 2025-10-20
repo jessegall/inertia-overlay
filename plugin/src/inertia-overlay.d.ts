@@ -1,20 +1,30 @@
 import { ComputedRef } from "vue";
+import { Page } from "@inertiajs/core";
 
-export type EventListener<T> = (payload: T) => void;
+export type EventListener<T> = {
+    callback: (payload: T) => void;
+    priority: number | (() => number);
+};
+
+export type EventHandle<T> = {
+    stop: VoidFunction;
+}
 
 export type Event<T> = {
-    listen: (listener: EventListener<T>) => VoidFunction;
+    listen: (listener: (payload: T) => void | EventListener<T>) => EventHandle;
     remove: (listener: EventListener<T>) => void;
     trigger: (payload: T) => void,
     clear: () => void,
 }
 
-export interface OverlayOptions {
+export type OverlayPage = Page & { overlay?: OverlayConfig };
+
+export interface OverlayConfig {
     id: string;
     typename: string;
+    variant: OverlayVariant;
     size: string;
     props: string[];
-    variant: OverlayVariant;
 }
 
 export interface OverlayInstance {
@@ -33,14 +43,13 @@ export interface OverlayInstance {
 
     hasStatus: (...status: OverlayStatus[]) => boolean;
 
-    get options(): OverlayOptions;
-
-    get props(): Record<string, any>;
-
 }
 
 export interface OverlayState {
+    focused: boolean;
     status: OverlayStatus;
+    config: OverlayConfig;
+    props: Record<string, any>;
 }
 
 export type OverlayVariant = 'modal' | 'drawer';

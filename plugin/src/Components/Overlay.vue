@@ -49,8 +49,8 @@ const statusWatcherHandle = watch(
     () => overlay.state.status,
     async (status) => {
         if (status === 'open') {
-            wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.options.variant];
-            component.value = await resolveOverlayComponent(overlay.options.typename);
+            wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.state.config.variant];
+            component.value = await resolveOverlayComponent(overlay.state.config.typename);
             statusWatcherHandle.stop()
         }
     },
@@ -66,12 +66,12 @@ const statusWatcherHandle = watch(
         <Component
             :is="wrapper"
             :show="open"
-            :size="overlay.options.size"
+            :size="overlay.state.config.size"
         >
 
             <Component
                 :is="component"
-                v-bind="overlay.props"
+                v-bind="overlay.state.props"
                 @close="close"
             />
 

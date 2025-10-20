@@ -6,7 +6,7 @@ import { useOverlayPage } from "./Composables/use-overlay-page.ts";
 import { useOverlay } from "./Composables/use-overlay.ts";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers.ts";
-import { OverlayOptions } from "./inertia-overlay";
+import { OverlayConfig } from "./inertia-overlay";
 import { OverlayPluginOptions } from "./types";
 
 function mount(app: any) {
@@ -61,7 +61,7 @@ function injectOverlayHeaders(visit: PendingVisit) {
     }
 }
 
-function setOverlayData(page: Page & { overlay?: OverlayOptions }) {
+function setOverlayData(page: Page & { overlay?: OverlayConfig }) {
     const { setOptions } = useOverlayPage();
 
     if (page.overlay) {
