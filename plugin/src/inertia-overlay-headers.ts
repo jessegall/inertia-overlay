@@ -10,5 +10,6 @@ export const inertiaOverlayHeaders = {
 
     OVERLAY_OPENING: 'X-Inertia-Overlay-Opening',
     OVERLAY_CLOSING: 'X-Inertia-Overlay-Closing',
+    OVERLAY_DIRTY: 'X-Inertia-Overlay-Dirty',
 
 }

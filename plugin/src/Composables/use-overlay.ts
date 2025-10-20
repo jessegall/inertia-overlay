@@ -3,8 +3,8 @@ import { useOverlayRegistrar } from "./use-overlay-registrar.ts";
 import { computed, nextTick, reactive } from "vue";
 import { useEvent } from "./use-event.ts";
 import { OverlayConfig, OverlayInstance, OverlayPage, OverlayState, OverlayStatus } from "../inertia-overlay";
-import { GlobalEvent } from "@inertiajs/core";
 import { clone } from "../helpers.ts";
+import { useOverlayContext } from "./use-overlay-context.ts";
 
 interface UseOverlayOptions {
     autoOpen: boolean;
@@ -17,10 +17,6 @@ const DEFAULT_OPTIONS: UseOverlayOptions = {
 }
 
 const instances = new Map<string, OverlayInstance>();
-
-const onRouterSuccess = useEvent<GlobalEvent<'success'>>();
-
-router.on('success', event => onRouterSuccess.trigger(event));
 
 export function useOverlay(typename: string, args: Record<string, any> = {}, options: Partial<UseOverlayOptions> = {}): OverlayInstance {
     options = {
@@ -69,9 +65,10 @@ function generateOverlayId(typename: string, args: Record<string, string> = {}) 
 function createOverlay(id: string): OverlayInstance {
 
     const registrar = useOverlayRegistrar();
+    const overlayPage = useOverlayContext();
 
-    const onRouterSuccessHandle = onRouterSuccess.listen({
-        callback: handleOnRouterSuccess,
+    const pageReloadedHandle = overlayPage.onPageReloaded.listen({
+        callback: handlePageReload,
         priority: () => index.value,
     });
 
@@ -84,6 +81,7 @@ function createOverlay(id: string): OverlayInstance {
     // ----------[ Data ]----------
 
     const state = reactive<OverlayState>({
+        dirty: false,
         focused: false,
         status: 'closed',
         config: null,
@@ -97,6 +95,10 @@ function createOverlay(id: string): OverlayInstance {
     });
 
     // ----------[ Methods ]----------
+
+    function setDirty(dirty: boolean) {
+        state.dirty = dirty;
+    }
 
     function setStatus(status: OverlayStatus) {
         state.status = status;
@@ -138,15 +140,18 @@ function createOverlay(id: string): OverlayInstance {
     async function open() {
         if (! hasStatus('closed')) return;
 
-        try {
-            setStatus('opening');
+        setStatus('opening');
 
-            if (isBlurred()) {
+        try {
+            if (overlayPage.isLoaded(id)) {
+                handlePageReload(overlayPage.getPage());
+            } else {
                 await reload();
             }
 
             setStatus('open');
         } catch (error) {
+            console.error(error);
             setStatus('closed');
         }
     }
@@ -154,21 +159,22 @@ function createOverlay(id: string): OverlayInstance {
     async function close() {
         if (! hasStatus('open')) return;
 
-        try {
-            setStatus('closing');
+        setStatus('closing');
 
+        try {
             if (isFocused()) {
                 await reload();
             }
 
             setStatus('closed');
-        } catch {
+        } catch (error) {
+            console.error(error);
             setStatus('open');
         }
     }
 
     function destroy() {
-        onRouterSuccessHandle.stop();
+        pageReloadedHandle.stop();
         onStatusChange.clear();
         onFocus.clear();
         onBlur.clear();
@@ -214,10 +220,9 @@ function createOverlay(id: string): OverlayInstance {
 
     // ----------[ Event Handlers ]----------
 
-    function handleOnRouterSuccess(event: GlobalEvent<'success'>) {
-        const page = event.detail.page as OverlayPage;
-
-        if (page.overlay?.id === id) {
+    function handlePageReload(page: OverlayPage) {
+        if (page.overlay.id === id) {
+            setDirty(false);
             setConfig(page.overlay);
 
             if (hasStatus('open') && isBlurred()) {

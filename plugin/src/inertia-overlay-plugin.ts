@@ -1,8 +1,8 @@
-import { App, h, nextTick } from "vue";
+import { App, h } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { PendingVisit } from "@inertiajs/core";
 import { useOverlayRegistrar } from "./Composables/use-overlay-registrar.ts";
-import { useOverlayPage } from "./Composables/use-overlay-page.ts";
+import { useOverlayContext } from "./Composables/use-overlay-context.ts";
 import { useOverlay } from "./Composables/use-overlay.ts";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers.ts";
@@ -13,7 +13,7 @@ function mount(app: any) {
     app._component.render = function () {
         return h('div', null, [
             originalRender.call(this),
-            h(OverlayRoot),
+            h(OverlayRoot)
         ]);
     };
 }
@@ -54,16 +54,18 @@ function injectOverlayHeaders(visit: PendingVisit) {
         if (overlay.hasStatus('closing')) {
             visit.headers[inertiaOverlayHeaders.OVERLAY_CLOSING] = '1';
         }
+
+        if (overlay.state.dirty) {
+            visit.headers[inertiaOverlayHeaders.OVERLAY_DIRTY] = '1';
+        }
     } else {
         rootUrl = null;
     }
 }
 
-function compareOverlayId() {
+function compareOverlayId(overlayId: string) {
     const registrar = useOverlayRegistrar();
-    const page = useOverlayPage();
 
-    const overlayId = page.overlayQueryParam();
     if (overlayId && ! registrar.hasOverlay(overlayId)) {
         const overlay = useOverlay(overlayId);
         overlay.open();
@@ -74,23 +76,28 @@ export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
 
     function install(app: App) {
         app.config.globalProperties.$inertiaOverlay = options;
-
         mount(app);
 
-        nextTick(() => {
-            initialize();
-            compareOverlayId();
+        let initialized = false;
+        router.on('navigate', () => {
+            if (! initialized) {
+                initialize();
+                initialized = true;
+            }
         })
     }
 
     function initialize() {
-        router.on('before', event => {
-            injectOverlayHeaders(event.detail.visit);
-        });
+        const context = useOverlayContext();
 
-        router.on('success', () => {
-            compareOverlayId();
-        });
+        context.onPageReloaded.listen(page => compareOverlayId(page.overlay.id))
+        router.on('before', event => injectOverlayHeaders(event.detail.visit));
+
+        const overlayId = context.overlayQueryParam();
+        if (overlayId) {
+            const overlay = useOverlay(overlayId);
+            overlay.open();
+        }
     }
 
     return {

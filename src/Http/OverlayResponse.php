@@ -18,7 +18,7 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        if ($this->overlay->context->isOpening() || $this->overlay->context->isRedirected()) {
+        if ($this->overlay->context->isOpening() || $this->overlay->context->isDirty() || $this->overlay->context->isRedirected()) {
             $this->addOverlayPropsToPartialOnlyHeader($request);
         }
 

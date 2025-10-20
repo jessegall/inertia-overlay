@@ -36,6 +36,11 @@ class OverlayContext
         return $this->isOverlayIdMatching() && ! $this->isOpening() && ! $this->isClosing();
     }
 
+    public function isDirty(): bool
+    {
+        return $this->isOverlayIdMatching() && $this->resolve(OverlayHeader::OVERLAY_DIRTY);
+    }
+    
     public function isRedirected(): bool
     {
         return $this->isOverlayIdMatching()

@@ -26,6 +26,13 @@ const overlayRegistrar = useSingleton(() => {
         onStackChange.trigger([...stack.value]);
     }
 
+    function moveToTop(id: string) {
+        if (! hasOverlay(id)) return;
+        stack.value = stack.value.filter(i => i !== id);
+        stack.value.push(id);
+        onStackChange.trigger([...stack.value]);
+    }
+
     function hasOverlay(id: string) {
         return stack.value.includes(id);
     }
@@ -38,6 +45,11 @@ const overlayRegistrar = useSingleton(() => {
         return stack.value.length;
     }
 
+    function getTopOverlayId() {
+        if (! hasOverlays()) return null;
+        return stack.value[stack.value.length - 1];
+    }
+
     // ----------[ Api ]----------
 
     return {
@@ -46,9 +58,11 @@ const overlayRegistrar = useSingleton(() => {
 
         register,
         unregister,
+        moveToTop,
         hasOverlay,
         hasOverlays,
         size,
+        getTopOverlayId,
 
         stack: readonly(stack),
 

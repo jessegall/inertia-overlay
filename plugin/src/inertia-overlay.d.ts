@@ -17,7 +17,7 @@ export type Event<T> = {
     clear: () => void,
 }
 
-export type OverlayPage = Page & { overlay?: OverlayConfig };
+export type OverlayPage = Page & { overlay: OverlayConfig };
 
 export interface OverlayConfig {
     id: string;
@@ -37,8 +37,9 @@ export interface OverlayInstance {
     onFocus: Event<void>
     onBlur: Event<void>
 
-    open: () => void;
-    close: () => void;
+    open: () => Promise<void>;
+    close: () => Promise<void>;
+
     destroy: () => void;
 
     hasStatus: (...status: OverlayStatus[]) => boolean;
@@ -46,6 +47,7 @@ export interface OverlayInstance {
 }
 
 export interface OverlayState {
+    dirty: boolean;
     focused: boolean;
     status: OverlayStatus;
     config: OverlayConfig;
