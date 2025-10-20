@@ -11,8 +11,8 @@ export type EventHandle<T> = {
 }
 
 export type Event<T> = {
-    listen: (listener: (payload: T) => void | EventListener<T>) => EventHandle;
-    remove: (listener: EventListener<T>) => void;
+    listen: (listener: ((payload: T) => void) | EventListener<T>) => EventHandle;
+    remove: (listenerId: string) => void;
     trigger: (payload: T) => void,
     clear: () => void,
 }

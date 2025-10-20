@@ -2,7 +2,7 @@ import { Event, EventHandle, EventListener } from "../inertia-overlay";
 
 export function useEvent<T>(): Event<T> {
 
-    const listeners = new Map<EventListener<T>>();
+    const listeners = new Map<string, EventListener<T>>();
     let index = 0;
 
     function generateListenerId() {
@@ -10,7 +10,7 @@ export function useEvent<T>(): Event<T> {
         return index.toString();
     }
 
-    function listen(listener: (payload: T) => void | EventListener<T>): EventHandle<T> {
+    function listen(listener: ((payload: T) => void) | EventListener<T>): EventHandle<T> {
         if (typeof listener === 'function') {
             listener = {
                 callback: listener,
@@ -19,7 +19,7 @@ export function useEvent<T>(): Event<T> {
         }
 
         const listenerId = generateListenerId();
-        listeners.set(listenerId, listener as EventListener<T>);
+        listeners.set(listenerId, listener);
 
         return {
             stop: () => remove(listenerId),
