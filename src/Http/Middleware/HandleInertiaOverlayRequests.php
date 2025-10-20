@@ -4,6 +4,7 @@ namespace JesseGall\InertiaOverlay\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use JesseGall\InertiaOverlay\ContextAwareOverlay;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
 use JesseGall\InertiaOverlay\OverlayFactory;
 use JesseGall\InertiaOverlay\OverlayHeader;
@@ -31,10 +32,21 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
-        return new OverlayResponse(
-            $this->factory->makeFromId($overlayId)
-        );
+        $overlay = $this->factory->makeFromId($overlayId);
+
+        // Redirect to a URL that only contains the overlay query parameter to make sure no state is transferred.
+        if ($overlay->context->isOpening() && count($request->query()) > 1) {
+            return redirect()->to($request->url() . '?overlay=' . $overlay->context->overlayId);
+        }
+
+        if ($overlay->context->isClosing()) {
+            return redirect()->to($this->resolveCloseUrl($overlay));
+        }
+
+        return new OverlayResponse($overlay);
     }
+
+    # ----------[ Internal ]----------
 
     private function resolveOverlayId(Request $request): string|null
     {
@@ -48,6 +60,35 @@ readonly class HandleInertiaOverlayRequests
     private function flagOverlayAsRedirected(string $overlayId): void
     {
         session()->flash(OverlayHeader::OVERLAY_REDIRECTED_ID, $overlayId);
+    }
+
+    private function resolveCloseUrl(ContextAwareOverlay $overlay): string
+    {
+        if ($overlay->context->getIndex() === 0) {
+            return $this->unsetOverlayQueryParam($overlay->context->getRootUrl());
+        }
+
+        [$url] = explode('?', $overlay->context->getRootUrl());
+        $previousId = $overlay->context->getPreviousId();
+
+        return "{$url}?overlay={$previousId}";
+    }
+
+    private function unsetOverlayQueryParam(string $url): string
+    {
+        $query = parse_url($url, PHP_URL_QUERY);
+
+        if ($query) {
+            parse_str($query, $queryParams);
+            unset($queryParams['overlay']);
+            $url = strtok($url, '?');
+
+            if (count($queryParams) > 0) {
+                $url .= '?' . http_build_query($queryParams);
+            }
+        }
+
+        return $url;
     }
 
 
