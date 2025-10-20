@@ -4,10 +4,18 @@ import { useOverlayRegistrar } from "../Composables/use-overlay-registrar.ts";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import Overlay from "./Overlay.vue";
 import { useOverlay } from "../Composables/use-overlay.ts";
+import { computed } from "vue";
 
 // ----------[ Data ]----------
 
 const { stack } = useOverlayRegistrar();
+
+// ----------[ Computed ]----------
+
+const showFallBackBackdrop = computed(() => {
+    return stack.value.length === 1
+        && useOverlay(stack.value[0]).hasStatus('closing');
+});
 
 // ----------[ Methods ]----------
 
@@ -38,6 +46,7 @@ function shouldBlurBackground(overlayId: string): boolean {
 <template>
     <Teleport to="body">
         <div class="inertia-overlay">
+            <OverlayBackdrop :blur="showFallBackBackdrop"/>
             <template v-for="overlayId in stack" :key="overlayId">
                 <OverlayBackdrop
                     :blur="shouldBlurBackground(overlayId)"

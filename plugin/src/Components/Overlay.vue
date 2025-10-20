@@ -63,8 +63,18 @@ onMounted(() => {
 
 <template>
     <template v-if="active">
-        <Component :is="wrapper" :show="open" :size="overlay.options.size">
-            <Component :is="component" v-bind="overlay.props" @close="close"/>
+        <Component
+            :is="wrapper"
+            :show="open"
+            :size="overlay.options.size"
+        >
+            
+            <Component
+                :is="component"
+                v-bind="overlay.props"
+                @close="close"
+            />
+
         </Component>
     </template>
 </template>

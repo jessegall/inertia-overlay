@@ -1,6 +1,6 @@
-import { OverlayEvent } from "../inertia-overlay";
+import { Event } from "../inertia-overlay";
 
-export function useOverlayEvent<T>(): OverlayEvent<T> {
+export function useEvent<T>(): Event<T> {
 
     const listeners = new Set<(payload: T) => any>();
 
@@ -24,7 +24,7 @@ export function useOverlayEvent<T>(): OverlayEvent<T> {
             listen,
             remove
         },
-        trigger
+        trigger,
     ];
 
 }

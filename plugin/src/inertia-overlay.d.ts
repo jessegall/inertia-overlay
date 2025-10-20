@@ -1,13 +1,13 @@
 import { ComputedRef } from "vue";
 
-export interface OverlayEventListener<T> {
+export interface EventListener<T> {
     listen: (listener: (payload: T) => void) => VoidFunction;
     remove: (listener: (payload: T) => void) => void;
 }
 
-export type OverlayEvent<T> = [
-    listeners: OverlayEventListener<T>,
-    trigger: (payload: T) => void
+export type Event<T> = [
+    listeners: EventListener<T>,
+    trigger: (payload: T) => void,
 ]
 
 export interface OverlayOptions {
@@ -18,16 +18,20 @@ export interface OverlayOptions {
     variant: OverlayVariant;
 }
 
-export interface OverlayHandle {
+export interface OverlayInstance {
 
     id: string;
     index: ComputedRef<number>;
     state: OverlayState;
 
-    onStatusChange: OverlayEventListener<OverlayStatus>
+    onStatusChange: EventListener<OverlayStatus>
+    onFocus: EventListener<void>
+    onBlur: EventListener<void>
 
     open: () => void;
     close: () => void;
+    destroy: () => void;
+
     hasStatus: (...status: OverlayStatus[]) => boolean;
 
     get options(): OverlayOptions;

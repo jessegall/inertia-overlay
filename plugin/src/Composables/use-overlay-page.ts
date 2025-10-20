@@ -1,9 +1,8 @@
 import { ref } from "vue";
 import { OverlayOptions } from "../inertia-overlay";
+import { useSingleton } from "./use-singleton.ts";
 
-export type OverlayPage = ReturnType<typeof makeOverlayPage>;
-
-function makeOverlayPage() {
+const overlayPage = useSingleton(() => {
     const options = ref<OverlayOptions>(null);
 
     function overlayQueryParam() {
@@ -20,13 +19,8 @@ function makeOverlayPage() {
         overlayQueryParam,
         setOptions,
     }
-}
+});
 
-let overlayPage: OverlayPage = null;
-
-export function useOverlayPage(): OverlayPage {
-    if (! overlayPage) {
-        overlayPage = makeOverlayPage();
-    }
-    return overlayPage;
+export function useOverlayPage() {
+    return overlayPage();
 }

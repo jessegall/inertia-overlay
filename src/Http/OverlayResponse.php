@@ -27,8 +27,8 @@ readonly class OverlayResponse implements Responsable
             return redirect()->to($this->resolveCloseUrl());
         }
 
-        // If the overlay is not yet active, we need to add its props to the partial data header so they are included in the response.
-        if (! $this->overlay->context->isMounted()) {
+        // If the overlay is not active, we need to add its props to the partial data header so they are included in the response.
+        if (! $this->overlay->context->isActive()) {
             $this->addOverlayPropsToPartialOnlyHeader($request);
         }
 

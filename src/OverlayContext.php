@@ -31,7 +31,7 @@ class OverlayContext
         return $this->isOverlayIdMatching() && $this->resolve(OverlayHeader::OVERLAY_CLOSING);
     }
 
-    public function isMounted(): bool
+    public function isActive(): bool
     {
         return $this->isOverlayIdMatching() && ! $this->isOpening() && ! $this->isClosing();
     }

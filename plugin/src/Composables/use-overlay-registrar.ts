@@ -1,8 +1,12 @@
 import { computed, readonly, ref } from "vue";
+import { useSingleton } from "./use-singleton.ts";
+import { useEvent } from "./use-event.ts";
 
-export type OverlayRegistrar = ReturnType<typeof makeOverlayRegister>
+const overlayRegistrar = useSingleton(() => {
 
-function makeOverlayRegister() {
+    // ----------[ Events ]----------
+
+    const [onStackChange, onStackChangeTrigger] = useEvent<string[]>();
 
     // ----------[ Data ]----------
 
@@ -13,11 +17,13 @@ function makeOverlayRegister() {
     function register(id: string) {
         if (hasOverlay(id)) return;
         stack.value.push(id);
+        onStackChangeTrigger([...stack.value]);
     }
 
     function unregister(id: string) {
         if (! hasOverlay(id)) return;
         stack.value = stack.value.filter(i => i !== id);
+        onStackChangeTrigger([...stack.value]);
     }
 
     function hasOverlay(id: string) {
@@ -36,6 +42,8 @@ function makeOverlayRegister() {
 
     return {
 
+        onStackChange,
+
         register,
         unregister,
         hasOverlay,
@@ -51,14 +59,8 @@ function makeOverlayRegister() {
 
     }
 
-}
+});
 
-let register: OverlayRegistrar = null;
-
-export function useOverlayRegistrar(): OverlayRegistrar {
-    if (! register) {
-        register = makeOverlayRegister();
-    }
-
-    return register;
+export function useOverlayRegistrar() {
+    return overlayRegistrar();
 }
