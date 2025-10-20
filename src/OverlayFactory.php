@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Pipeline\Pipeline;
+use Illuminate\Support\Str;
 
 readonly class OverlayFactory
 {
@@ -55,9 +56,7 @@ readonly class OverlayFactory
 
     public function generateOverlayId(string $typename, array $args): string
     {
-        if (empty($args)) {
-            return $typename;
-        }
+        $args['_instanceId'] = Str::random(8);
 
         $json = json_encode($args);
         $encoded = rawurlencode($json);

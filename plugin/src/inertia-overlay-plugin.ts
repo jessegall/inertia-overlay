@@ -3,10 +3,10 @@ import { router, usePage } from "@inertiajs/vue3";
 import { PendingVisit } from "@inertiajs/core";
 import { useOverlayRegistrar } from "./Composables/use-overlay-registrar.ts";
 import { useOverlayContext } from "./Composables/use-overlay-context.ts";
-import { useOverlay } from "./Composables/use-overlay.ts";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers.ts";
 import { OverlayPluginOptions } from "./types";
+import { useOverlay, useOverlayInstance } from "./Composables/use-overlay.ts";
 
 function mount(app: any) {
     const originalRender = app._component.render;
@@ -24,7 +24,7 @@ function injectOverlayHeaders(visit: PendingVisit) {
     const registrar = useOverlayRegistrar();
 
     if (registrar.hasOverlays()) {
-        const overlay = useOverlay(registrar.activeOverlayId.value);
+        const overlay = useOverlayInstance(registrar.activeOverlayId.value);
 
         visit.preserveScroll = true;
 

@@ -3,7 +3,7 @@
 import { useOverlayRegistrar } from "../Composables/use-overlay-registrar.ts";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import Overlay from "./Overlay.vue";
-import { useOverlay } from "../Composables/use-overlay.ts";
+import { useOverlayInstance } from "../Composables/use-overlay.ts";
 import { computed } from "vue";
 
 // ----------[ Data ]----------
@@ -14,28 +14,28 @@ const { stack } = useOverlayRegistrar();
 
 const showFallBackBackdrop = computed(() => {
     return stack.value.length === 1
-        && useOverlay(stack.value[0]).hasStatus('closing');
+        && useOverlayInstance(stack.value[0]).hasStatus('closing');
 });
 
 // ----------[ Methods ]----------
 
 function closeOverlay(overlayId: string) {
-    useOverlay(overlayId)?.close();
+    useOverlayInstance(overlayId)?.close();
 }
 
 function shouldBlurBackground(overlayId: string): boolean {
     if (stack.value.length === 1) {
         return overlayId == stack.value[stack.value.length - 1]
-            && useOverlay(overlayId).hasStatus('opening', 'open')
+            && useOverlayInstance(overlayId).hasStatus('opening', 'open')
     }
 
     const secondLastOverlayId = stack.value[stack.value.length - 2];
     if (secondLastOverlayId === overlayId) {
-        return useOverlay(stack.value[stack.value.length - 1]).hasStatus('opening', 'closing');
+        return useOverlayInstance(stack.value[stack.value.length - 1]).hasStatus('opening', 'closing');
     }
 
     if (overlayId === stack.value[stack.value.length - 1]) {
-        return useOverlay(overlayId).hasStatus('open');
+        return useOverlayInstance(overlayId).hasStatus('open');
     }
 
     return false;

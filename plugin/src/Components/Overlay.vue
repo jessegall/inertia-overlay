@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { computed, shallowRef, watch } from "vue";
-import { useOverlay } from "../Composables/use-overlay.ts";
+import { useOverlayInstance } from "../Composables/use-overlay.ts";
 import OverlayDrawer from "./OverlayDrawer.vue";
 import OverlayModal from "./OverlayModal.vue";
 import { OverlayVariant } from "../inertia-overlay";
@@ -25,7 +25,7 @@ const OVERLAY_VARIANT_COMPONENTS: Record<OverlayVariant, any> = {
 const { id } = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const overlay = useOverlay(id);
+const overlay = useOverlayInstance(id);
 const wrapper = shallowRef();
 const component = shallowRef();
 

@@ -3,7 +3,7 @@ import { useOverlayRegistrar } from "./use-overlay-registrar.ts";
 import { computed, nextTick, reactive } from "vue";
 import { useEvent } from "./use-event.ts";
 import { OverlayConfig, OverlayInstance, OverlayPage, OverlayState, OverlayStatus } from "../inertia-overlay";
-import { clone } from "../helpers.ts";
+import { clone, randomString } from "../helpers.ts";
 import { useOverlayContext } from "./use-overlay-context.ts";
 
 interface UseOverlayOptions {
@@ -25,11 +25,6 @@ export function useOverlay(typename: string, args: Record<string, any> = {}, opt
     };
 
     const id = generateOverlayId(typename, args);
-
-    if (instances.has(id)) {
-        return instances.get(id);
-    }
-
     const instance = createOverlay(id);
 
     instances.set(id, instance);
@@ -52,8 +47,12 @@ export function useOverlay(typename: string, args: Record<string, any> = {}, opt
     return instance;
 }
 
+export function useOverlayInstance(id: string): OverlayInstance | null {
+    return instances.get(id) || null;
+}
+
 function generateOverlayId(typename: string, args: Record<string, string> = {}) {
-    if (Object.keys(args).length === 0) return typename;
+    args['_instanceId'] = randomString();
 
     const json = JSON.stringify(args);
     const encoded = encodeURIComponent(json);
