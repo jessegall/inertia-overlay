@@ -89,8 +89,6 @@ function createOverlay(id: string): OverlayInstance {
     function setStatus(status: OverlayStatus) {
         state.status = status;
 
-        console.log(`Overlay [${ id }] status changed to [${ status }].`);
-
         switch (status) {
 
             case 'opening':
@@ -113,8 +111,6 @@ function createOverlay(id: string): OverlayInstance {
     async function open() {
         if (! hasStatus('closed')) return;
 
-        console.log(`Opening overlay [${ id }].`);
-
         try {
             setStatus('opening');
 
@@ -123,7 +119,7 @@ function createOverlay(id: string): OverlayInstance {
             }
 
             setStatus('open');
-        } catch(error) {
+        } catch (error) {
             setStatus('closed');
         }
     }
@@ -145,7 +141,6 @@ function createOverlay(id: string): OverlayInstance {
     }
 
     function destroy() {
-        console.log(`Destroying overlay [${ id }]`);
         registrar.onStackChange.remove(onRegistrarStackChange);
         onStatusChange.clear();
         onFocus.clear();

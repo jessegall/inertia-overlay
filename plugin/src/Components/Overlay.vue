@@ -26,7 +26,6 @@ const { id } = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const overlay = useOverlay(id);
-
 const wrapper = shallowRef();
 const component = shallowRef();
 
@@ -46,12 +45,13 @@ function close() {
 
 // ----------[ Watchers ]----------
 
-const activeWatcherHandle = watch(active,
-    async (active) => {
-        if (active) {
+const statusWatcherHandle = watch(
+    () => overlay.state.status,
+    async (status) => {
+        if (status === 'open') {
             wrapper.value = OVERLAY_VARIANT_COMPONENTS[overlay.options.variant];
             component.value = await resolveOverlayComponent(overlay.options.typename);
-            activeWatcherHandle.stop()
+            statusWatcherHandle.stop()
         }
     },
     {
