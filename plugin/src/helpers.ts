@@ -27,3 +27,10 @@ export function randomString(length: number = 8) {
         characters.charAt(Math.floor(Math.random() * characters.length))
     ).join('');
 }
+
+export function resolve(value: any): any {
+    if (typeof value === 'function') {
+        return value();
+    }
+    return value;
+}

@@ -1,4 +1,4 @@
-import { App, h } from "vue";
+import { App, h, ref } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import { PendingVisit } from "@inertiajs/core";
 import { useOverlayRegistrar } from "./Composables/use-overlay-registrar.ts";
@@ -72,22 +72,21 @@ function compareOverlayId(overlayId: string) {
     }
 }
 
+
 export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
+
+    const initialized = ref(false);
 
     function install(app: App) {
         app.config.globalProperties.$inertiaOverlay = options;
         mount(app);
 
-        let initialized = false;
-        router.on('navigate', () => {
-            if (! initialized) {
-                initialize();
-                initialized = true;
-            }
-        })
+        router.on('navigate', initialize)
     }
 
     function initialize() {
+        if (initialized.value) return;
+
         const context = useOverlayContext();
 
         context.onPageReloaded.listen(page => compareOverlayId(page.overlay.id))
@@ -98,9 +97,12 @@ export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
             const overlay = useOverlay(overlayId);
             overlay.open();
         }
+
+        initialized.value = true;
     }
 
     return {
         install,
     };
+    
 }

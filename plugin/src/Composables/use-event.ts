@@ -1,42 +1,32 @@
 import { Event, EventHandle, EventListener } from "../inertia-overlay";
+import { reactive } from "vue";
+import { useCounter } from "./use-counter.ts";
+import { resolve } from "../helpers.ts";
+
 
 export function useEvent<T>(): Event<T> {
 
-    const listeners = new Map<string, EventListener<T>>();
-    let index = 0;
+    const listeners = reactive<Map<number, EventListener<T>>>(new Map());
+    const counter = useCounter();
 
-    function generateListenerId() {
-        index += 1;
-        return index.toString();
-    }
+    // ----------[ Methods ]----------
 
     function listen(listener: ((payload: T) => void) | EventListener<T>): EventHandle<T> {
-        if (typeof listener === 'function') {
-            listener = {
-                callback: listener,
-                priority: 0,
-            };
-        }
-
-        const listenerId = generateListenerId();
-        listeners.set(listenerId, listener);
+        const listenerId = counter.next();
+        listeners.set(listenerId, createListener(listener));
 
         return {
             stop: () => remove(listenerId),
         }
     }
 
-    function remove(listenerId: string) {
+    function remove(listenerId: number) {
         listeners.delete(listenerId);
     }
 
     function trigger(payload: T) {
         const callbacks = Array.from(listeners.values())
-            .sort((a, b) => {
-                const priorityA = typeof a.priority === 'function' ? a.priority() : a.priority;
-                const priorityB = typeof b.priority === 'function' ? b.priority() : b.priority;
-                return priorityB - priorityA;
-            })
+            .sort((a, b) => resolve(b.priority) - resolve(a.priority))
             .map(l => l.callback);
 
         for (const callback of callbacks) {
@@ -55,4 +45,15 @@ export function useEvent<T>(): Event<T> {
         clear,
     };
 
+}
+
+function createListener<T>(listener: ((payload: T) => void) | EventListener<T>) {
+    if (typeof listener === 'function') {
+        return {
+            callback: listener,
+            priority: 0,
+        };
+    }
+
+    return listener;
 }

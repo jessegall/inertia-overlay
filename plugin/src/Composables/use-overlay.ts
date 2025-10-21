@@ -12,8 +12,8 @@ interface UseOverlayOptions {
 }
 
 const DEFAULT_OPTIONS: UseOverlayOptions = {
-    autoOpen: true,
-    destroyOnClose: true,
+    autoOpen: false,
+    destroyOnClose: false,
 }
 
 const instances = new Map<string, OverlayInstance>();
