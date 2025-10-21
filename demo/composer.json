@@ -11,7 +11,7 @@
     "repositories": [
         {
             "type": "path",
-            "url": ".."
+            "url": "package/InertiaOverlay"
         }
     ],
     "require": {
@@ -52,6 +52,14 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "pre-install-cmd": [
+            "@php -r \"!file_exists('package') && mkdir('package');\"",
+            "@php -r \"!file_exists('package/InertiaOverlay') && symlink(realpath('..'), 'package/InertiaOverlay');\""
+        ],
+        "pre-update-cmd": [
+            "@php -r \"!file_exists('package') && mkdir('package');\"",
+            "@php -r \"!file_exists('package/InertiaOverlay') && symlink(realpath('..'), 'package/InertiaOverlay');\""
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
