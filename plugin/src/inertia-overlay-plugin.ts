@@ -5,8 +5,8 @@ import { useOverlayRegistrar } from "./Composables/use-overlay-registrar.ts";
 import { useOverlayContext } from "./Composables/use-overlay-context.ts";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { inertiaOverlayHeaders } from "./inertia-overlay-headers.ts";
-import { OverlayPluginOptions } from "./types";
 import { useOverlay, useOverlayInstance } from "./Composables/use-overlay.ts";
+import { OverlayPluginOptions } from "./inertia-overlay";
 
 function mount(app: any) {
     const originalRender = app._component.render;
@@ -104,5 +104,5 @@ export function createInertiaOverlayPlugin(options: OverlayPluginOptions) {
     return {
         install,
     };
-    
+
 }

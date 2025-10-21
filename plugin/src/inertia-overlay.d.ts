@@ -1,6 +1,10 @@
 import { ComputedRef } from "vue";
 import { Page } from "@inertiajs/core";
 
+export interface OverlayPluginOptions<T = any> {
+    resolve: (type: string) => () => Promise<T>;
+}
+
 export type EventListener<T> = {
     callback: (payload: T) => void;
     priority: number | (() => number);

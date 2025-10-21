@@ -1,8 +1,4 @@
-import { Component } from "vue";
-
-export interface OverlayPluginOptions {
-    resolve: (type: string) => () => Promise<Component>;
-}
+export {};
 
 declare module 'vue' {
     interface ComponentCustomProperties {
