@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-    important: '.inertia-overlay',
+    corePlugins: {
+        preflight: false,
+    },
     content: [
         "./src/**/*.{vue,js,ts,jsx,tsx}",
     ],
