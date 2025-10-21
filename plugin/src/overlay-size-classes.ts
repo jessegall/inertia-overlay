@@ -1,16 +1,16 @@
 import { OverlaySize } from "./inertia-overlay";
 
 export const overlaySizeClasses: Record<OverlaySize, string> = {
-    'sm': 'max-w-sm',
-    'md': 'max-w-md',
-    'lg': 'max-w-lg',
-    'xl': 'max-w-xl',
-    '2xl': 'max-w-2xl',
-    '3xl': 'max-w-3xl',
-    '4xl': 'max-w-4xl',
-    '5xl': 'max-w-5xl',
-    '6xl': 'max-w-6xl',
-    '7xl': 'max-w-7xl',
-    '80%': 'max-w-[80%]',
-    'full': 'max-w-[95%]',
+    'sm': 'inertia-overlay-size-sm',
+    'md': 'inertia-overlay-size-md',
+    'lg': 'inertia-overlay-size-lg',
+    'xl': 'inertia-overlay-size-xl',
+    '2xl': 'inertia-overlay-size-2xl',
+    '3xl': 'inertia-overlay-size-3xl',
+    '4xl': 'inertia-overlay-size-4xl',
+    '5xl': 'inertia-overlay-size-5xl',
+    '6xl': 'inertia-overlay-size-6xl',
+    '7xl': 'inertia-overlay-size-7xl',
+    '80%': 'inertia-overlay-size-80',
+    'full': 'inertia-overlay-size-full',
 };

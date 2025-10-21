@@ -1,3 +1,119 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    /* Size classes */
+    .inertia-overlay-size-sm {
+        @apply max-w-sm;
+    }
+
+    .inertia-overlay-size-md {
+        @apply max-w-md;
+    }
+
+    .inertia-overlay-size-lg {
+        @apply max-w-lg;
+    }
+
+    .inertia-overlay-size-xl {
+        @apply max-w-xl;
+    }
+
+    .inertia-overlay-size-2xl {
+        @apply max-w-2xl;
+    }
+
+    .inertia-overlay-size-3xl {
+        @apply max-w-3xl;
+    }
+
+    .inertia-overlay-size-4xl {
+        @apply max-w-4xl;
+    }
+
+    .inertia-overlay-size-5xl {
+        @apply max-w-5xl;
+    }
+
+    .inertia-overlay-size-6xl {
+        @apply max-w-6xl;
+    }
+
+    .inertia-overlay-size-7xl {
+        @apply max-w-7xl;
+    }
+
+    .inertia-overlay-size-80 {
+        @apply max-w-[80%];
+    }
+
+    .inertia-overlay-size-full {
+        @apply max-w-[95%];
+    }
+
+    /* Backdrop */
+    .inertia-overlay-backdrop {
+        @apply fixed inset-0 flex justify-center items-center bg-black backdrop-blur-sm transition-opacity opacity-0 pointer-events-none z-50;
+    }
+
+    .inertia-overlay-backdrop--active {
+        @apply opacity-20 pointer-events-auto;
+    }
+
+    /* Drawer */
+    .inertia-overlay-drawer-container {
+        @apply fixed inset-0 overflow-y-auto px-4 sm:px-0 z-50 pointer-events-none;
+    }
+
+    .inertia-overlay-drawer-wrapper {
+        @apply h-full w-full flex justify-end;
+    }
+
+    .inertia-overlay-drawer {
+        @apply bg-white pointer-events-auto shadow-xl w-full transform transition-all;
+    }
+
+    .inertia-overlay-slide-right-enter-active,
+    .inertia-overlay-slide-right-leave-active {
+        transition: transform 150ms ease-in-out, max-width 150ms ease-in-out;
+    }
+
+    .inertia-overlay-slide-right-enter-from,
+    .inertia-overlay-slide-right-leave-to {
+        transform: translateX(100%);
+    }
+
+    /* Modal */
+    .inertia-overlay-modal-container {
+        @apply fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50 pointer-events-none;
+    }
+
+    .inertia-overlay-modal {
+        @apply mb-6 bg-white rounded-lg shadow-xl transform transition-all sm:w-full sm:mx-auto pointer-events-auto overflow-hidden;
+    }
+
+    .inertia-overlay-modal-enter-active {
+        @apply ease-out duration-150;
+    }
+
+    .inertia-overlay-modal-enter-from {
+        @apply opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95;
+    }
+
+    .inertia-overlay-modal-enter-to {
+        @apply opacity-100 translate-y-0 sm:scale-100;
+    }
+
+    .inertia-overlay-modal-leave-active {
+        @apply ease-in duration-150;
+    }
+
+    .inertia-overlay-modal-leave-from {
+        @apply opacity-100 translate-y-0 sm:scale-100;
+    }
+
+    .inertia-overlay-modal-leave-to {
+        @apply opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95;
+    }
+}

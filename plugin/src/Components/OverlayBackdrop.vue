@@ -10,12 +10,11 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const blur = computed(() => props.blur);
-
 </script>
 
 <template>
     <div
-        class="backdrop-blur-component fixed inset-0 flex justify-center items-center bg-black backdrop-blur-sm transition-opacity opacity-0 pointer-events-none z-50"
-        :class="{ 'opacity-20 pointer-events-auto': blur }"
+        class="inertia-overlay-backdrop"
+        :class="{ 'inertia-overlay-backdrop--active': blur }"
     />
 </template>
