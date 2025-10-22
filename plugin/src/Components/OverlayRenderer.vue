@@ -1,10 +1,9 @@
 <script setup lang="ts">
 
-import { computed, defineAsyncComponent, h, inject, nextTick, ref, watch } from "vue";
+import { computed, h, inject, nextTick, ref, watch } from "vue";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import { ReadonlyOverlay } from "../OverlayFactory.ts";
-import { overlaySizeClasses } from "../overlay-size-classes.ts";
 import OverlayWrapperWrapper from "./OverlayWrapper.vue";
 
 interface Props {
@@ -22,8 +21,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const overlay = props.overlay;
 
-const OverlayComponent = defineAsyncComponent(() => plugin.resolveComponent(overlay.type))
-const OverlayComponentRenderer = () => h(OverlayComponent, overlay.props)
+const OverlayComponentRenderer = () => h(overlay.component, overlay.props);
 
 // ----------[ Data ]----------
 

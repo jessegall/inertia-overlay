@@ -19,9 +19,9 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
 
         const inertiaOverlayPlugin = createInertiaOverlayPlugin({
-            resolve: typename => {
+            resolve: type => {
                 const overlays = import.meta.glob('./overlays/**/*.vue');
-                return overlays[`./overlays/${ typename }.vue`];
+                return overlays[`./overlays/${ type }.vue`];
             }
         });
 

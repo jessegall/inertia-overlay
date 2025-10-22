@@ -5,8 +5,10 @@ import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayArgs, OverlayType } from "./Overlay.ts";
 import { OverlayRequest } from "./OverlayRequest.ts";
 
+export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
+
 export interface OverlayPluginOptions<T = any> {
-    resolve: (type: string) => () => Promise<T>;
+    resolve: OverlayComponentResolver<T>;
 }
 
 export interface CreateOverlayOptions {
@@ -25,13 +27,12 @@ export class OverlayPlugin {
     ) {
         this.stack = new OverlayStack();
         this.request = new OverlayRequest((overlayId: string) => this.stack.findById(overlayId));
-        this.factory = new OverlayFactory(this.request);
+        this.factory = new OverlayFactory(this.options.resolve, this.request);
     }
 
     public install(app: App): void {
         this.provideDependencies(app);
         this.injectOverlayRootComponent(app);
-        this.setupListeners(app);
     }
 
     // ----------[ Setup ]----------
@@ -53,70 +54,31 @@ export class OverlayPlugin {
         };
     }
 
-    private setupListeners(app: App): void {
-        this.stack.onOverlayPushed.listen(overlay => this.onOverlayPushed(overlay));
-    }
-
-    // ----------[ EventHandlers ]----------
-
-    private onOverlayPushed(overlay: ReadonlyOverlay): void {
-        overlay.onStatusChange.listen((status) => {
-            if (status === 'closed') {
-                this.stack.remove(overlay.id);
-            }
-        });
-    }
-
     // ----------[ Api ]----------
 
     public createOverlay(options: CreateOverlayOptions): ReadonlyOverlay {
         const overlay = this.factory.make(options.type, options.args);
-
-        overlay.onStatusChange.listen((status) => {
-            switch (status) {
-
-                case "opening":
-                    const parent = this.stack.peek();
-                    const index = this.stack.size();
-
-                    this.stack.push(overlay);
-
-                    if (parent) {
-                        overlay.setParentId(parent.id);
-                    }
-
-                    overlay.setIndex(index);
-
-                    break;
-
-                case "closed":
-                    this.stack.remove(overlay.id);
-                    break;
-
-            }
-        })
-
+        overlay.onStatusChange.listen((status) => this.handleOverlayStatusChange(overlay, status));
         return overlay;
     }
 
-    public async resolveComponent<T>(type: string): Promise<T> {
-        const resolver = this.options.resolve;
+    // ----------[ EventHandlers ]----------
 
-        if (! resolver) {
-            throw new Error('Overlay component resolver not configured.');
+    private handleOverlayStatusChange(overlay: ReadonlyOverlay, status: string): void {
+        switch (status) {
+
+            case "opening":
+                overlay.setParentId(this.stack.peekId());
+                overlay.setIndex(this.stack.size());
+                this.stack.push(overlay);
+                break;
+
+            case "closed":
+                this.stack.remove(overlay.id);
+                overlay.setIndex(-1);
+                break;
+
         }
-
-        const component = await resolver(type)?.();
-
-        if (! component) {
-            throw new Error(`Overlay component for typename "${ type }" not found.`);
-        }
-
-        if (typeof component === 'object' && 'default' in component) {
-            return component.default as T;
-        }
-
-        return component as T;
     }
 
 }

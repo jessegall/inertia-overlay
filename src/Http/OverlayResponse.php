@@ -33,7 +33,7 @@ readonly class OverlayResponse implements Responsable
     {
         $only = str($request->header(Header::PARTIAL_ONLY, ''))
             ->explode(',')
-            ->merge($this->overlay->keys())
+            ->merge($this->overlay->keys(excludeFirstLoad: true))
             ->unique()
             ->join(',');
 

@@ -31,6 +31,11 @@ export class OverlayStack {
         return this.overlays.value[size - 1];
     }
 
+    public peekId(): string | null {
+        const top = this.peek();
+        return top ? top.id : null;
+    }
+
     public size(): number {
         return this.overlays.value.length;
     }

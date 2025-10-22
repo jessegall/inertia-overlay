@@ -41,10 +41,10 @@ class ContextAwareOverlay implements Overlay
         return $this->props;
     }
 
-    public function keys(): array
+    public function keys(bool $excludeFirstLoad = false): array
     {
         return collect($this->props())
-            ->filter(fn($value) => ! $value instanceof IgnoreFirstLoad)
+            ->filter(fn($value) => ! $excludeFirstLoad || ! $value instanceof IgnoreFirstLoad)
             ->keys()
             ->all();
     }

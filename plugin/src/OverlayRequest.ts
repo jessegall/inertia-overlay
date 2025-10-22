@@ -1,12 +1,29 @@
 import { router, usePage } from "@inertiajs/vue3";
 import { EventDispatcher } from "./event.ts";
 import { Page, PendingVisit } from "@inertiajs/core";
-import { headers, OverlayPage } from "./Overlay.ts";
+import { OverlayPage } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
 import { ReadonlyOverlay } from "./OverlayFactory.ts";
 
 type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
+
+
+export const headers = {
+
+    INERTIA: 'X-Inertia',
+    INERTIA_PARTIAL_COMPONENT: 'X-Inertia-Partial-Component',
+
+    OVERLAY: 'X-Inertia-Overlay',
+    OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
+    OVERLAY_PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
+
+    OVERLAY_ID: 'X-Inertia-Overlay-Id',
+    OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
+    OVERLAY_STATE: 'X-Inertia-Overlay-State',
+    OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
+
+}
 
 export class OverlayRequest {
 
@@ -89,7 +106,6 @@ export class OverlayRequest {
         const overlayId = visit.url.searchParams.get("overlay");
 
         if (overlayId) {
-            const page = usePage();
             const overlay = this.resolve(overlayId);
 
             if (! overlay) {

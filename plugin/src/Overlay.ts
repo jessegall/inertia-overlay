@@ -1,7 +1,8 @@
 import { EventDispatcher } from "./event.ts";
-import { ref } from "vue";
+import { Component, ref, ShallowRef } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { OverlayRequest } from "./OverlayRequest.ts";
+import { usePage } from "@inertiajs/vue3";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
@@ -19,25 +20,6 @@ export interface OverlayConfig {
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
-
-export const headers = {
-
-    INERTIA: 'X-Inertia',
-    INERTIA_PARTIAL_COMPONENT: 'X-Inertia-Partial-Component',
-
-    OVERLAY: 'X-Inertia-Overlay',
-    OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
-    OVERLAY_PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
-
-    OVERLAY_ID: 'X-Inertia-Overlay-Id',
-    OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
-    OVERLAY_STATE: 'X-Inertia-Overlay-State',
-    OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
-
-}
-
-
-const index = ref<number>(0);
 
 export class Overlay {
 
@@ -61,6 +43,7 @@ export class Overlay {
         public readonly type: OverlayType,
         public readonly args: OverlayArgs,
         public readonly request: OverlayRequest,
+        public readonly component: ShallowRef<Component>,
     ) {
         this.setupListeners();
     }
@@ -68,8 +51,15 @@ export class Overlay {
     // ----------[ Setup ]----------
 
     private setupListeners(): void {
-        this.request.onBeforeRouteVisit.listen(visit => this.handleBeforeRouteVisit(visit));
-        this.request.onOverlayPageLoad.listen(page => this.handleSuccessfulRouteVisit(page));
+        this.request.onBeforeRouteVisit.listen({
+            callback: visit => this.handleBeforeRouteVisit(visit),
+            priority: () => this.index.value,
+        });
+
+        this.request.onOverlayPageLoad.listen({
+            callback: page => this.handleSuccessfulRouteVisit(page),
+            priority: () => this.index.value,
+        });
     }
 
     // ----------[ Api ]----------
@@ -89,11 +79,10 @@ export class Overlay {
             return;
         }
 
-        const start = Date.now();
-
         this.setState('closing');
 
         if (this.isFocused()) {
+            const start = Date.now();
             const parentId = this.getParentId();
 
             if (parentId) {
@@ -101,17 +90,15 @@ export class Overlay {
             } else {
                 await this.request.fetchRoot();
             }
-        }
 
-        const elapsed = Date.now() - start;
-        const minDuration = 300;
-        if (elapsed < minDuration) {
-            await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+            const elapsed = Date.now() - start;
+            const minDuration = 300;
+            if (elapsed < minDuration) {
+                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+            }
         }
 
         this.setState('closed');
-
-        this.index.value = -1;
     }
 
     public setParentId(parentId: string | null): void {
@@ -142,7 +129,8 @@ export class Overlay {
 
         this.focused.value = true;
         this.onFocused.trigger();
-        console.log('focused', this.index.value);
+
+        console.log("Overlay focused:", this.index.value);
     }
 
     public isFocused(): boolean {
@@ -156,27 +144,60 @@ export class Overlay {
 
         this.focused.value = false;
         this.onBlurred.trigger();
-        console.log('blurred', this.index.value);
+
+        console.log("Overlay blurred:", this.index.value);
     }
 
     public isBlurred(): boolean {
         return ! this.focused.value;
     }
 
+    // ----------[ Internal ]----------
+
+    private setConfig(config: OverlayConfig): void {
+        this.config.value = config;
+    }
+
+    private updateProps(props: OverlayProps): void {
+        console.log("Update", this.index.value);
+        const _props: OverlayProps = {};
+        for (const key of this.config.value.props) {
+            _props[key] = props[key];
+        }
+        this.props.value = _props;
+    }
+
+    private restorePageProps(): void {
+        const page = usePage();
+        for (const key of this.config.value.props) {
+            page.props[key] = this.props.value[key];
+        }
+    }
+
+    private clearPageProps(): void {
+        const page = usePage();
+        for (const key of this.config.value.props) {
+            delete page.props[key];
+        }
+    }
+
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        if (visit.url.searchParams.has('overlay', this.id)) {
-            this.focus();
-        } else {
-            this.blur();
-        }
+
     }
 
     private handleSuccessfulRouteVisit(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
-            this.config.value = page.overlay;
-            this.props.value = page.props;
+            this.setConfig(page.overlay);
+            if (this.isBlurred() && this.hasState('open')) {
+                this.restorePageProps();
+            } else {
+                this.updateProps(page.props);
+            }
+            this.focus();
+        } else {
+            this.blur();
         }
     }
 
