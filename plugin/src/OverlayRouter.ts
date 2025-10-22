@@ -96,8 +96,10 @@ export class OverlayRouter {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = visit.url.searchParams.get("overlay");
-
+        const overlayId = visit.method === 'get'
+            ? visit.url.searchParams.get("overlay")
+            : new URL(window.location.href).searchParams.get("overlay");
+        
         if (overlayId) {
             const overlay = this.resolve(overlayId);
 

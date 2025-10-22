@@ -16,6 +16,10 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
+        if ($request->method() !== 'GET') {
+            return $next($request);
+        }
+
         $overlay = new Overlay($request);
 
         return $overlay->render();
