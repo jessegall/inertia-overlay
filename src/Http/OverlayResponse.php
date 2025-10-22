@@ -5,35 +5,65 @@ namespace JesseGall\InertiaOverlay\Http;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
 use Inertia\Support\Header;
-use JesseGall\InertiaOverlay\ContextAwareOverlay;
+use JesseGall\InertiaOverlay\Overlay;
+use JesseGall\InertiaOverlay\OverlayComponent;
+use JesseGall\InertiaOverlay\OverlayRegistrar;
+use JesseGall\InertiaOverlay\OverlaySize;
+use JesseGall\InertiaOverlay\OverlayState;
+use JesseGall\InertiaOverlay\OverlayVariant;
 
 readonly class OverlayResponse implements Responsable
 {
 
+    private OverlayVariant $variant;
+    private OverlaySize $size;
+    private array $props;
+
     public function __construct(
-        private ContextAwareOverlay $overlay,
-    ) {}
+        private Overlay $overlay,
+    )
+    {
+        $component = $this->makeComponent();
+
+        $this->variant = $component->variant();
+        $this->size = $component->size();
+        $this->props = $component->props();
+    }
 
     public function toResponse($request): JsonResponse
     {
-        if ($this->overlay->context->isOpening()) {
-            $this->addOverlayPropsToPartialOnlyHeader($request);
+        if ($this->overlay->hasState(OverlayState::OPENING)) {
+            $this->addNonLazyPropsToPartialOnlyHeader($request);
         }
 
-        return $this->injectOverlayDataInResponse(
-            $this->createInertiaResponse($request)
-        );
+        $response = $this->createInertiaResponse($request);
+
+        return $this->injectOverlayDataInResponse($response);
     }
 
     # ----------[ Internal ]----------
 
-    private function addOverlayPropsToPartialOnlyHeader(Request $request): void
+    private function makeComponent(): OverlayComponent
     {
+        $class = app(OverlayRegistrar::class)
+            ->resolveComponentClass($this->overlay->component);
+
+        return app($class, $this->overlay->arguments);
+    }
+
+    private function addNonLazyPropsToPartialOnlyHeader(Request $request): void
+    {
+        $keys = collect($this->props)
+            ->filter(fn($value) => ! $value instanceof IgnoreFirstLoad)
+            ->keys()
+            ->all();
+
         $only = str($request->header(Header::PARTIAL_ONLY, ''))
             ->explode(',')
-            ->merge($this->overlay->keys(excludeFirstLoad: true))
+            ->merge($keys)
             ->unique()
             ->join(',');
 
@@ -42,29 +72,26 @@ readonly class OverlayResponse implements Responsable
 
     private function createInertiaResponse(Request $request): JsonResponse
     {
-        return Inertia::render($this->overlay->context->getPageComponent(), $this->overlay->props())
-            ->toResponse($request);
+        return Inertia::render($this->overlay->getPageComponent(), $this->props)->toResponse($request);
     }
 
     private function injectOverlayDataInResponse(JsonResponse $response): JsonResponse
     {
         return $response->setData(
             [
+
                 ...$response->getData(true),
-                'overlay' => $this->generateOverlayData()
+
+                'overlay' => [
+                    'id' => $this->overlay->getId(),
+                    'component' => $this->overlay->component,
+                    'variant' => $this->variant,
+                    'size' => $this->size,
+                    'props' => array_keys($this->props),
+                ],
+
             ]
         );
-    }
-
-    private function generateOverlayData(): array
-    {
-        return [
-            'id' => $this->overlay->context->overlayId,
-            'typename' => $this->overlay->context->typename,
-            'variant' => $this->overlay->variant(),
-            'size' => $this->overlay->size(),
-            'props' => $this->overlay->keys(),
-        ];
     }
 
 }

@@ -13,7 +13,7 @@ class OverlayRegistrar
      * Register an overlay type
      * 
      * @param string $typename
-     * @param class-string<Overlay> $type
+     * @param class-string<OverlayComponent> $type
      * @return void
      */
     public function register(string $typename, string $type): void
@@ -27,9 +27,9 @@ class OverlayRegistrar
      * Resolve the overlay type by id
      *
      * @param string $typename
-     * @return class-string<Overlay>
+     * @return class-string<OverlayComponent>
      */
-    public function resolveClass(string $typename): string
+    public function resolveComponentClass(string $typename): string
     {
         return $this->overlays[$typename] ?? throw new InvalidArgumentException("Overlay with id [$typename] not found");
     }
@@ -49,8 +49,8 @@ class OverlayRegistrar
      */
     private function assertIsOverlayType(string $type): void
     {
-        if (! is_subclass_of($type, Overlay::class)) {
-            throw new InvalidArgumentException("Overlay must be an instance of " . Overlay::class);
+        if (! is_subclass_of($type, OverlayComponent::class)) {
+            throw new InvalidArgumentException("Overlay must be an instance of " . OverlayComponent::class);
         }
     }
 

@@ -3,6 +3,7 @@ import { Component, ref, ShallowRef } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { OverlayRequest } from "./OverlayRequest.ts";
 import { usePage } from "@inertiajs/vue3";
+import { clone } from "./helpers.ts";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
@@ -170,7 +171,7 @@ export class Overlay {
     private restorePageProps(): void {
         const page = usePage();
         for (const key of this.config.value.props) {
-            page.props[key] = this.props.value[key];
+            page.props[key] = clone(this.props[key])
         }
     }
 

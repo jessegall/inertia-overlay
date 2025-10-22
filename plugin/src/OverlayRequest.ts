@@ -116,6 +116,8 @@ export class OverlayRequest {
                 this.setRootUrl(window.location.href);
             }
 
+            const page = usePage();
+
             visit.headers = {
 
                 ...visit.headers,
@@ -127,6 +129,7 @@ export class OverlayRequest {
                 [headers.OVERLAY_INDEX]: overlay.index.toString(),
                 [headers.OVERLAY_STATE]: overlay.state,
                 [headers.OVERLAY_PARENT_ID]: overlay.parentId,
+                [headers.OVERLAY_PAGE_COMPONENT]: page.component,
                 [headers.OVERLAY_ROOT_URL]: this.rootUrl.value,
 
             }

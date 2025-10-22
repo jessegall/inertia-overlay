@@ -9,9 +9,9 @@ interface OverlayMiddleware
 
     /**
      * @param OverlayContext $context
-     * @param (Closure(OverlayContext): Overlay) $next
-     * @return Overlay
+     * @param (Closure(OverlayContext): OverlayComponent) $next
+     * @return OverlayComponent
      */
-    public function handle(OverlayContext $context, Closure $next): Overlay;
+    public function handle(OverlayContext $context, Closure $next): OverlayComponent;
 
 }

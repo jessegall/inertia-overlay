@@ -11,7 +11,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     public function register(): void
     {
         $this->registerRegistrar();
-        $this->registerFactory();
     }
 
     public function boot(): void
@@ -36,17 +35,12 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         });
     }
 
-    private function registerFactory(): void
-    {
-        $this->app->singleton(OverlayFactory::class);
-    }
-
     private function bootMacros(): void
     {
         Request::macro('inertiaOverlay', function (): bool {
             /** @var Request $this */
             return $this->inertia()
-                && $this->header(OverlayHeader::OVERLAY);
+                && $this->header(InertiaOverlay::OVERLAY);
         });
     }
 

@@ -3,11 +3,11 @@
 namespace App\Http\Overlays;
 
 use Inertia\Inertia;
-use JesseGall\InertiaOverlay\Overlay;
+use JesseGall\InertiaOverlay\OverlayComponent;
 use JesseGall\InertiaOverlay\OverlaySize;
 use JesseGall\InertiaOverlay\OverlayVariant;
 
-class DemoDrawerOverlay implements Overlay
+class DemoDrawerOverlay implements OverlayComponent
 {
 
     public function variant(): OverlayVariant
