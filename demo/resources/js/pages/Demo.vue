@@ -12,8 +12,6 @@ function createDemoModal() {
     })
 
     overlay.open();
-
-    console.log(overlay);
 }
 
 </script>

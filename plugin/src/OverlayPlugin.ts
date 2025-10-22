@@ -2,26 +2,36 @@ import { OverlayStack } from "./OverlayStack.ts";
 import { App, h } from "vue";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { OverlayFactory } from "./OverlayFactory.ts";
-import { Overlay } from "./Overlay.ts";
+import { Overlay, OverlayArgs, OverlayType } from "./Overlay.ts";
+import { OverlayRequest } from "./OverlayRequest.ts";
 
 export interface OverlayPluginOptions<T = any> {
     resolve: (type: string) => () => Promise<T>;
 }
 
+export interface CreateOverlayOptions {
+    type: OverlayType;
+    args: OverlayArgs
+}
+
 export class OverlayPlugin {
 
-    private readonly stack: OverlayStack = new OverlayStack();
-    private readonly factory: OverlayFactory = new OverlayFactory();
+    private readonly stack: OverlayStack;
+    private readonly request: OverlayRequest;
+    private readonly factory: OverlayFactory;
 
     constructor(
         public readonly options: OverlayPluginOptions
     ) {
-        this.stack.onOverlayPushed.listen(overlay => this.onOverlayPushed(overlay));
+        this.stack = new OverlayStack();
+        this.request = new OverlayRequest(this.stack);
+        this.factory = new OverlayFactory(this.request);
     }
 
     public install(app: App): void {
         this.provideDependencies(app);
         this.injectOverlayRootComponent(app);
+        this.setupListeners(app);
     }
 
     // ----------[ Setup ]----------
@@ -29,6 +39,7 @@ export class OverlayPlugin {
     private provideDependencies(app: App): void {
         app.provide('overlay.plugin', this);
         app.provide('overlay.stack', this.stack);
+        app.provide('overlay.request', this.request);
         app.provide('overlay.factory', this.factory);
     }
 
@@ -42,10 +53,13 @@ export class OverlayPlugin {
         };
     }
 
+    private setupListeners(app: App): void {
+        this.stack.onOverlayPushed.listen(overlay => this.onOverlayPushed(overlay));
+    }
+
     // ----------[ EventHandlers ]----------
 
     private onOverlayPushed(overlay: Overlay): void {
-        overlay.onFocused.listen(() => this.onOverlayFocused(overlay));
         overlay.onStatusChange.listen((status) => {
             if (status === 'closed') {
                 this.stack.remove(overlay.id);
@@ -53,16 +67,31 @@ export class OverlayPlugin {
         });
     }
 
-    private onOverlayFocused(overlay: Overlay): void {
-        if (this.stack.size() <= 1) {
-            return;
-        }
-        const index = this.stack.overlays.value.findIndex(o => o.id === overlay.id);
-        const previousOverlay = this.stack.overlays.value[index - 1];
-        previousOverlay.blur();
-    }
-
     // ----------[ Api ]----------
+
+    public createOverlay(options: CreateOverlayOptions): Overlay {
+        const overlay = this.factory.make(options.type, options.args);
+
+        overlay.onStatusChange.listen((status) => {
+            switch (status) {
+
+                case "opening":
+                    const parent = this.stack.peek();
+                    this.stack.push(overlay);
+                    if (parent) {
+                        overlay.setParentId(parent.id);
+                    }
+                    break;
+
+                case "closed":
+                    this.stack.remove(overlay.id);
+                    break;
+
+            }
+        })
+
+        return overlay;
+    }
 
     public async resolveComponent<T>(type: string): Promise<T> {
         const resolver = this.options.resolve;

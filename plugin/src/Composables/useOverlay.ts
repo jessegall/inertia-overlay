@@ -1,25 +1,16 @@
-import { useOverlayFactory } from "./useOverlayFactory.ts";
-import { useOverlayStack } from "./useOverlayStack.ts";
-import { Overlay, OverlayArgs, OverlayType } from "../Overlay.ts";
-
-interface CreateOverlayOptions {
-    type: OverlayType;
-    args: OverlayArgs
-}
+import { inject } from "vue";
+import { CreateOverlayOptions, OverlayPlugin } from "../OverlayPlugin.ts";
 
 export function useOverlay() {
 
-    const factory = useOverlayFactory();
-    const stack = useOverlayStack();
+    const plugin = inject<OverlayPlugin>('overlay.plugin');
 
-    function createOverlay(options: CreateOverlayOptions): Overlay {
-        const overlay = factory.create(options.type, options.args);
-        stack.push(overlay);
-        return overlay;
+    function createOverlay(options: CreateOverlayOptions) {
+        return plugin.createOverlay(options);
     }
 
     return {
-        createOverlay,
-    };
+        createOverlay
+    }
 
 }

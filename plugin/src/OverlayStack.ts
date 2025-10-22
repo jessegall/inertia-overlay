@@ -17,12 +17,10 @@ export class OverlayStack {
     public push(overlay: Overlay): void {
         this.overlays.value = [...this.overlays.value, overlay];
         this.onOverlayPushed.trigger(overlay);
-        console.log('Overlay pushed. Current stack size:', this.size());
     }
 
     public remove(id: string): void {
         this.overlays.value = this.overlays.value.filter(overlay => overlay.id !== id);
-        console.log('Overlay removed. Current stack size:', this.size());
     }
 
     public peek(): Overlay | null {
@@ -37,7 +35,7 @@ export class OverlayStack {
         return this.overlays.value.length;
     }
 
-    public get(id: string): Overlay | null {
+    public findById(id: string): Overlay | null {
         return this.overlays.value.find(overlay => overlay.id === id) || null;
     }
 

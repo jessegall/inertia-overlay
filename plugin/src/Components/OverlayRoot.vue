@@ -18,15 +18,9 @@ const overlays = computed<Reactive<Overlay[]>>(() => {
 // ----------[ Methods ]----------
 
 function closeOverlay(id: string) {
-    const overlay = stack.get(id);
+    const overlay = stack.findById(id);
     overlay?.close();
 }
-
-// ----------[ Watchers ]----------
-
-watch(overlays, overlays => {
-    console.log("Overlay stack changed:", overlays);
-})
 
 </script>
 

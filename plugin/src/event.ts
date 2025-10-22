@@ -1,13 +1,13 @@
-export interface EventListener<T> {
+export interface EventListener<T = any> {
     callback: (payload: T) => void;
     priority: number | (() => number);
 }
 
-export interface EventListenerHandle<T> {
+export interface EventListenerHandle<T = any> {
     stop: VoidFunction;
 }
 
-export class EventDispatcher<T> {
+export class EventDispatcher<T = any> {
 
     private listeners: Map<number, EventListener<T>> = new Map();
 

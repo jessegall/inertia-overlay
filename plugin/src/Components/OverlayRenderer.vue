@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { computed, inject, onMounted, shallowRef, watch } from "vue";
+import { computed, inject, shallowRef, watch } from "vue";
 import OverlayDrawer from "./OverlayDrawer.vue";
 import OverlayModal from "./OverlayModal.vue";
 import { OverlayVariant } from "../inertia-overlay";
@@ -54,17 +54,12 @@ const statusWatcherHandle = watch(
             wrapper.value = OVERLAY_VARIANT_COMPONENTS['modal'];
             component.value = await plugin.resolveComponent(props.type);
             statusWatcherHandle.stop()
-            console.log(props);
         }
     },
     {
         immediate: true,
     }
 )
-
-onMounted(() => {
-    console.log("Overlay mounted:", props);
-})
 
 </script>
 

@@ -1,11 +1,16 @@
 import { Overlay, OverlayArgs, OverlayType } from "./Overlay.ts";
 import { randomString } from "./helpers.ts";
+import { OverlayRequest } from "./OverlayRequest.ts";
 
 export class OverlayFactory {
 
-    public create(type: OverlayType, args: OverlayArgs): Overlay {
+    constructor(
+        private readonly request: OverlayRequest,
+    ) {}
+
+    public make(type: OverlayType, args: OverlayArgs): Overlay {
         const id = this.generateOverlayId(type, args);
-        return new Overlay(id, type, args);
+        return new Overlay(id, type, args, this.request);
     }
 
     private generateOverlayId(type: OverlayType, args: OverlayArgs): string {

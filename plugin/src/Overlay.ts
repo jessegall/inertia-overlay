@@ -1,8 +1,8 @@
-import { router, usePage } from "@inertiajs/vue3";
 import { EventDispatcher } from "./event.ts";
 import { ref } from "vue";
 import { isOverlayPage } from "./helpers.ts";
-import { Page, Visit } from "@inertiajs/core";
+import { Page, PendingVisit } from "@inertiajs/core";
+import { OverlayRequest } from "./OverlayRequest.ts";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
@@ -23,6 +23,9 @@ export type OverlayPage = Page & { overlay: OverlayConfig };
 
 export const headers = {
 
+    INERTIA: 'X-Inertia',
+    INERTIA_PARTIAL_COMPONENT: 'X-Inertia-Partial-Component',
+
     OVERLAY: 'X-Inertia-Overlay',
     OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
     OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
@@ -39,6 +42,8 @@ export const headers = {
 }
 
 
+const count = ref<number>(0);
+
 export class Overlay {
 
     // ----------[ Events ]----------
@@ -49,6 +54,8 @@ export class Overlay {
 
     // ----------[ Properties ]----------
 
+    public parentId = ref<string | null>(null);
+    public index = ref<number>(null);
     public state = ref<OverlayState>('closed')
     public focused = ref<boolean>(false);
     public props = ref<OverlayProps | null>(null);
@@ -58,106 +65,112 @@ export class Overlay {
         public readonly id: string,
         public readonly type: OverlayType,
         public readonly args: OverlayArgs,
+        public readonly request: OverlayRequest,
     ) {
-        router.on('before', event => this.onRouterBeforeVisit(event.detail.visit));
-        router.on('success', event => this.onRouteSuccessVisit(event.detail.page));
+        this.index.value = count.value++;
+        this.setupListeners();
+    }
+
+    // ----------[ Setup ]----------
+
+    private setupListeners(): void {
+        this.request.onBeforeRouteVisit.listen(visit => this.handleBeforeRouteVisit(visit));
+        this.request.onSuccessfulRouteVisit.listen(page => this.handleSuccessfulRouteVisit(page));
     }
 
     // ----------[ Api ]----------
 
     public async open(): Promise<void> {
-        if (! this.hasStatus('closed')) {
+        if (! this.hasState('closed')) {
             return;
         }
 
-        this.focus();
-
         this.setState('opening');
-
-        await this.reload();
-
+        await this.request.fetch(this.id);
         this.setState('open');
     }
 
     public async close(): Promise<void> {
-        if (! this.hasStatus('open')) {
+        if (! this.hasState('open')) {
             return;
         }
 
         this.setState('closing');
 
-        await this.reload();
+        if (this.isFocused()) {
+            const parentId = this.getParentId();
+
+            if (parentId) {
+                await this.request.fetch(parentId);
+            } else {
+                console.log("Return to page");
+            }
+        }
 
         this.setState('closed');
     }
 
+    public setParentId(parentId: string | null): void {
+        this.parentId.value = parentId;
+    }
+
+    public getParentId(): string | null {
+        return this.parentId.value
+    }
+
+    public getState(): OverlayState {
+        return this.state.value;
+    }
+
+    public setState(state: OverlayState): void {
+        this.state.value = state;
+        this.onStatusChange.trigger(state);
+    }
+
+    public hasState(...states: OverlayState[]): boolean {
+        return states.includes(this.state.value);
+    }
+
     public focus(): void {
+        if (this.isFocused()) {
+            return;
+        }
+
         this.focused.value = true;
         this.onFocused.trigger();
-        console.log('focused');
-    }
-
-    public blur(): void {
-        this.focused.value = false;
-        this.onBlurred.trigger();
-        console.log('blurred');
-    }
-
-    public hasStatus(...statuses: OverlayState[]): boolean {
-        return statuses.includes(this.state.value);
+        console.log('focused', this.index.value);
     }
 
     public isFocused(): boolean {
         return this.focused.value;
     }
 
+    public blur(): void {
+        if (this.isBlurred()) {
+            return;
+        }
+
+        this.focused.value = false;
+        this.onBlurred.trigger();
+        console.log('blurred', this.index.value);
+    }
+
     public isBlurred(): boolean {
         return ! this.focused.value;
     }
 
-    // ----------[ Internal ]----------
-
-    private async reload(): Promise<void> {
-        await new Promise<void>((resolve, error) => {
-            router.reload({
-                data: {
-                    overlay: this.id,
-                },
-                onSuccess: () => {
-                    resolve();
-                },
-                onError: () => {
-                    error();
-                },
-            });
-        })
-    }
-
-    private setState(state: OverlayState): void {
-        this.state.value = state;
-        this.onStatusChange.trigger(state);
-    }
 
     // ----------[ Event Handlers ]----------
 
-
-    private onRouterBeforeVisit(visit: Visit): void {
-        const page = usePage();
-
-        if (this.isFocused()) {
-            visit.headers = {
-                'X-Inertia': 'true',
-                'X-Inertia-Partial-Component': page.component,
-                [headers.OVERLAY]: 'true',
-                [headers.OVERLAY_ID]: this.id,
-                [headers.OVERLAY_STATE]: this.state.value,
-                [headers.OVERLAY_ROOT_URL]: page.url,
-                ...visit.headers,
-            }
+    private handleBeforeRouteVisit(visit: PendingVisit): void {
+        if (visit.url.searchParams.has('overlay', this.id)) {
+            this.focus();
+        } else {
+            this.blur();
         }
     }
 
-    private onRouteSuccessVisit(page: Page): void {
+    private handleSuccessfulRouteVisit(page: Page): void {
         if (isOverlayPage(page) && page.overlay.id === this.id) {
             this.config.value = page.overlay;
             this.props.value = page.props;
