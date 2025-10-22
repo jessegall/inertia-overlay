@@ -2,6 +2,7 @@
 
 namespace JesseGall\InertiaOverlay\Http;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,14 @@ readonly class OverlayResponse implements Responsable
 
         $this->variant = $component->variant();
         $this->size = $component->size();
-        $this->props = $component->props();
+
+        $props = $component->props();
+
+        if ($props instanceof Arrayable) {
+            $this->props = $props->toArray();
+        } else {
+            $this->props = $props;
+        }
     }
 
     public function toResponse($request): JsonResponse
@@ -50,6 +58,10 @@ readonly class OverlayResponse implements Responsable
     {
         $class = app(OverlayRegistrar::class)
             ->resolveComponentClass($this->overlay->component);
+
+        if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
+            return $class::from($this->overlay->arguments);
+        }
 
         return app($class, $this->overlay->arguments);
     }
