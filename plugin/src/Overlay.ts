@@ -18,6 +18,9 @@ export interface OverlayConfig {
     variant: OverlayVariant;
     size: OverlaySize;
     props: string[];
+    flags: {
+        skipHydrationOnFocus: boolean;
+    }
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };

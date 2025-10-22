@@ -11,28 +11,25 @@ use Inertia\Inertia;
 use Inertia\Support\Header;
 use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlayComponent;
+use JesseGall\InertiaOverlay\OverlayFlags;
 use JesseGall\InertiaOverlay\OverlayRegistrar;
-use JesseGall\InertiaOverlay\OverlaySize;
 use JesseGall\InertiaOverlay\OverlayState;
-use JesseGall\InertiaOverlay\OverlayVariant;
 
 readonly class OverlayResponse implements Responsable
 {
 
-    private OverlayVariant $variant;
-    private OverlaySize $size;
+    private OverlayComponent $component;
+    private OverlayFlags $flags;
     private array $props;
 
     public function __construct(
         private Overlay $overlay,
     )
     {
-        $component = $this->makeComponent();
+        $this->component = $this->makeComponent();
+        $this->flags = new OverlayFlags($this->component);
 
-        $this->variant = $component->variant();
-        $this->size = $component->size();
-
-        $props = $component->props();
+        $props = $this->component->props();
         if ($props instanceof Arrayable) {
             $this->props = $props->toArray();
         } else {
@@ -42,7 +39,7 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        if ($this->overlay->hasState(OverlayState::OPENING) || $this->overlay->isRedirected() || $this->overlay->isBlurred()) {
+        if ($this->shouldHydrate()) {
             $this->addNonLazyPropsToPartialOnlyHeader($request);
         }
 
@@ -52,6 +49,23 @@ readonly class OverlayResponse implements Responsable
     }
 
     # ----------[ Internal ]----------
+
+    private function shouldHydrate(): bool
+    {
+        if ($this->overlay->hasState(OverlayState::OPENING)) {
+            return true;
+        }
+
+        if ($this->overlay->isRedirected()) {
+            return true;
+        }
+
+        if ($this->overlay->isBlurred() && ! $this->flags->skipHydrationOnFocus()) {
+            return true;
+        }
+
+        return false;
+    }
 
     private function makeComponent(): OverlayComponent
     {
@@ -96,9 +110,12 @@ readonly class OverlayResponse implements Responsable
                 'overlay' => [
                     'id' => $this->overlay->getId(),
                     'component' => $this->overlay->component,
-                    'variant' => $this->variant,
-                    'size' => $this->size,
+                    'variant' => $this->component->variant(),
+                    'size' => $this->component->size(),
                     'props' => array_keys($this->props),
+                    'flags' => [
+                        'skipHydrationOnFocus' => $this->flags->skipHydrationOnFocus(),
+                    ]
                 ],
 
             ]

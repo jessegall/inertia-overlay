@@ -3,11 +3,12 @@
 namespace App\Http\Overlays;
 
 use Inertia\Inertia;
+use JesseGall\InertiaOverlay\Flags\SkipHydrationOnFocus;
 use JesseGall\InertiaOverlay\OverlayComponent;
 use JesseGall\InertiaOverlay\OverlaySize;
 use JesseGall\InertiaOverlay\OverlayVariant;
 
-class DemoDrawerOverlay implements OverlayComponent
+class DemoDrawerOverlay implements OverlayComponent, SkipHydrationOnFocus
 {
 
     public function variant(): OverlayVariant
