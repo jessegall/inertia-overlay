@@ -192,11 +192,7 @@ export class Overlay {
     private handleSuccessfulRouteVisit(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
             this.setConfig(page.overlay);
-            if (this.isBlurred() && this.hasState('open')) {
-                this.restorePageProps();
-            } else {
-                this.updateProps(page.props);
-            }
+            this.updateProps(page.props);
             this.focus();
         } else {
             this.blur();

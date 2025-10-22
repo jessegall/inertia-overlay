@@ -10,18 +10,18 @@ interface Props {
     overlay: ReadonlyOverlay
 }
 
-interface Emits {
-    (e: 'close'): void,
-}
-
 // ----------[ Setup ]----------
 
 const plugin = inject<OverlayPlugin>("overlay.plugin");
 const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
 const overlay = props.overlay;
 
-const OverlayComponentRenderer = () => h(overlay.component, overlay.props);
+const OverlayComponentRenderer = () => h(overlay.component, {
+    ...overlay.props,
+    onClose() {
+        overlay.close();
+    }
+});
 
 // ----------[ Data ]----------
 
@@ -34,12 +34,6 @@ const shouldRenderBackdrop = computed<boolean>(() => {
         || overlay.state === 'open'
         || overlay.state === 'closing';
 });
-
-// ----------[ Methods ]----------
-
-function close() {
-    emit('close');
-}
 
 // ----------[ Watchers ]----------
 
@@ -64,7 +58,7 @@ watch(() => overlay.state, (state) => {
 
         <OverlayBackdrop
             :blur="shouldRenderBackdrop"
-            @click="close"
+            @click="overlay.close"
         />
 
         <template v-if="overlay.config">

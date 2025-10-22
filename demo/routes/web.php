@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -9,5 +10,11 @@ Route::get('/', function () {
 
 Route::post('/submit', function () {
     // Simulate form processing...
-    sleep(2);
+    sleep(1);
+});
+
+Route::post('/submit-error', function (Request $request) {
+    $request->validate([
+        'a_random_field' => 'required|min:5',
+    ]);
 });

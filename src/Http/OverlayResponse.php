@@ -33,7 +33,6 @@ readonly class OverlayResponse implements Responsable
         $this->size = $component->size();
 
         $props = $component->props();
-
         if ($props instanceof Arrayable) {
             $this->props = $props->toArray();
         } else {
@@ -43,7 +42,7 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        if ($this->overlay->hasState(OverlayState::OPENING) || $this->overlay->isRedirected()) {
+        if ($this->overlay->hasState(OverlayState::OPENING) || $this->overlay->isRedirected() || $this->overlay->isBlurred()) {
             $this->addNonLazyPropsToPartialOnlyHeader($request);
         }
 

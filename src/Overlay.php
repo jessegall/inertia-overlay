@@ -65,6 +65,16 @@ readonly class Overlay
         return $this->getState() === $state;
     }
 
+    public function isFocused(): bool
+    {
+        return filter_var($this->request->header(InertiaOverlay::OVERLAY_FOCUSED), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function isBlurred(): bool
+    {
+        return ! $this->isFocused();
+    }
+
     public function isRedirected(): bool
     {
         return session()->get('inertia.overlay.redirected') === $this->getId();

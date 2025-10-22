@@ -15,25 +15,13 @@ const overlays = computed<Reactive<Overlay[]>>(() => {
     return stack.overlays.value;
 });
 
-// ----------[ Methods ]----------
-
-function closeOverlay(id: string) {
-    const overlay = stack.findById(id);
-    overlay?.close();
-}
-
 </script>
 
 <template>
     <Teleport to="body">
         <div class="overlay-root">
             <template v-for="overlay in overlays" :key="overlay.id">
-
-                <OverlayRenderer
-                    :overlay
-                    @close="closeOverlay(overlay.id)"
-                />
-
+                <OverlayRenderer :overlay/>
             </template>
         </div>
     </Teleport>

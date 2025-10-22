@@ -13,9 +13,10 @@ export const headers = {
     OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
     OVERLAY_PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
+    OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
     OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
     OVERLAY_STATE: 'X-Inertia-Overlay-State',
-    OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
+    OVERLAY_FOCUSED: 'X-Inertia-Overlay-Focused',
 }
 
 export class OverlayRouter {
@@ -99,7 +100,7 @@ export class OverlayRouter {
         const overlayId = visit.method === 'get'
             ? visit.url.searchParams.get("overlay")
             : new URL(window.location.href).searchParams.get("overlay");
-        
+
         if (overlayId) {
             const overlay = this.resolve(overlayId);
 
@@ -126,6 +127,7 @@ export class OverlayRouter {
                 [headers.OVERLAY_PARENT_ID]: overlay.parentId,
                 [headers.OVERLAY_PAGE_COMPONENT]: page.component,
                 [headers.OVERLAY_ROOT_URL]: this.rootUrl.value,
+                [headers.OVERLAY_FOCUSED]: overlay.isFocused() ? 'true' : 'false',
 
             }
 

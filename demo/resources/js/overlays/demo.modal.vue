@@ -14,6 +14,8 @@ const props = defineProps<{
     }>;
 }>();
 
+const emit = defineEmits(['close']);
+
 const { createOverlay } = useOverlay();
 
 function loadLazyProp() {
@@ -41,10 +43,37 @@ function openDemoDrawer() {
 }
 
 function submit() {
-    router.post('/submit', {
-        data: 'example',
-    });
+    router.post('/submit',
+        {
+            prop: props.prop,
+            closureProp: props.closureProp,
+            lazyProp: props.lazyProp,
+            list: props.list,
+        },
+        {
+            onSuccess: () => {
+                emit('close');
+            }
+        }
+    );
 }
+
+function submitError() {
+    router.post('/submit-error',
+        {
+            prop: props.prop,
+            closureProp: props.closureProp,
+            lazyProp: props.lazyProp,
+            list: props.list,
+        },
+        {
+            onSuccess: () => {
+                emit('close');
+            }
+        }
+    );
+}
+
 
 </script>
 
@@ -76,8 +105,13 @@ function submit() {
             <Button @click="openDemoDrawer">
                 Open Demo Drawer
             </Button>
+        </div>
+        <div class="flex gap-2">
             <Button @click="submit">
-                Submit Demo Form
+                Submit
+            </Button>
+            <Button @click="submitError">
+                Submit With Error
             </Button>
         </div>
     </div>
