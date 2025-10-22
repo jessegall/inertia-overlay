@@ -5,17 +5,19 @@ namespace JesseGall\InertiaOverlay;
 use Illuminate\Http\Request;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
 
-readonly class Overlay
+class Overlay
 {
 
-    public string $component;
-    public array $arguments;
+    private OverlayComponent|null $component = null;
+
+    public readonly string $typename;
+    public readonly array $arguments;
 
     public function __construct(
         private Request $request,
     )
     {
-        [$this->component, $this->arguments] = $this->parseOverlayId($this->getId());
+        [$this->typename, $this->arguments] = $this->parseOverlayId($this->getId());
     }
 
     public function render(): OverlayResponse
@@ -26,6 +28,11 @@ readonly class Overlay
     public function flagRedirect(): void
     {
         session()->flash('inertia.overlay.redirected', $this->getId());
+    }
+
+    public function resolveComponent(): OverlayComponent
+    {
+        return $this->component ??= $this->makeComponent();
     }
 
     # ----------[ Headers ]----------
@@ -99,6 +106,20 @@ readonly class Overlay
         $decoded = base64_decode($encodedArguments);
         $json = rawurldecode($decoded);
         return json_decode($json, true) ?? [];
+    }
+
+    # ----------[ Component ]----------
+
+    private function makeComponent()
+    {
+        $class = app(OverlayRegistrar::class)
+            ->resolveComponentClass($this->typename);
+
+        if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
+            return $class::from($this->arguments);
+        }
+
+        return app($class, $this->arguments);
     }
 
 }

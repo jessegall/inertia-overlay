@@ -12,29 +12,22 @@ use Inertia\Support\Header;
 use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlayComponent;
 use JesseGall\InertiaOverlay\OverlayFlags;
-use JesseGall\InertiaOverlay\OverlayRegistrar;
 use JesseGall\InertiaOverlay\OverlayState;
 
 readonly class OverlayResponse implements Responsable
 {
 
-    private OverlayComponent $component;
-    private OverlayFlags $flags;
-    private array $props;
+    public OverlayComponent $component;
+    public OverlayFlags $flags;
+    public array $props;
 
     public function __construct(
         private Overlay $overlay,
     )
     {
-        $this->component = $this->makeComponent();
+        $this->component = $this->overlay->resolveComponent();
         $this->flags = new OverlayFlags($this->component);
-
-        $props = $this->component->props();
-        if ($props instanceof Arrayable) {
-            $this->props = $props->toArray();
-        } else {
-            $this->props = $props;
-        }
+        $this->props = $this->resolveProps();
     }
 
     public function toResponse($request): JsonResponse
@@ -50,6 +43,17 @@ readonly class OverlayResponse implements Responsable
 
     # ----------[ Internal ]----------
 
+    private function resolveProps(): array
+    {
+        $props = $this->component->props();
+
+        if ($props instanceof Arrayable) {
+            return $props->toArray();
+        } else {
+            return $props;
+        }
+    }
+
     private function shouldHydrate(): bool
     {
         if ($this->overlay->hasState(OverlayState::OPENING)) {
@@ -60,29 +64,17 @@ readonly class OverlayResponse implements Responsable
             return true;
         }
 
-        if ($this->overlay->isBlurred() && ! $this->flags->skipHydrationOnFocus()) {
+        if ($this->overlay->isBlurred() && ! $this->flags->skipHydrationOnRefocus()) {
             return true;
         }
 
         return false;
     }
 
-    private function makeComponent(): OverlayComponent
-    {
-        $class = app(OverlayRegistrar::class)
-            ->resolveComponentClass($this->overlay->component);
-
-        if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
-            return $class::from($this->overlay->arguments);
-        }
-
-        return app($class, $this->overlay->arguments);
-    }
-
     private function addNonLazyPropsToPartialOnlyHeader(Request $request): void
     {
         $keys = collect($this->props)
-            ->filter(fn($value) => ! $value instanceof IgnoreFirstLoad)
+            ->reject(fn($value) => $value instanceof IgnoreFirstLoad)
             ->keys()
             ->all();
 
@@ -102,24 +94,20 @@ readonly class OverlayResponse implements Responsable
 
     private function injectOverlayDataInResponse(JsonResponse $response): JsonResponse
     {
-        return $response->setData(
-            [
+        $data = $response->getData(true);
 
-                ...$response->getData(true),
-
-                'overlay' => [
-                    'id' => $this->overlay->getId(),
-                    'component' => $this->overlay->component,
-                    'variant' => $this->component->variant(),
-                    'size' => $this->component->size(),
-                    'props' => array_keys($this->props),
-                    'flags' => [
-                        'skipHydrationOnFocus' => $this->flags->skipHydrationOnFocus(),
-                    ]
-                ],
-
+        $data['overlay'] = [
+            'id' => $this->overlay->getId(),
+            'component' => $this->overlay->typename,
+            'variant' => $this->component->variant(),
+            'size' => $this->component->size(),
+            'props' => array_keys($this->props),
+            'flags' => [
+                'skipHydrationOnRefocus' => $this->flags->skipHydrationOnRefocus(),
             ]
-        );
+        ];
+
+        return $response->setData($data);
     }
 
 }

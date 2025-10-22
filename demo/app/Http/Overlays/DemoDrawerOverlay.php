@@ -3,12 +3,12 @@
 namespace App\Http\Overlays;
 
 use Inertia\Inertia;
-use JesseGall\InertiaOverlay\Flags\SkipHydrationOnFocus;
+use JesseGall\InertiaOverlay\Flags\SkipHydrationOnRefocus;
 use JesseGall\InertiaOverlay\OverlayComponent;
 use JesseGall\InertiaOverlay\OverlaySize;
 use JesseGall\InertiaOverlay\OverlayVariant;
 
-class DemoDrawerOverlay implements OverlayComponent, SkipHydrationOnFocus
+class DemoDrawerOverlay implements OverlayComponent, SkipHydrationOnRefocus
 {
 
     public function variant(): OverlayVariant
@@ -27,6 +27,14 @@ class DemoDrawerOverlay implements OverlayComponent, SkipHydrationOnFocus
             'prop' => 'This is a prop by value',
             'closureProp' => fn() => 'This is a prop from a closure',
             'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
+
+            'list' => fn() => array_map(
+                fn($i) => [
+                    'id' => $i,
+                    'name' => "Item #{$i}",
+                ],
+                range(1, rand(5, 15))
+            )
         ];
     }
 

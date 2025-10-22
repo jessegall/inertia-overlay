@@ -2,7 +2,7 @@
 
 namespace JesseGall\InertiaOverlay;
 
-use JesseGall\InertiaOverlay\Flags\SkipHydrationOnFocus;
+use JesseGall\InertiaOverlay\Flags\SkipHydrationOnRefocus;
 
 readonly class OverlayFlags
 {
@@ -11,9 +11,9 @@ readonly class OverlayFlags
         public OverlayComponent $component,
     ) {}
 
-    public function skipHydrationOnFocus(): bool
+    public function skipHydrationOnRefocus(): bool
     {
-        return $this->component instanceof SkipHydrationOnFocus;
+        return $this->component instanceof SkipHydrationOnRefocus;
     }
 
 }

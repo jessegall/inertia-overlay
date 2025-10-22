@@ -18,7 +18,7 @@ readonly class HandleInertiaOverlayRequests
 
         $overlay = new Overlay($request);
 
-        if ($request->method() !== 'GET') {
+        if ($request->method() !== Request::METHOD_GET) {
             $overlay->flagRedirect();
             return $next($request);
         }

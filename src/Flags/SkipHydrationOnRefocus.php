@@ -2,7 +2,7 @@
 
 namespace JesseGall\InertiaOverlay\Flags;
 
-interface SkipHydrationOnFocus
+interface SkipHydrationOnRefocus
 {
 
 }
