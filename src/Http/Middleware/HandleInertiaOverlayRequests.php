@@ -16,11 +16,12 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
+        $overlay = new Overlay($request);
+
         if ($request->method() !== 'GET') {
+            $overlay->flagRedirect();
             return $next($request);
         }
-
-        $overlay = new Overlay($request);
 
         return $overlay->render();
     }

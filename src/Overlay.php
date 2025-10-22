@@ -23,6 +23,11 @@ readonly class Overlay
         return new OverlayResponse($this);
     }
 
+    public function flagRedirect(): void
+    {
+        session()->flash('inertia.overlay.redirected', $this->getId());
+    }
+
     # ----------[ Headers ]----------
 
     public function getId(): string
@@ -58,6 +63,11 @@ readonly class Overlay
     public function hasState(OverlayState $state): bool
     {
         return $this->getState() === $state;
+    }
+
+    public function isRedirected(): bool
+    {
+        return session()->get('inertia.overlay.redirected') === $this->getId();
     }
 
     # ----------[ Parsing ]----------
