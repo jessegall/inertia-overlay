@@ -5,7 +5,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { createInertiaOverlayPlugin } from "@jessegall/inertia-overlay";
-import "@jessegall/inertia-overlay/build/style.css";
+import "../../../plugin/build/style.css";
 
 const appName = import.meta.env.VITE_APP_NAME || 'Inertia Overlay Demo App';
 

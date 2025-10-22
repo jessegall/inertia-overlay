@@ -1,58 +1,47 @@
 <script setup lang="ts">
 
-import { useOverlayRegistrar } from "../Composables/use-overlay-registrar.ts";
-import OverlayBackdrop from "./OverlayBackdrop.vue";
-import Overlay from "./Overlay.vue";
-import { useOverlayInstance } from "../Composables/use-overlay.ts";
-import { computed } from "vue";
+import { useOverlayStack } from "../Composables/useOverlayStack.ts";
+import OverlayRenderer from "./OverlayRenderer.vue";
+import { computed, Reactive, reactive, watch } from "vue";
+import { Overlay } from "../Overlay.ts";
 
-// ----------[ Data ]----------
+// ----------[ Setup ]----------
 
-const { stack } = useOverlayRegistrar();
+const stack = useOverlayStack();
 
-// ----------[ Computed ]----------
+//----------[ Computed ]----------
 
-const showFallBackBackdrop = computed(() => {
-    return stack.value.length === 1
-        && useOverlayInstance(stack.value[0]).hasStatus('closing');
+const overlays = computed<Reactive<Overlay[]>>(() => {
+    return reactive(stack.overlays.value);
 });
 
 // ----------[ Methods ]----------
 
-function closeOverlay(overlayId: string) {
-    useOverlayInstance(overlayId)?.close();
+function closeOverlay(id: string) {
+    const overlay = stack.get(id);
+    overlay?.close();
 }
 
-function shouldBlurBackground(overlayId: string): boolean {
-    if (stack.value.length === 1) {
-        return overlayId == stack.value[stack.value.length - 1]
-            && useOverlayInstance(overlayId).hasStatus('opening', 'open')
-    }
+// ----------[ Watchers ]----------
 
-    const secondLastOverlayId = stack.value[stack.value.length - 2];
-    if (secondLastOverlayId === overlayId) {
-        return useOverlayInstance(stack.value[stack.value.length - 1]).hasStatus('opening', 'closing');
-    }
-
-    if (overlayId === stack.value[stack.value.length - 1]) {
-        return useOverlayInstance(overlayId).hasStatus('open');
-    }
-
-    return false;
-}
+watch(overlays, overlays => {
+    console.log("Overlay stack changed:", overlays);
+})
 
 </script>
 
 <template>
     <Teleport to="body">
-        <div class="inertia-overlay">
-            <OverlayBackdrop :blur="showFallBackBackdrop"/>
-            <template v-for="overlayId in stack" :key="overlayId">
-                <OverlayBackdrop
-                    :blur="shouldBlurBackground(overlayId)"
-                    @click="closeOverlay(overlayId)"
+        <div class="overlay-root">
+            <template v-for="overlay in overlays" :key="overlay.id">
+                <OverlayRenderer
+                    :id="overlay.id"
+                    :type="overlay.type"
+                    :args="overlay.args"
+                    :state="overlay.state"
+                    :props="overlay.props"
+                    @close="closeOverlay(overlay.id)"
                 />
-                <Overlay :id="overlayId"/>
             </template>
         </div>
     </Teleport>

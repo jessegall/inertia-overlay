@@ -1,8 +1,10 @@
-import './style.css';
+import "./style.css";
+import { OverlayPlugin, OverlayPluginOptions } from "./OverlayPlugin.ts";
 
-export { createInertiaOverlayPlugin } from './inertia-overlay-plugin.ts';
-export { useOverlay, useOverlayInstance } from './Composables/use-overlay.ts';
-export { onOverlayClosed, onBeforeOverlayClose, onOverlayFocused, onOverlayBlurred } from './inertia-overlay-hooks.ts';
-export type { OverlayVariant, OverlayStatus } from './inertia-overlay.d.ts';
-export type * from './types.d.ts';
+export { useOverlayFactory } from './Composables/useOverlayFactory.ts';
+export { useOverlayStack } from './Composables/useOverlayStack.ts';
+export { useOverlay } from './Composables/useOverlay.ts';
 
+export function createInertiaOverlayPlugin(options: OverlayPluginOptions): OverlayPlugin {
+    return new OverlayPlugin(options);
+}

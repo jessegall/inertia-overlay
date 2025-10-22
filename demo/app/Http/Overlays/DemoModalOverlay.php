@@ -2,6 +2,7 @@
 
 namespace App\Http\Overlays;
 
+use Inertia\Inertia;
 use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlaySize;
 use JesseGall\InertiaOverlay\OverlayVariant;
@@ -22,7 +23,9 @@ class DemoModalOverlay implements Overlay
     public function props(): array
     {
         return [
-
+            'prop' => 'This is a prop by value',
+            'closureProp' => fn() => 'This is a prop from a closure',
+            'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
         ];
     }
 

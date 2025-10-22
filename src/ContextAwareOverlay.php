@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Inertia\IgnoreFirstLoad;
 use RuntimeException;
 
 class ContextAwareOverlay implements Overlay
@@ -42,7 +43,10 @@ class ContextAwareOverlay implements Overlay
 
     public function keys(): array
     {
-        return array_keys($this->props());
+        return collect($this->props())
+            ->filter(fn($value) => ! $value instanceof IgnoreFirstLoad)
+            ->keys()
+            ->all();
     }
 
     public static function fallbackUrl(): string

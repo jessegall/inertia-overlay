@@ -23,24 +23,19 @@ class OverlayContext
 
     public function isOpening(): bool
     {
-        return $this->isOverlayIdMatching() && $this->resolve(OverlayHeader::OVERLAY_OPENING);
+        return $this->compare(OverlayHeader::OVERLAY_STATE, 'opening');
     }
 
     public function isClosing(): bool
     {
-        return $this->isOverlayIdMatching() && $this->resolve(OverlayHeader::OVERLAY_CLOSING);
+        return $this->compare(OverlayHeader::OVERLAY_STATE, 'closing');
     }
 
-    public function isActive(): bool
+    public function isOpen(): bool
     {
-        return $this->isOverlayIdMatching() && ! $this->isOpening() && ! $this->isClosing();
+        return $this->compare(OverlayHeader::OVERLAY_STATE, 'open');
     }
 
-    public function isDirty(): bool
-    {
-        return $this->isOverlayIdMatching() && $this->resolve(OverlayHeader::OVERLAY_DIRTY);
-    }
-    
     public function isRedirected(): bool
     {
         return $this->isOverlayIdMatching()
@@ -64,7 +59,7 @@ class OverlayContext
 
     public function getPageComponent(): string
     {
-        return $this->resolve(OverlayHeader::OVERLAY_PAGE_COMPONENT);
+        return request()->header('X-Inertia-Partial-Component');
     }
 
     # ----------[ Arguments ]----------
@@ -106,6 +101,11 @@ class OverlayContext
     private function resolve(string $target): mixed
     {
         return session()->get($target) ?? request()->header($target);
+    }
+
+    private function compare(string $target, mixed $value): bool
+    {
+        return $this->resolve($target) === $value;
     }
 
 }
