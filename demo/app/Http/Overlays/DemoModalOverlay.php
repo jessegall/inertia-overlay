@@ -17,7 +17,7 @@ class DemoModalOverlay implements OverlayComponent
 
     public function size(): OverlaySize
     {
-        return OverlaySize::XL5;
+        return OverlaySize::XL2;
     }
 
     public function props(): array
@@ -26,6 +26,14 @@ class DemoModalOverlay implements OverlayComponent
             'prop' => 'This is a prop by value',
             'closureProp' => fn() => 'This is a prop from a closure',
             'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
+
+            'list' => fn() => array_map(
+                fn($i) => [
+                    'id' => $i,
+                    'name' => "Item #{$i}",
+                ],
+                range(1, rand(5, 15))
+            )
         ];
     }
 

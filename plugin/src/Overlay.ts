@@ -160,16 +160,22 @@ export class Overlay {
     }
 
     private updateProps(props: OverlayProps): void {
-        console.log("Update", this.index.value);
-        const _props: OverlayProps = {};
+        const _props = this.props.value || {};
+
         for (const key of this.config.value.props) {
-            _props[key] = props[key];
+            const value = props[key];
+            if (value === undefined || value === null) {
+                continue;
+            }
+            _props[key] = value;
         }
+
         this.props.value = _props;
     }
 
     private restorePageProps(): void {
         const page = usePage();
+
         for (const key of this.config.value.props) {
             page.props[key] = clone(this.props[key])
         }
@@ -177,6 +183,7 @@ export class Overlay {
 
     private clearPageProps(): void {
         const page = usePage();
+
         for (const key of this.config.value.props) {
             delete page.props[key];
         }

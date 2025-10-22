@@ -8,6 +8,10 @@ const props = defineProps<{
     prop: string;
     closureProp: string;
     lazyProp?: string;
+    list: Array<{
+        id: number;
+        name: string;
+    }>;
 }>();
 
 const { createOverlay } = useOverlay();
@@ -36,6 +40,11 @@ function openDemoDrawer() {
     overlay.open();
 }
 
+function submit() {
+    router.post('/submit', {
+        data: 'example',
+    });
+}
 
 </script>
 
@@ -52,6 +61,11 @@ function openDemoDrawer() {
                 {{ lazyProp }}
             </div>
         </div>
+        <div>
+            <div v-for="item in list" :key="item.id">
+                {{ item.name }}
+            </div>
+        </div>
         <div class="flex gap-2">
             <Button @click="loadLazyProp">
                 Load lazy props
@@ -61,6 +75,9 @@ function openDemoDrawer() {
             </Button>
             <Button @click="openDemoDrawer">
                 Open Demo Drawer
+            </Button>
+            <Button @click="submit">
+                Submit Demo Form
             </Button>
         </div>
     </div>

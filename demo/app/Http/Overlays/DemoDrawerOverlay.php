@@ -17,7 +17,7 @@ class DemoDrawerOverlay implements OverlayComponent
 
     public function size(): OverlaySize
     {
-        return OverlaySize::XL5;
+        return OverlaySize::XL2;
     }
 
     public function props(): array
