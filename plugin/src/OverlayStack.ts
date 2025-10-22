@@ -1,12 +1,12 @@
 import { shallowRef } from "vue";
-import { EventDispatcher } from "./event.ts";
+import { EventEmitter } from "./event.ts";
 import { ReadonlyOverlay } from "./OverlayFactory.ts";
 
 export class OverlayStack {
 
     // ----------[ Events ]----------
 
-    public readonly onOverlayPushed = new EventDispatcher<ReadonlyOverlay>();
+    public readonly onOverlayPushed = new EventEmitter<ReadonlyOverlay>();
 
     // ----------[ Properties ]----------
 
@@ -16,7 +16,7 @@ export class OverlayStack {
 
     public push(overlay: ReadonlyOverlay): void {
         this.overlays.value = [...this.overlays.value, overlay];
-        this.onOverlayPushed.trigger(overlay);
+        this.onOverlayPushed.emit(overlay);
     }
 
     public remove(id: string): void {

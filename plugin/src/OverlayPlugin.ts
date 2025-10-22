@@ -3,7 +3,7 @@ import { App, h } from "vue";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayArgs, OverlayType } from "./Overlay.ts";
-import { OverlayRequest } from "./OverlayRequest.ts";
+import { OverlayRouter } from "./OverlayRouter.ts";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -19,14 +19,14 @@ export interface CreateOverlayOptions {
 export class OverlayPlugin {
 
     private readonly stack: OverlayStack;
-    private readonly request: OverlayRequest;
+    private readonly request: OverlayRouter;
     private readonly factory: OverlayFactory;
 
     constructor(
         public readonly options: OverlayPluginOptions
     ) {
         this.stack = new OverlayStack();
-        this.request = new OverlayRequest((overlayId: string) => this.stack.findById(overlayId));
+        this.request = new OverlayRouter((overlayId: string) => this.stack.findById(overlayId));
         this.factory = new OverlayFactory(this.options.resolve, this.request);
     }
 
@@ -58,7 +58,7 @@ export class OverlayPlugin {
 
     public createOverlay(options: CreateOverlayOptions): ReadonlyOverlay {
         const overlay = this.factory.make(options.type, options.args);
-        overlay.onStatusChange.listen((status) => this.handleOverlayStatusChange(overlay, status));
+        overlay.onStatusChange.on((status) => this.handleOverlayStatusChange(overlay, status));
         return overlay;
     }
 

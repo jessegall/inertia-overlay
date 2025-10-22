@@ -1,7 +1,7 @@
 import { Overlay, OverlayArgs, OverlayType } from "./Overlay.ts";
 import { randomString, toReadonly } from "./helpers.ts";
-import { OverlayRequest } from "./OverlayRequest.ts";
-import { defineAsyncComponent, Reactive, shallowRef } from "vue";
+import { OverlayRouter } from "./OverlayRouter.ts";
+import { Component, defineAsyncComponent, Reactive, ShallowRef, shallowRef } from "vue";
 import { OverlayComponentResolver } from "./OverlayPlugin.ts";
 
 export type ReadonlyOverlay = Readonly<Reactive<Overlay>>;
@@ -10,14 +10,20 @@ export class OverlayFactory {
 
     constructor(
         private readonly componentResolver: OverlayComponentResolver,
-        private readonly request: OverlayRequest,
+        private readonly router: OverlayRouter,
     ) {}
 
     public make(type: OverlayType, args: OverlayArgs): ReadonlyOverlay {
-        const id = this.generateOverlayId(type, args);
-        const component = defineAsyncComponent(this.componentResolver(type))
-        const overlay = new Overlay(id, type, args, this.request, shallowRef(component));
+        const overlay = new Overlay(this.router, {
+            id: this.generateOverlayId(type, args),
+            component: this.resolveComponent(type),
+        });
+
         return toReadonly(overlay);
+    }
+
+    private resolveComponent(type: string): ShallowRef<Component> {
+        return shallowRef(defineAsyncComponent(this.componentResolver(type)));
     }
 
     private generateOverlayId(type: OverlayType, args: OverlayArgs): string {

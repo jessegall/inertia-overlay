@@ -1,43 +1,54 @@
-export interface EventListener<T = any> {
-    callback: (payload: T) => void;
+import { randomString } from "./helpers.ts";
+
+export interface Listener<T = any> {
+    handler: (payload: T) => void;
     priority: number | (() => number);
+    subscription?: EventSubscription;
 }
 
-export interface EventListenerHandle<T = any> {
-    stop: VoidFunction;
+export interface Unsubscribe {
+    (): void;
 }
 
-export class EventDispatcher<T = any> {
+export type ListenerInput<T = any> = ((payload: T) => void) | Listener<T>;
 
-    private listeners: Map<number, EventListener<T>> = new Map();
+export class EventEmitter<T = any> {
 
-    public listen(listener: ((payload: T) => void) | EventListener<T>): EventListenerHandle<T> {
-        const listenerId = Date.now() + Math.random();
-        this.listeners.set(listenerId, this.createListener(listener));
+    private listeners: Map<string, Listener<T>> = new Map();
 
-        return {
-            stop: () => this.remove(listenerId),
+    public on(listener: ListenerInput<T>): Unsubscribe {
+        listener = this.createListener(listener);
+
+        const listenerId = randomString();
+        this.listeners.set(listenerId, listener);
+
+        const unsubscribe = () => this.unsubscribe(listenerId);
+
+        if (listener.subscription) {
+            listener.subscription.add(unsubscribe);
         }
+
+        return unsubscribe;
     }
 
-    public remove(listenerId: number) {
+    public unsubscribe(listenerId: string) {
         this.listeners.delete(listenerId);
     }
 
-    public trigger(payload: T) {
+    public emit(payload: T) {
         const callbacks = Array.from(this.listeners.values())
             .sort((a, b) => this.resolvePriority(b) - this.resolvePriority(a))
-            .map(l => l.callback);
+            .map(l => l.handler);
 
         for (const callback of callbacks) {
             callback(payload);
         }
     }
 
-    private createListener(listener: ((payload: T) => void) | EventListener<T>): EventListener<T> {
+    private createListener(listener: ListenerInput<T>): Listener<T> {
         if (typeof listener === 'function') {
             return {
-                callback: listener,
+                handler: listener,
                 priority: 0,
             };
         }
@@ -45,8 +56,23 @@ export class EventDispatcher<T = any> {
         return listener;
     }
 
-    private resolvePriority(listener: EventListener<T>): number {
+    private resolvePriority(listener: Listener<T>): number {
         return typeof listener.priority === 'function' ? listener.priority() : listener.priority;
+    }
+
+}
+
+export class EventSubscription {
+
+    private unsubscribers: Unsubscribe[] = [];
+
+    public add(unsubscribe: Unsubscribe) {
+        this.unsubscribers.push(unsubscribe);
+    }
+
+    public unsubscribe() {
+        this.unsubscribers.forEach(fn => fn());
+        this.unsubscribers = [];
     }
 
 }
