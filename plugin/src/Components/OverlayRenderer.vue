@@ -1,10 +1,9 @@
 <script setup lang="ts">
 
 import { computed, h, inject, nextTick, ref, watch } from "vue";
-import { OverlayPlugin } from "../OverlayPlugin.ts";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import { ReadonlyOverlay } from "../OverlayFactory.ts";
-import OverlayWrapperWrapper from "./OverlayWrapper.vue";
+import OverlayWrapper from "./OverlayWrapper.vue";
 
 interface Props {
     overlay: ReadonlyOverlay
@@ -12,11 +11,10 @@ interface Props {
 
 // ----------[ Setup ]----------
 
-const plugin = inject<OverlayPlugin>("overlay.plugin");
 const props = defineProps<Props>();
 const overlay = props.overlay;
 
-const OverlayComponentRenderer = () => h(overlay.component, {
+const OverlayComponent = () => h(overlay.component, {
     ...overlay.props,
     onClose() {
         overlay.close();
@@ -63,13 +61,13 @@ watch(() => overlay.state, (state) => {
 
         <template v-if="overlay.config">
 
-            <OverlayWrapperWrapper
+            <OverlayWrapper
                 :show="shouldRenderComponent"
                 :variant="overlay.config.variant"
                 :size="overlay.config.size"
             >
-                <OverlayComponentRenderer/>
-            </OverlayWrapperWrapper>
+                <OverlayComponent/>
+            </OverlayWrapper>
 
         </template>
 

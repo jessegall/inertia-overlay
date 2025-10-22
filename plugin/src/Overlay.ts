@@ -1,9 +1,9 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
 import { Component, ref, ShallowRef } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
-import { usePage } from "@inertiajs/vue3";
 import { clone } from "./helpers.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
+import { usePage } from "@inertiajs/vue3";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
@@ -19,7 +19,7 @@ export interface OverlayConfig {
     size: OverlaySize;
     props: string[];
     flags: {
-        skipHydrationOnFocus: boolean;
+        skipHydrationOnRefocus: boolean;
     }
 }
 
@@ -60,9 +60,9 @@ export class Overlay {
         this.component = component;
     }
 
-    // ----------[ Listener Setup & Cleanup ]----------
+    // ----------[ Event Listeners ]----------
 
-    private setupListeners(): void {
+    private subscribe(): void {
         this.router.onBeforeRouteVisit.on({
             handler: visit => this.handleBeforeRouteVisit(visit),
             priority: () => this.index.value,
@@ -76,7 +76,7 @@ export class Overlay {
         });
     }
 
-    private clearListeners(): void {
+    private unsubscribe(): void {
         this.subscription.unsubscribe();
     }
 
@@ -85,7 +85,7 @@ export class Overlay {
     public async open(): Promise<void> {
         if (! this.hasState('closed')) return;
 
-        this.setupListeners();
+        this.subscribe();
         this.setState('opening');
         await this.router.open(this.id);
         this.setState('open');
@@ -98,7 +98,7 @@ export class Overlay {
 
         if (this.isFocused()) {
             const start = Date.now();
-            const parentId = this.getParentId();
+            const parentId = this.parentId.value;
 
             if (parentId) {
                 await this.router.open(parentId);
@@ -114,15 +114,11 @@ export class Overlay {
         }
 
         this.setState('closed');
-        this.clearListeners();
+        this.unsubscribe();
     }
 
     public setParentId(parentId: string | null): void {
         this.parentId.value = parentId;
-    }
-
-    public getParentId(): string | null {
-        return this.parentId.value
     }
 
     public setState(state: OverlayState): void {
@@ -144,6 +140,10 @@ export class Overlay {
 
     public isBlurred(): boolean {
         return ! this.focused.value;
+    }
+
+    public hasFlag(flag: keyof OverlayConfig['flags']): boolean {
+        return this.config.value?.flags[flag] || false;
     }
 
     // ----------[ Internal ]----------
@@ -178,23 +178,37 @@ export class Overlay {
         this.props.value = _props;
     }
 
-    private restorePageProps(): void {
-        const page = usePage();
-
+    private restoreOverlayProps(props: OverlayProps): void {
         for (const key of this.config.value.props) {
-            page.props[key] = clone(this.props[key])
+            props[key] = clone(this.props[key])
+        }
+    }
+
+    private clearOverlayProps(props: OverlayProps): void {
+        for (const key of this.config.value.props) {
+            delete props[key];
         }
     }
 
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        //
+        const overlayId = visit.url.searchParams.get('overlay');
+
+        if (this.isFocused() && overlayId && overlayId !== this.id) {
+            const page = usePage();
+            this.clearOverlayProps(page.props);
+        }
     }
 
     private handleSuccessfulRouteVisit(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
             this.setConfig(page.overlay);
+
+            if (this.hasState('open') && this.isBlurred() && this.hasFlag('skipHydrationOnRefocus')) {
+                this.restoreOverlayProps(page.props);
+            }
+            
             this.updateProps(page.props);
             this.focus();
         } else {

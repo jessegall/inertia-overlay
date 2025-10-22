@@ -19,15 +19,15 @@ export interface CreateOverlayOptions {
 export class OverlayPlugin {
 
     private readonly stack: OverlayStack;
-    private readonly request: OverlayRouter;
+    private readonly router: OverlayRouter;
     private readonly factory: OverlayFactory;
 
     constructor(
         public readonly options: OverlayPluginOptions
     ) {
         this.stack = new OverlayStack();
-        this.request = new OverlayRouter((overlayId: string) => this.stack.findById(overlayId));
-        this.factory = new OverlayFactory(this.options.resolve, this.request);
+        this.router = new OverlayRouter((overlayId: string) => this.stack.findById(overlayId));
+        this.factory = new OverlayFactory(this.options.resolve, this.router);
     }
 
     public install(app: App): void {
@@ -40,7 +40,7 @@ export class OverlayPlugin {
     private provideDependencies(app: App): void {
         app.provide('overlay.plugin', this);
         app.provide('overlay.stack', this.stack);
-        app.provide('overlay.request', this.request);
+        app.provide('overlay.router', this.router);
         app.provide('overlay.factory', this.factory);
     }
 
