@@ -1,43 +1,41 @@
 <script setup lang="ts">
 
-import { computed, inject, shallowRef, watch } from "vue";
-import OverlayDrawer from "./OverlayDrawer.vue";
-import OverlayModal from "./OverlayModal.vue";
-import { OverlayVariant } from "../inertia-overlay";
-import { OverlayArgs, OverlayProps, OverlayState, OverlayType } from "../Overlay.ts";
+import { computed, defineAsyncComponent, h, inject, nextTick, ref, watch } from "vue";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
+import { ReadonlyOverlay } from "../OverlayFactory.ts";
+import { overlaySizeClasses } from "../overlay-size-classes.ts";
+import OverlayWrapperWrapper from "./OverlayWrapper.vue";
 
 interface Props {
-    id: string,
-    type: OverlayType,
-    args: OverlayArgs;
-    state: OverlayState;
-    props: OverlayProps;
+    overlay: ReadonlyOverlay
 }
 
 interface Emits {
     (e: 'close'): void,
 }
 
-const OVERLAY_VARIANT_COMPONENTS: Record<OverlayVariant, any> = {
-    modal: OverlayModal,
-    drawer: OverlayDrawer,
-}
-
 // ----------[ Setup ]----------
 
+const plugin = inject<OverlayPlugin>("overlay.plugin");
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+const overlay = props.overlay;
 
-const plugin = inject("overlay.plugin") as OverlayPlugin;
-const wrapper = shallowRef();
-const component = shallowRef();
+const OverlayComponent = defineAsyncComponent(() => plugin.resolveComponent(overlay.type))
+const OverlayComponentRenderer = () => h(OverlayComponent, overlay.props)
+
+// ----------[ Data ]----------
+
+const shouldRenderComponent = ref(false);
 
 //----------[ Computed ]----------
 
-const active = computed(() => ['open', 'closing'].includes(props.state));
-const open = computed(() => props.state === 'open');
+const shouldRenderBackdrop = computed<boolean>(() => {
+    return overlay.state === 'opening'
+        || overlay.state === 'open'
+        || overlay.state === 'closing';
+});
 
 // ----------[ Methods ]----------
 
@@ -47,41 +45,42 @@ function close() {
 
 // ----------[ Watchers ]----------
 
-const statusWatcherHandle = watch(
-    () => props.state,
-    async (status) => {
-        if (status === 'open') {
-            wrapper.value = OVERLAY_VARIANT_COMPONENTS['modal'];
-            component.value = await plugin.resolveComponent(props.type);
-            statusWatcherHandle.stop()
-        }
-    },
-    {
-        immediate: true,
+watch(() => overlay.state, (state) => {
+    switch (state) {
+
+        case 'open':
+            nextTick(() => shouldRenderComponent.value = true);
+            break;
+
+        case 'closing':
+            shouldRenderComponent.value = false;
+            break;
+
     }
-)
+});
 
 </script>
 
 <template>
     <div class="overlay-renderer">
+
         <OverlayBackdrop
-            :blur="active"
+            :blur="shouldRenderBackdrop"
             @click="close"
         />
-        <template v-if="active">
-            <Component
-                :is="wrapper"
-                :show="open"
-                size="3xl"
+
+        <template v-if="overlay.config">
+
+            <OverlayWrapperWrapper
+                :show="shouldRenderComponent"
+                :variant="overlay.config.variant"
+                :size="overlay.config.size"
             >
-                <Component
-                    :is="component"
-                    v-bind="props.props"
-                    @close="close"
-                />
-            </Component>
+                <OverlayComponentRenderer/>
+            </OverlayWrapperWrapper>
+
         </template>
+
     </div>
 </template>
 

@@ -27,20 +27,11 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
-        if ($request->getMethod() !== 'GET') {
-            $this->flagOverlayAsRedirected($overlayId);
-            return $next($request);
-        }
-
         $overlay = $this->factory->makeFromId($overlayId);
 
         // Redirect to a URL that only contains the overlay query parameter to make sure no state is transferred.
         if ($overlay->context->isOpening() && count($request->query()) > 1) {
             return redirect()->to($request->url() . '?overlay=' . $overlay->context->overlayId);
-        }
-
-        if ($overlay->context->isClosing()) {
-            return redirect()->to($this->resolveCloseUrl($overlay));
         }
 
         return new OverlayResponse($overlay);
@@ -69,7 +60,7 @@ readonly class HandleInertiaOverlayRequests
         }
 
         [$url] = explode('?', $overlay->context->getRootUrl());
-        $previousId = $overlay->context->getPreviousId();
+        $previousId = $overlay->context->getParentId();
 
         return "{$url}?overlay={$previousId}";
     }

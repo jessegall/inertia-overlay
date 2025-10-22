@@ -20,8 +20,8 @@ createInertiaApp({
 
         const inertiaOverlayPlugin = createInertiaOverlayPlugin({
             resolve: typename => {
-                const overlays = import.meta.glob('./Overlays/**/*.vue');
-                return overlays[`./Overlays/${ typename }.vue`];
+                const overlays = import.meta.glob('./overlays/**/*.vue');
+                return overlays[`./overlays/${ typename }.vue`];
             }
         });
 

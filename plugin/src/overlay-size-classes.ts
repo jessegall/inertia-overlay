@@ -1,4 +1,4 @@
-import { OverlaySize } from "./inertia-overlay";
+import { OverlaySize } from "./Overlay.ts";
 
 export const overlaySizeClasses: Record<OverlaySize, string> = {
     'sm': 'inertia-overlay-size-sm',

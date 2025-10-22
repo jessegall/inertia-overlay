@@ -52,9 +52,9 @@ class OverlayContext
         return $this->resolve(OverlayHeader::OVERLAY_ROOT_URL);
     }
 
-    public function getPreviousId(): string|null
+    public function getParentId(): string|null
     {
-        return $this->resolve(OverlayHeader::OVERLAY_PREVIOUS_ID);
+        return $this->resolve(OverlayHeader::OVERLAY_PARENT_ID);
     }
 
     public function getPageComponent(): string

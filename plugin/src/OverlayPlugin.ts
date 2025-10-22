@@ -1,8 +1,8 @@
 import { OverlayStack } from "./OverlayStack.ts";
 import { App, h } from "vue";
 import OverlayRoot from "./Components/OverlayRoot.vue";
-import { OverlayFactory } from "./OverlayFactory.ts";
-import { Overlay, OverlayArgs, OverlayType } from "./Overlay.ts";
+import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
+import { OverlayArgs, OverlayType } from "./Overlay.ts";
 import { OverlayRequest } from "./OverlayRequest.ts";
 
 export interface OverlayPluginOptions<T = any> {
@@ -24,7 +24,7 @@ export class OverlayPlugin {
         public readonly options: OverlayPluginOptions
     ) {
         this.stack = new OverlayStack();
-        this.request = new OverlayRequest(this.stack);
+        this.request = new OverlayRequest((overlayId: string) => this.stack.findById(overlayId));
         this.factory = new OverlayFactory(this.request);
     }
 
@@ -59,7 +59,7 @@ export class OverlayPlugin {
 
     // ----------[ EventHandlers ]----------
 
-    private onOverlayPushed(overlay: Overlay): void {
+    private onOverlayPushed(overlay: ReadonlyOverlay): void {
         overlay.onStatusChange.listen((status) => {
             if (status === 'closed') {
                 this.stack.remove(overlay.id);
@@ -69,7 +69,7 @@ export class OverlayPlugin {
 
     // ----------[ Api ]----------
 
-    public createOverlay(options: CreateOverlayOptions): Overlay {
+    public createOverlay(options: CreateOverlayOptions): ReadonlyOverlay {
         const overlay = this.factory.make(options.type, options.args);
 
         overlay.onStatusChange.listen((status) => {
@@ -77,10 +77,16 @@ export class OverlayPlugin {
 
                 case "opening":
                     const parent = this.stack.peek();
+                    const index = this.stack.size();
+
                     this.stack.push(overlay);
+
                     if (parent) {
                         overlay.setParentId(parent.id);
                     }
+
+                    overlay.setIndex(index);
+
                     break;
 
                 case "closed":

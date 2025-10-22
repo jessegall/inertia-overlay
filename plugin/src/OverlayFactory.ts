@@ -1,6 +1,9 @@
 import { Overlay, OverlayArgs, OverlayType } from "./Overlay.ts";
-import { randomString } from "./helpers.ts";
+import { randomString, toReadonly } from "./helpers.ts";
 import { OverlayRequest } from "./OverlayRequest.ts";
+import { Reactive } from "vue";
+
+export type ReadonlyOverlay = Readonly<Reactive<Overlay>>;
 
 export class OverlayFactory {
 
@@ -8,9 +11,10 @@ export class OverlayFactory {
         private readonly request: OverlayRequest,
     ) {}
 
-    public make(type: OverlayType, args: OverlayArgs): Overlay {
+    public make(type: OverlayType, args: OverlayArgs): ReadonlyOverlay {
         const id = this.generateOverlayId(type, args);
-        return new Overlay(id, type, args, this.request);
+        const overlay = new Overlay(id, type, args, this.request);
+        return toReadonly(overlay);
     }
 
     private generateOverlayId(type: OverlayType, args: OverlayArgs): string {

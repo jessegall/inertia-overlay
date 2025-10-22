@@ -16,7 +16,7 @@ class OverlayRedirectResponse extends RedirectResponse
         $url = "{$this->resolveRedirectUrl()}?overlay={$overlayId}";
 
         if (request()->inertiaOverlay()) {
-            session()->flash(OverlayHeader::OVERLAY_PREVIOUS_ID, request()->header(OverlayHeader::OVERLAY_ID));
+            session()->flash(OverlayHeader::OVERLAY_PARENT_ID, request()->header(OverlayHeader::OVERLAY_ID));
             session()->flash(OverlayHeader::OVERLAY_ID, $overlayId);
             session()->flash(OverlayHeader::OVERLAY_OPENING, true);
             session()->flash(OverlayHeader::OVERLAY_INDEX, request()->header(OverlayHeader::OVERLAY_INDEX, 0) + 1);

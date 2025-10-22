@@ -3,8 +3,10 @@ import { EventDispatcher } from "./event.ts";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { headers, OverlayPage } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
-import { OverlayStack } from "./OverlayStack.ts";
-import { reactive, ref } from "vue";
+import { ref } from "vue";
+import { ReadonlyOverlay } from "./OverlayFactory.ts";
+
+type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
 
 export class OverlayRequest {
 
@@ -12,13 +14,14 @@ export class OverlayRequest {
 
     public readonly onBeforeRouteVisit = new EventDispatcher<PendingVisit>();
     public readonly onSuccessfulRouteVisit = new EventDispatcher<Page>();
+    public readonly onOverlayPageLoad = new EventDispatcher<OverlayPage>();
 
     // ----------[ Properties ]----------
 
     private readonly rootUrl = ref<string | null>(null)
 
     constructor(
-        private readonly stack: OverlayStack
+        private readonly resolve: OverlayResolver,
     ) {
         this.setupDispatchers();
         this.setupListeners();
@@ -33,6 +36,7 @@ export class OverlayRequest {
 
     private setupListeners(): void {
         this.onBeforeRouteVisit.listen(visit => this.handleBeforeRouteVisit(visit));
+        this.onSuccessfulRouteVisit.listen(page => this.handleSuccessfulRouteVisit(page));
     }
 
     // ----------[ Api ]----------
@@ -55,18 +59,28 @@ export class OverlayRequest {
         }));
     }
 
-    public hasRootUrl(): boolean {
-        return this.rootUrl.value !== null;
+    public async fetchRoot(): Promise<Page> {
+        if (! this.rootUrl.value) {
+            throw new Error('No root URL stored for overlay request.');
+        }
+
+        return await new Promise(resolve => router.visit(this.rootUrl.value,
+            {
+                onSuccess: (page) => {
+                    resolve(page);
+                }
+            }
+        ));
     }
 
-    public getRootUrl(): string | null {
-        return this.rootUrl.value;
+    public setRootUrl(url: string): void {
+        const _url = new URL(url);
+        _url.searchParams.delete('overlay');
+        this.rootUrl.value = _url.toString();
     }
 
-    // ----------[ Internal ]----------
-
-    public setRootUrl(url: string | null): void {
-        this.rootUrl.value = url;
+    public clearRootUrl(): void {
+        this.rootUrl.value = null;
     }
 
     // ----------[ Event Handlers ]----------
@@ -76,22 +90,42 @@ export class OverlayRequest {
 
         if (overlayId) {
             const page = usePage();
-            const overlay = reactive(this.stack.findById(overlayId));
+            const overlay = this.resolve(overlayId);
 
-            if (! this.hasRootUrl()) {
-                this.setRootUrl(page.url);
+            if (! overlay) {
+                throw new Error(`Could not resolve overlay with ID '${ overlayId }'.`);
+            }
+
+            if (! this.rootUrl.value) {
+                this.setRootUrl(window.location.href);
             }
 
             visit.headers = {
+
                 ...visit.headers,
-                [headers.INERTIA]: 'true',
-                [headers.INERTIA_PARTIAL_COMPONENT]: page.component,
+
+                // -----[ Overlay Headers ]-----
+
                 [headers.OVERLAY]: 'true',
                 [headers.OVERLAY_ID]: overlay.id,
+                [headers.OVERLAY_INDEX]: overlay.index.toString(),
                 [headers.OVERLAY_STATE]: overlay.state,
-                [headers.OVERLAY_PREVIOUS_ID]: overlay.parentId,
-                [headers.OVERLAY_ROOT_URL]: this.getRootUrl(),
+                [headers.OVERLAY_PARENT_ID]: overlay.parentId,
+                [headers.OVERLAY_ROOT_URL]: this.rootUrl.value,
+
             }
+
+            if (visit.only.length === 0) {
+                visit.only = ['__overlay_partial_reload_trigger']
+            }
+        } else {
+            this.clearRootUrl();
+        }
+    }
+
+    private handleSuccessfulRouteVisit(page: Page): void {
+        if (isOverlayPage(page)) {
+            this.onOverlayPageLoad.trigger(page);
         }
     }
 

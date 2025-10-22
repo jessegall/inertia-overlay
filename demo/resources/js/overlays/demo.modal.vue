@@ -27,6 +27,16 @@ function openDemoModal() {
     overlay.open();
 }
 
+function openDemoDrawer() {
+    const overlay = createOverlay({
+        type: 'demo.drawer',
+        args: {},
+    })
+
+    overlay.open();
+}
+
+
 </script>
 
 <template>
@@ -48,6 +58,9 @@ function openDemoModal() {
             </Button>
             <Button @click="openDemoModal">
                 Open Another Demo Modal
+            </Button>
+            <Button @click="openDemoDrawer">
+                Open Demo Drawer
             </Button>
         </div>
     </div>

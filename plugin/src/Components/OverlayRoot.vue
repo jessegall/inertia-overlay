@@ -2,7 +2,7 @@
 
 import { useOverlayStack } from "../Composables/useOverlayStack.ts";
 import OverlayRenderer from "./OverlayRenderer.vue";
-import { computed, Reactive, reactive, watch } from "vue";
+import { computed, Reactive } from "vue";
 import { Overlay } from "../Overlay.ts";
 
 // ----------[ Setup ]----------
@@ -12,7 +12,7 @@ const stack = useOverlayStack();
 //----------[ Computed ]----------
 
 const overlays = computed<Reactive<Overlay[]>>(() => {
-    return reactive(stack.overlays.value);
+    return stack.overlays.value;
 });
 
 // ----------[ Methods ]----------
@@ -28,14 +28,12 @@ function closeOverlay(id: string) {
     <Teleport to="body">
         <div class="overlay-root">
             <template v-for="overlay in overlays" :key="overlay.id">
+
                 <OverlayRenderer
-                    :id="overlay.id"
-                    :type="overlay.type"
-                    :args="overlay.args"
-                    :state="overlay.state"
-                    :props="overlay.props"
+                    :overlay
                     @close="closeOverlay(overlay.id)"
                 />
+
             </template>
         </div>
     </Teleport>

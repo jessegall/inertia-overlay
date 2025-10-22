@@ -1,6 +1,5 @@
 import { EventDispatcher } from "./event.ts";
 import { ref } from "vue";
-import { isOverlayPage } from "./helpers.ts";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { OverlayRequest } from "./OverlayRequest.ts";
 
@@ -27,22 +26,18 @@ export const headers = {
     INERTIA_PARTIAL_COMPONENT: 'X-Inertia-Partial-Component',
 
     OVERLAY: 'X-Inertia-Overlay',
-    OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
     OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
     OVERLAY_PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
 
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
+    OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
     OVERLAY_STATE: 'X-Inertia-Overlay-State',
-    OVERLAY_PREVIOUS_ID: 'X-Inertia-Overlay-Previous-Id',
-
-    OVERLAY_OPENING: 'X-Inertia-Overlay-Opening',
-    OVERLAY_CLOSING: 'X-Inertia-Overlay-Closing',
-    OVERLAY_DIRTY: 'X-Inertia-Overlay-Dirty',
+    OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
 
 }
 
 
-const count = ref<number>(0);
+const index = ref<number>(0);
 
 export class Overlay {
 
@@ -55,7 +50,7 @@ export class Overlay {
     // ----------[ Properties ]----------
 
     public parentId = ref<string | null>(null);
-    public index = ref<number>(null);
+    public index = ref<number>(-1);
     public state = ref<OverlayState>('closed')
     public focused = ref<boolean>(false);
     public props = ref<OverlayProps | null>(null);
@@ -67,7 +62,6 @@ export class Overlay {
         public readonly args: OverlayArgs,
         public readonly request: OverlayRequest,
     ) {
-        this.index.value = count.value++;
         this.setupListeners();
     }
 
@@ -75,7 +69,7 @@ export class Overlay {
 
     private setupListeners(): void {
         this.request.onBeforeRouteVisit.listen(visit => this.handleBeforeRouteVisit(visit));
-        this.request.onSuccessfulRouteVisit.listen(page => this.handleSuccessfulRouteVisit(page));
+        this.request.onOverlayPageLoad.listen(page => this.handleSuccessfulRouteVisit(page));
     }
 
     // ----------[ Api ]----------
@@ -95,6 +89,8 @@ export class Overlay {
             return;
         }
 
+        const start = Date.now();
+
         this.setState('closing');
 
         if (this.isFocused()) {
@@ -103,11 +99,19 @@ export class Overlay {
             if (parentId) {
                 await this.request.fetch(parentId);
             } else {
-                console.log("Return to page");
+                await this.request.fetchRoot();
             }
         }
 
+        const elapsed = Date.now() - start;
+        const minDuration = 300;
+        if (elapsed < minDuration) {
+            await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+        }
+
         this.setState('closed');
+
+        this.index.value = -1;
     }
 
     public setParentId(parentId: string | null): void {
@@ -118,10 +122,6 @@ export class Overlay {
         return this.parentId.value
     }
 
-    public getState(): OverlayState {
-        return this.state.value;
-    }
-
     public setState(state: OverlayState): void {
         this.state.value = state;
         this.onStatusChange.trigger(state);
@@ -129,6 +129,10 @@ export class Overlay {
 
     public hasState(...states: OverlayState[]): boolean {
         return states.includes(this.state.value);
+    }
+
+    public setIndex(index: number): void {
+        this.index.value = index;
     }
 
     public focus(): void {
@@ -159,7 +163,6 @@ export class Overlay {
         return ! this.focused.value;
     }
 
-
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
@@ -170,8 +173,8 @@ export class Overlay {
         }
     }
 
-    private handleSuccessfulRouteVisit(page: Page): void {
-        if (isOverlayPage(page) && page.overlay.id === this.id) {
+    private handleSuccessfulRouteVisit(page: OverlayPage): void {
+        if (page.overlay.id === this.id) {
             this.config.value = page.overlay;
             this.props.value = page.props;
         }

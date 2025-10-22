@@ -1,20 +1,20 @@
-import { Overlay } from "./Overlay.ts";
 import { shallowRef } from "vue";
 import { EventDispatcher } from "./event.ts";
+import { ReadonlyOverlay } from "./OverlayFactory.ts";
 
 export class OverlayStack {
 
     // ----------[ Events ]----------
 
-    public readonly onOverlayPushed = new EventDispatcher<Overlay>();
+    public readonly onOverlayPushed = new EventDispatcher<ReadonlyOverlay>();
 
     // ----------[ Properties ]----------
 
-    public overlays = shallowRef<Overlay[]>([]);
+    public overlays = shallowRef<ReadonlyOverlay[]>([]);
 
     // ----------[ Methods ]----------
 
-    public push(overlay: Overlay): void {
+    public push(overlay: ReadonlyOverlay): void {
         this.overlays.value = [...this.overlays.value, overlay];
         this.onOverlayPushed.trigger(overlay);
     }
@@ -23,7 +23,7 @@ export class OverlayStack {
         this.overlays.value = this.overlays.value.filter(overlay => overlay.id !== id);
     }
 
-    public peek(): Overlay | null {
+    public peek(): ReadonlyOverlay | null {
         const size = this.size();
         if (size === 0) {
             return null;
@@ -35,7 +35,7 @@ export class OverlayStack {
         return this.overlays.value.length;
     }
 
-    public findById(id: string): Overlay | null {
+    public findById(id: string): ReadonlyOverlay | null {
         return this.overlays.value.find(overlay => overlay.id === id) || null;
     }
 

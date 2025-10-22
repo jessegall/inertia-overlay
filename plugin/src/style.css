@@ -63,7 +63,7 @@
 
     /* Drawer */
     .inertia-overlay-drawer-container {
-        @apply fixed inset-0 overflow-y-auto px-4 sm:px-0 z-50 pointer-events-none;
+        @apply fixed inset-0 overflow-y-auto z-50 pointer-events-none;
     }
 
     .inertia-overlay-drawer-wrapper {
@@ -71,17 +71,7 @@
     }
 
     .inertia-overlay-drawer {
-        @apply bg-white pointer-events-auto shadow-xl w-full transform transition-all;
-    }
-
-    .inertia-overlay-slide-right-enter-active,
-    .inertia-overlay-slide-right-leave-active {
-        transition: transform 150ms ease-in-out, max-width 150ms ease-in-out;
-    }
-
-    .inertia-overlay-slide-right-enter-from,
-    .inertia-overlay-slide-right-leave-to {
-        transform: translateX(100%);
+        @apply bg-white pointer-events-auto shadow-xl h-full w-full;
     }
 
     /* Modal */
@@ -90,30 +80,63 @@
     }
 
     .inertia-overlay-modal {
-        @apply mb-6 bg-white rounded-lg shadow-xl transform transition-all sm:w-full sm:mx-auto pointer-events-auto overflow-hidden;
+        @apply mb-6 bg-white rounded-lg shadow-xl sm:w-full sm:mx-auto pointer-events-auto overflow-hidden;
     }
+}
 
-    .inertia-overlay-modal-enter-active {
-        @apply ease-out duration-150;
-    }
+/* Drawer Transitions - Outside @layer to prevent purging */
+.inertia-overlay-drawer-enter-active,
+.inertia-overlay-drawer-leave-active {
+    transition: transform 150ms ease-in-out;
+}
 
+.inertia-overlay-drawer-enter-from,
+.inertia-overlay-drawer-leave-to {
+    transform: translateX(100%);
+}
+
+.inertia-overlay-drawer-enter-to,
+.inertia-overlay-drawer-leave-from {
+    transform: translateX(0);
+}
+
+/* Modal Transitions - Outside @layer to prevent purging */
+.inertia-overlay-modal-enter-active {
+    transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.inertia-overlay-modal-enter-from {
+    opacity: 0;
+    transform: translateY(1rem);
+}
+
+@media (min-width: 640px) {
     .inertia-overlay-modal-enter-from {
-        @apply opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95;
+        transform: translateY(0) scale(0.95);
     }
+}
 
-    .inertia-overlay-modal-enter-to {
-        @apply opacity-100 translate-y-0 sm:scale-100;
-    }
+.inertia-overlay-modal-enter-to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
 
-    .inertia-overlay-modal-leave-active {
-        @apply ease-in duration-150;
-    }
+.inertia-overlay-modal-leave-active {
+    transition: opacity 100ms ease-in, transform 100ms ease-in;
+}
 
-    .inertia-overlay-modal-leave-from {
-        @apply opacity-100 translate-y-0 sm:scale-100;
-    }
+.inertia-overlay-modal-leave-from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
 
+.inertia-overlay-modal-leave-to {
+    opacity: 0;
+    transform: translateY(1rem);
+}
+
+@media (min-width: 640px) {
     .inertia-overlay-modal-leave-to {
-        @apply opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95;
+        transform: translateY(0) scale(0.95);
     }
 }
