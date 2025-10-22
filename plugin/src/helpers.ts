@@ -3,6 +3,10 @@ import { OverlayPage } from "./Overlay.ts";
 import { Reactive, reactive, shallowReadonly } from 'vue';
 
 export function clone(value: any): any {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
     return JSON.parse(JSON.stringify(value));
 }
 
