@@ -1,6 +1,6 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
-import { CancelToken, Page, PendingVisit } from "@inertiajs/core";
+import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
@@ -25,12 +25,11 @@ export const headers = {
 
 export class OverlayRouter {
 
-    private readonly cancelTokens: CancelToken[] = [];
-
     // ----------[ Events ]----------
 
     public readonly onBeforeRouteVisit = new EventEmitter<PendingVisit>();
     public readonly onSuccessfulRouteVisit = new EventEmitter<Page>();
+    public readonly onFinishedRouteVisit = new EventEmitter<ActiveVisit>();
     public readonly onOverlayPageLoad = new EventEmitter<OverlayPage>();
 
     // ----------[ Properties ]----------
@@ -51,6 +50,7 @@ export class OverlayRouter {
     private setupDispatchers(): void {
         router.on('before', event => this.onBeforeRouteVisit.emit(event.detail.visit));
         router.on('success', event => this.onSuccessfulRouteVisit.emit(event.detail.page));
+        router.on('finish', event => this.onFinishedRouteVisit.emit(event.detail.visit));
     }
 
     private setupListeners(): void {
@@ -97,7 +97,8 @@ export class OverlayRouter {
 
     public async navigateToRoot(): Promise<Page> {
         if (! this.rootUrl.value) {
-            throw new Error('No root URL stored for overlay request.');
+            console.error('No root URL stored for overlay request.');
+            return;
         }
 
         return await new Promise(resolve => router.visit(this.rootUrl.value,

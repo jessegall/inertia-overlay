@@ -2,7 +2,7 @@ import { randomString } from "./helpers.ts";
 
 export interface Listener<T = any> {
     handler: (payload: T) => void;
-    priority: number | (() => number);
+    priority?: number | (() => number);
     subscription?: EventSubscription;
 }
 
@@ -53,7 +53,10 @@ export class EventEmitter<T = any> {
             };
         }
 
-        return listener;
+        return {
+            priority: 0,
+            ...listener,
+        }
     }
 
     private resolvePriority(listener: Listener<T>): number {

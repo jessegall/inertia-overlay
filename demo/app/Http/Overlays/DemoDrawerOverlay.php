@@ -4,7 +4,6 @@ namespace App\Http\Overlays;
 
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlaySize;
 use JesseGall\InertiaOverlay\Enums\OverlayVariant;
 use JesseGall\InertiaOverlay\Overlay;
@@ -21,9 +20,6 @@ class DemoDrawerOverlay implements OverlayComponent
         return new OverlayConfig(
             variant: OverlayVariant::DRAWER,
             size: $overlay->get('size', $this->size),
-            flags: [
-                OverlayFlag::SKIP_HYDRATION_ON_REFOCUS,
-            ]
         );
     }
 

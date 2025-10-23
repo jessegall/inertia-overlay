@@ -1,6 +1,6 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { Component, ref, ShallowRef } from "vue";
-import { Page, PendingVisit } from "@inertiajs/core";
+import { Component, nextTick, ref, ShallowRef } from "vue";
+import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { randomString } from "./helpers.ts";
 
@@ -29,6 +29,8 @@ export interface OverlayOptions {
     id: string;
     component: ShallowRef<Component>;
 }
+
+const activeRequests = ref<number>(0);
 
 export class Overlay {
 
@@ -72,6 +74,11 @@ export class Overlay {
             subscription: this.subscription,
         });
 
+        this.router.onFinishedRouteVisit.on({
+            handler: visit => this.handleFinishedRouteVisit(visit),
+            subscription: this.subscription,
+        });
+
         this.router.onOverlayPageLoad.on({
             handler: page => this.handleSuccessfulRouteVisit(page),
             priority: () => this.index.value,
@@ -88,6 +95,8 @@ export class Overlay {
     public async open(): Promise<void> {
         if (! this.hasState('closed')) return;
 
+        await this.waitForTransitions();
+
         this.subscribe();
         this.setState('opening');
         await this.router.open(this.id);
@@ -96,6 +105,8 @@ export class Overlay {
 
     public async close(): Promise<void> {
         if (! this.hasState('open')) return;
+
+        await this.waitForTransitions();
 
         this.setState('closing');
 
@@ -159,6 +170,12 @@ export class Overlay {
 
     // ----------[ Internal ]----------
 
+    private async waitForTransitions(): Promise<void> {
+        while (activeRequests.value > 0) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    }
+
     private setConfig(config: OverlayConfig): void {
         this.config.value = config;
     }
@@ -194,7 +211,25 @@ export class Overlay {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
+        const overlayId = visit.method === 'get'
+            ? visit.url.searchParams.get("overlay")
+            : new URL(window.location.href).searchParams.get("overlay");
 
+        if (overlayId === this.id) {
+            activeRequests.value += 1;
+        }
+    }
+
+    private handleFinishedRouteVisit(visit: ActiveVisit): void {
+        const overlayId = visit.method === 'get'
+            ? visit.url.searchParams.get("overlay")
+            : new URL(window.location.href).searchParams.get("overlay");
+
+        if (overlayId === this.id) {
+            nextTick(() => {
+                activeRequests.value -= 1;
+            })
+        }
     }
 
     private handleSuccessfulRouteVisit(page: OverlayPage): void {

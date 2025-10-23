@@ -1,10 +1,9 @@
 import { OverlayStack } from "./OverlayStack.ts";
-import { App, h, nextTick } from "vue";
+import { App, h } from "vue";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayArgs, OverlayType } from "./Overlay.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
-import { Deferred } from "@inertiajs/vue3";
 import { initDeferredComponent } from "./Deferred.ts";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
@@ -74,6 +73,9 @@ export class OverlayPlugin {
                 overlay.setParentId(this.stack.peekId());
                 overlay.setIndex(this.stack.size());
                 this.stack.push(overlay);
+                break;
+
+            case 'closing':
                 break;
 
             case "closed":
