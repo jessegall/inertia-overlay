@@ -8,10 +8,7 @@ const props = defineProps<{
     prop: string;
     closureProp: string;
     lazyProp?: string;
-    list: Array<{
-        id: number;
-        name: string;
-    }>;
+    someValue?: string;
 }>();
 
 const emit = defineEmits(['close']);
@@ -48,7 +45,6 @@ function submit() {
             prop: props.prop,
             closureProp: props.closureProp,
             lazyProp: props.lazyProp,
-            list: props.list,
         },
         {
             onSuccess: () => {
@@ -64,7 +60,6 @@ function submitError() {
             prop: props.prop,
             closureProp: props.closureProp,
             lazyProp: props.lazyProp,
-            list: props.list,
         },
         {
             onSuccess: () => {
@@ -89,10 +84,8 @@ function submitError() {
             <div>
                 {{ lazyProp }}
             </div>
-        </div>
-        <div>
-            <div v-for="item in list" :key="item.id">
-                {{ item.name }}
+            <div>
+                {{ someValue }}
             </div>
         </div>
         <div class="flex gap-2">

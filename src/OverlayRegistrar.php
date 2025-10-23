@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use InvalidArgumentException;
+use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
 class OverlayRegistrar
 {
@@ -11,7 +12,7 @@ class OverlayRegistrar
 
     /**
      * Register an overlay type
-     * 
+     *
      * @param string $typename
      * @param class-string<OverlayComponent> $type
      * @return void
@@ -40,7 +41,8 @@ class OverlayRegistrar
      */
     public function resolveTypename(string $class): string
     {
-        return array_search($class, $this->overlays) ?? throw new InvalidArgumentException("Overlay with class [$class] not found");
+        return array_search($class,
+            $this->overlays) ?? throw new InvalidArgumentException("Overlay with class [$class] not found");
     }
 
     /**
@@ -50,7 +52,13 @@ class OverlayRegistrar
     private function assertIsOverlayType(string $type): void
     {
         if (! is_subclass_of($type, OverlayComponent::class)) {
-            throw new InvalidArgumentException("Overlay must be an instance of " . OverlayComponent::class);
+            throw new InvalidArgumentException(
+                sprintf(
+                    "Overlay must be an instance of %s [%s] given.",
+                    OverlayComponent::class,
+                    $type
+                )
+            );
         }
     }
 

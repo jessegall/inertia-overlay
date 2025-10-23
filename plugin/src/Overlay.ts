@@ -12,15 +12,15 @@ export type OverlayArgs = Record<string, any>;
 export type OverlayProps = Record<string, any>;
 export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
 
+export type OverlayFlag = 'skip_hydration_on_refocus';
+
 export interface OverlayConfig {
     id: string;
-    typename: string;
+    component: string;
     variant: OverlayVariant;
     size: OverlaySize;
-    props: string[];
-    flags: {
-        skipHydrationOnRefocus: boolean;
-    }
+    keys: string[];
+    flags: OverlayFlag[];
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
@@ -142,7 +142,7 @@ export class Overlay {
         return ! this.focused.value;
     }
 
-    public hasFlag(flag: keyof OverlayConfig['flags']): boolean {
+    public hasFlag(flag: OverlayFlag): boolean {
         return this.config.value?.flags[flag] || false;
     }
 
@@ -167,7 +167,7 @@ export class Overlay {
     private updateProps(props: OverlayProps): void {
         const _props = this.props.value || {};
 
-        for (const key of this.config.value.props) {
+        for (const key of this.config.value.keys) {
             const value = props[key];
             if (value === undefined || value === null) {
                 continue;
@@ -179,13 +179,13 @@ export class Overlay {
     }
 
     private restoreOverlayProps(props: OverlayProps): void {
-        for (const key of this.config.value.props) {
+        for (const key of this.config.value.keys) {
             props[key] = clone(this.props[key])
         }
     }
 
     private clearOverlayProps(props: OverlayProps): void {
-        for (const key of this.config.value.props) {
+        for (const key of this.config.value.keys) {
             delete props[key];
         }
     }
@@ -205,10 +205,10 @@ export class Overlay {
         if (page.overlay.id === this.id) {
             this.setConfig(page.overlay);
 
-            if (this.hasState('open') && this.isBlurred() && this.hasFlag('skipHydrationOnRefocus')) {
+            if (this.hasState('open') && this.isBlurred() && this.hasFlag('skip_hydration_on_refocus')) {
                 this.restoreOverlayProps(page.props);
             }
-            
+
             this.updateProps(page.props);
             this.focus();
         } else {

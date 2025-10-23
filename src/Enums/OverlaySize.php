@@ -1,6 +1,6 @@
 <?php
 
-namespace JesseGall\InertiaOverlay;
+namespace JesseGall\InertiaOverlay\Enums;
 
 enum OverlaySize: string
 {

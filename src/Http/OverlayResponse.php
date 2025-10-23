@@ -2,33 +2,25 @@
 
 namespace JesseGall\InertiaOverlay\Http;
 
-use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
 use Inertia\Support\Header;
+use JesseGall\InertiaOverlay\Enums\OverlayFlag;
+use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Overlay;
-use JesseGall\InertiaOverlay\OverlayComponent;
-use JesseGall\InertiaOverlay\OverlayFlags;
-use JesseGall\InertiaOverlay\OverlayState;
+use JesseGall\InertiaOverlay\OverlayConfig;
 
 readonly class OverlayResponse implements Responsable
 {
 
-    public OverlayComponent $component;
-    public OverlayFlags $flags;
-    public array $props;
-
     public function __construct(
         private Overlay $overlay,
-    )
-    {
-        $this->component = $this->overlay->resolveComponent();
-        $this->flags = new OverlayFlags($this->component);
-        $this->props = $this->resolveProps();
-    }
+        private OverlayConfig $config,
+        private array $props,
+    ) {}
 
     public function toResponse($request): JsonResponse
     {
@@ -41,19 +33,6 @@ readonly class OverlayResponse implements Responsable
         return $this->injectOverlayDataInResponse($response);
     }
 
-    # ----------[ Internal ]----------
-
-    private function resolveProps(): array
-    {
-        $props = $this->component->props();
-
-        if ($props instanceof Arrayable) {
-            return $props->toArray();
-        } else {
-            return $props;
-        }
-    }
-
     private function shouldHydrate(): bool
     {
         if ($this->overlay->hasState(OverlayState::OPENING)) {
@@ -64,7 +43,7 @@ readonly class OverlayResponse implements Responsable
             return true;
         }
 
-        if ($this->overlay->isBlurred() && ! $this->flags->skipHydrationOnRefocus()) {
+        if ($this->overlay->isBlurred() && ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS)) {
             return true;
         }
 
@@ -99,12 +78,10 @@ readonly class OverlayResponse implements Responsable
         $data['overlay'] = [
             'id' => $this->overlay->getId(),
             'component' => $this->overlay->typename,
-            'variant' => $this->component->variant(),
-            'size' => $this->component->size(),
-            'props' => array_keys($this->props),
-            'flags' => [
-                'skipHydrationOnRefocus' => $this->flags->skipHydrationOnRefocus(),
-            ]
+            'variant' => $this->config->variant,
+            'size' => $this->config->size,
+            'flags' => $this->config->flags,
+            'keys' => array_keys($this->props),
         ];
 
         return $response->setData($data);

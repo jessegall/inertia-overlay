@@ -3,36 +3,67 @@
 namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Http\Request;
+use Illuminate\Pipeline\Pipeline;
+use JesseGall\InertiaOverlay\Contracts\AppliesMiddleware;
+use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
+use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
 
 class Overlay
 {
 
-    private OverlayComponent|null $component = null;
-
+    /**
+     * The overlay component typename.
+     *
+     * @var string
+     */
     public readonly string $typename;
-    public readonly array $arguments;
+
+    /**
+     * The arguments passed to the overlay component.
+     *
+     * @var array|mixed
+     */
+    public array $arguments;
+
+    /**
+     * The overlay component class.
+     *
+     * @var class-string<OverlayConfig>
+     */
+    public readonly string $class;
 
     public function __construct(
-        private Request $request,
+        private readonly Request $request,
     )
     {
         [$this->typename, $this->arguments] = $this->parseOverlayId($this->getId());
+        $this->class = $this->resolveComponentClass($this->typename);
     }
+
+    # ----------[ Response ]----------
 
     public function render(): OverlayResponse
     {
-        return new OverlayResponse($this);
+        $middleware = $this->resolveComponentMiddleware($this->class);
+        $component = $this->applyMiddleware($middleware);
+
+        return new OverlayResponse(
+            overlay: $this,
+            config: $component->config(),
+            props: $component->props($this),
+        );
     }
 
-    public function flagRedirect(): void
+    private function applyMiddleware(array $middleware): OverlayComponent
     {
-        session()->flash('inertia.overlay.redirected', $this->getId());
-    }
-
-    public function resolveComponent(): OverlayComponent
-    {
-        return $this->component ??= $this->makeComponent();
+        return app(Pipeline::class)
+            ->send($this)
+            ->through($middleware)
+            ->then(fn(Overlay $overlay) => $overlay->createComponent(
+                $overlay->class,
+                $overlay->arguments
+            ));
     }
 
     # ----------[ Headers ]----------
@@ -82,9 +113,16 @@ class Overlay
         return ! $this->isFocused();
     }
 
+    # ----------[ Session ]----------
+
     public function isRedirected(): bool
     {
         return session()->get('inertia.overlay.redirected') === $this->getId();
+    }
+
+    public function flagRedirect(): void
+    {
+        session()->flash('inertia.overlay.redirected', $this->getId());
     }
 
     # ----------[ Parsing ]----------
@@ -110,16 +148,39 @@ class Overlay
 
     # ----------[ Component ]----------
 
-    private function makeComponent()
+    /**
+     * @param string $typename
+     * @return  class-string<OverlayConfig>
+     */
+    private function resolveComponentClass(string $typename): string
     {
-        $class = app(OverlayRegistrar::class)
-            ->resolveComponentClass($this->typename);
+        return app(OverlayRegistrar::class)->resolveComponentClass($typename);
+    }
 
-        if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
-            return $class::from($this->arguments);
+    /**
+     * @param class-string<OverlayConfig> $class
+     */
+    private function resolveComponentMiddleware(string $class): array
+    {
+        if (is_subclass_of($class, AppliesMiddleware::class)) {
+            return $class::middleware();
         }
 
-        return app($class, $this->arguments);
+        return [];
+    }
+
+    /**
+     * @param class-string<OverlayComponent> $class
+     * @param array $arguments
+     * @return OverlayComponent
+     */
+    private function createComponent(string $class, array $arguments): OverlayComponent
+    {
+        if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
+            return $class::from($arguments);
+        }
+
+        return app($class, $arguments);
     }
 
 }
