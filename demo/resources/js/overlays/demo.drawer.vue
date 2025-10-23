@@ -8,10 +8,7 @@ const props = defineProps<{
     prop: string;
     closureProp: string;
     lazyProp?: string;
-    mergeProp: Array<{
-        id: number;
-        name: string;
-    }>;
+
     message?: string;
 }>();
 
@@ -101,16 +98,6 @@ function resizeAction() {
             <div>
                 {{ message }}
             </div>
-        </div>
-        <div>
-            <li v-for="item in mergeProp" :key="item.id">
-                <div>
-                    {{ item.id }}
-                </div>
-                <div>
-                    {{ item.name }}
-                </div>
-            </li>
         </div>
         <div class="flex gap-2">
             <Button @click="loadLazyProp">

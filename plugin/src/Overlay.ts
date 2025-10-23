@@ -53,6 +53,7 @@ export class Overlay {
     public readonly focused = ref<boolean>(false);
     public readonly props = ref<OverlayProps | null>(null);
     public readonly config = ref<OverlayConfig | null>(null);
+    public readonly counter = ref<number>(0);
 
     constructor(
         private readonly router: OverlayRouter,
@@ -157,6 +158,14 @@ export class Overlay {
         return `${ this.instanceId }:${ key }`;
     }
 
+    public incrementCounter(): void {
+        this.counter.value += 1;
+    }
+
+    public resetCounter(): void {
+        this.counter.value = 0;
+    }
+
     // ----------[ Internal ]----------
 
     private setConfig(config: OverlayConfig): void {
@@ -173,6 +182,7 @@ export class Overlay {
         if (this.isBlurred()) return;
         this.focused.value = false;
         this.onBlurred.emit();
+        this.resetCounter();
     }
 
     private updateProps(page: OverlayPage): void {
