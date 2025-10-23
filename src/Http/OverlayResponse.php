@@ -51,7 +51,7 @@ readonly class OverlayResponse implements Responsable
             return true;
         }
 
-        if ($this->overlay->isRedirected()) {
+        if ($this->overlay->hydrateRequested()) {
             return true;
         }
 

@@ -75,7 +75,7 @@
     }
 
     .inertia-overlay-drawer {
-        @apply bg-white pointer-events-auto shadow-xl h-full w-full;
+        @apply bg-white pointer-events-auto shadow-xl h-full w-full transition-all;
     }
 
     /* Modal */
@@ -84,7 +84,7 @@
     }
 
     .inertia-overlay-modal {
-        @apply mb-6 bg-white rounded-lg shadow-xl sm:w-full sm:mx-auto pointer-events-auto overflow-hidden;
+        @apply mb-6 bg-white rounded-lg shadow-xl sm:w-full sm:mx-auto pointer-events-auto overflow-hidden transition-all;
     }
 }
 

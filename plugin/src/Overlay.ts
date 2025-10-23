@@ -175,6 +175,8 @@ export class Overlay {
 
         for (const key of page.overlay.keys) {
             const instanceKey = `${ this.instanceId }:${ key }`;
+            const value = page.props[instanceKey];
+            if (value === undefined || value === null) continue;
             props[key] = page.props[instanceKey];
         }
 

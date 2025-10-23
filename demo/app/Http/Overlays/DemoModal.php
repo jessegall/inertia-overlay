@@ -20,7 +20,7 @@ class DemoModal implements OverlayComponent, AppliesMiddleware
         public mixed $someValue = null,
     ) {}
 
-    public function config(): OverlayConfig
+    public function config(Overlay $overlay): OverlayConfig
     {
         return new OverlayConfig(
             variant: OverlayVariant::MODAL,

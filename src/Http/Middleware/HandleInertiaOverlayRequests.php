@@ -19,13 +19,12 @@ readonly class HandleInertiaOverlayRequests
         $overlay = new Overlay($request);
 
         if ($request->method() !== Request::METHOD_GET) {
-            $overlay->flagRedirect();
+            $overlay->hydrate();
             return $next($request);
         }
 
         if ($action = $overlay->getAction()) {
             $overlay->run($action);
-            $overlay->flagRedirect();
         }
 
         return $overlay->render();

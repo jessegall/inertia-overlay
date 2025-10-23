@@ -9,6 +9,8 @@ use JesseGall\InertiaOverlay\Contracts\ExposesActions;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
+use ReflectionClass;
+use ReflectionMethod;
 
 class Overlay
 {
@@ -72,7 +74,7 @@ class Overlay
 
         return new OverlayResponse(
             overlay: $this,
-            config: $component->config(),
+            config: $component->config($this),
             props: $component->props($this),
             actions: $actions,
         );
@@ -146,14 +148,14 @@ class Overlay
 
     # ----------[ Session ]----------
 
-    public function isRedirected(): bool
+    public function hydrateRequested(): bool
     {
-        return session()->get('inertia.overlay.redirected') === $this->getId();
+        return session()->get('inertia.overlay.hydrate') === $this->getId();
     }
 
-    public function flagRedirect(): void
+    public function hydrate(): void
     {
-        session()->flash('inertia.overlay.redirected', $this->getId());
+        session()->flash('inertia.overlay.hydrate', $this->getId());
     }
 
     # ----------[ Parsing ]----------
@@ -220,11 +222,16 @@ class Overlay
      */
     private function resolveActions(OverlayComponent $component): array
     {
-        if (is_subclass_of($component, ExposesActions::class)) {
-            return $component->actions();
-        }
+        $reflector = new ReflectionClass($component);
 
-        return [];
+        return collect($reflector->getMethods())
+            ->filter(fn(ReflectionMethod $method) => $method->getAttributes(OverlayAction::class))
+            ->mapWithKeys(function (ReflectionMethod $method) use ($component) {
+                [$attribute] = $method->getAttributes(OverlayAction::class);
+                $instance = $attribute->newInstance();
+                return [$instance->name => $method->getClosure($component)];
+            })
+            ->all();
     }
 
 }

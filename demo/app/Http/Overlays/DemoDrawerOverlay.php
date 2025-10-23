@@ -3,7 +3,6 @@
 namespace App\Http\Overlays;
 
 use Inertia\Inertia;
-use JesseGall\InertiaOverlay\Contracts\ExposesActions;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlaySize;
@@ -17,11 +16,11 @@ class DemoDrawerOverlay implements OverlayComponent
 
     private OverlaySize $size = OverlaySize::XL2;
 
-    public function config(): OverlayConfig
+    public function config(Overlay $overlay): OverlayConfig
     {
         return new OverlayConfig(
             variant: OverlayVariant::DRAWER,
-            size: session()->get('overlay_size', $this->size),
+            size: session()->get("{$overlay->getInstanceId()}.overlay_size", $this->size),
             flags: [
                 OverlayFlag::SKIP_HYDRATION_ON_REFOCUS,
             ]
@@ -34,7 +33,7 @@ class DemoDrawerOverlay implements OverlayComponent
             'prop' => 'This is a prop by value',
             'closureProp' => fn() => 'This is a prop from a closure',
             'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
-            'message' => session()->get('message')
+            'message' => session()->get("{$overlay->getInstanceId()}.message"),
         ];
     }
 
@@ -42,7 +41,7 @@ class DemoDrawerOverlay implements OverlayComponent
     private function testAction(Overlay $overlay): void
     {
         $random = rand(1111, 9999);
-        session()->flash('message', "This is a message from action testAction(): {$random}");
+        session()->flash("{$overlay->getInstanceId()}.message", "This is a message from action testAction(): {$random}");
         $overlay->hydrate();
     }
 
@@ -50,7 +49,7 @@ class DemoDrawerOverlay implements OverlayComponent
     private function resizeAction(Overlay $overlay): void
     {
         $this->size = OverlaySize::cases()[array_rand(OverlaySize::cases())];
-        session()->put('overlay_size', $this->size);
+        session()->put("{$overlay->getInstanceId()}.overlay_size", $this->size);
         $overlay->hydrate();
     }
 
