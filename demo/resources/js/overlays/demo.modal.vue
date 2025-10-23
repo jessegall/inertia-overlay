@@ -1,13 +1,17 @@
 <script setup lang="ts">
 
 import Button from "@/components/Button.vue";
-import { router } from "@inertiajs/vue3";
+import { Deferred, router } from "@inertiajs/vue3";
 import { useOverlay } from "@jessegall/inertia-overlay";
 
 const props = defineProps<{
     prop: string;
     closureProp: string;
     lazyProp?: string;
+    deferredProp?: {
+        message: string;
+        timestamp: string;
+    },
     mergeProp: Array<{
         id: number;
         name: string;
@@ -93,6 +97,16 @@ function submitError() {
             </div>
             <div>
                 {{ lazyProp }}
+            </div>
+            <div>
+                <Deferred :data="['deferredProp']">
+                    <template #fallback>
+                        Loading deferred prop...
+                    </template>
+                    <div>
+                        {{ deferredProp?.message }} - {{ deferredProp?.timestamp }}
+                    </div>
+                </Deferred>
             </div>
         </div>
         <div>

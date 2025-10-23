@@ -15,6 +15,7 @@ class InertiaOverlay
     public const string OVERLAY_STATE = 'X-Inertia-Overlay-State';
     public const string OVERLAY_PARENT_ID = 'X-Inertia-Overlay-Parent-Id';
     public const string OVERLAY_FOCUSED = 'X-Inertia-Overlay-Focused';
+    public const string OVERLAY_INITIAL = 'X-Inertia-Overlay-Initial';
 
 
 }

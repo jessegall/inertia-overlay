@@ -79,6 +79,11 @@ readonly class Overlay
         return $this->request->header(InertiaOverlay::OVERLAY_PAGE_COMPONENT);
     }
 
+    public function isInitial(): string
+    {
+        return filter_var($this->request->header(InertiaOverlay::OVERLAY_INITIAL), FILTER_VALIDATE_BOOLEAN);
+    }
+
     public function getState(): OverlayState
     {
         return OverlayState::from($this->request->header(InertiaOverlay::OVERLAY_STATE));

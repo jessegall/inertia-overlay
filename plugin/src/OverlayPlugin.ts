@@ -4,6 +4,8 @@ import OverlayRoot from "./Components/OverlayRoot.vue";
 import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayArgs, OverlayType } from "./Overlay.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
+import { Deferred } from "@inertiajs/vue3";
+import { initDeferredComponent } from "./Deferred.ts";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -33,6 +35,7 @@ export class OverlayPlugin {
     public install(app: App): void {
         this.provideDependencies(app);
         this.injectOverlayRootComponent(app);
+        initDeferredComponent(this.stack)
     }
 
     // ----------[ Setup ]----------

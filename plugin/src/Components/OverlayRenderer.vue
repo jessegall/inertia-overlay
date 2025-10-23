@@ -69,7 +69,7 @@ watch(() => overlay.state, handleState, { immediate: true });
                 :variant="overlay.config.variant"
                 :size="overlay.config.size"
             >
-                <OverlayComponent/>
+                <OverlayComponent :key="overlay.id"/>
             </OverlayWrapper>
 
         </template>

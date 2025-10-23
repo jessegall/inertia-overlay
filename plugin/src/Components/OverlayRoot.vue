@@ -19,7 +19,7 @@ const overlays = computed<Reactive<Overlay[]>>(() => {
 
 <template>
     <Teleport to="body">
-        <div class="overlay-root">
+        <div id="overlay-root">
             <template v-for="overlay in overlays" :key="overlay.id">
                 <OverlayRenderer :overlay/>
             </template>

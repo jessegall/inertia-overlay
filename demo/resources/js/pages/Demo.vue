@@ -2,8 +2,14 @@
 
 import Button from "@/components/Button.vue";
 import { useOverlay } from "@jessegall/inertia-overlay";
+import { Deferred } from "@inertiajs/vue3";
 
 const { createOverlay } = useOverlay();
+
+interface Props {
+    test?: string;
+}
+const props = defineProps<Props>();
 
 function createDemoModal() {
     const overlay = createOverlay({
@@ -23,6 +29,19 @@ function createDemoModal() {
                 Open Demo Modal
             </Button>
         </div>
+        <Deferred :data="['test']">
+            <template #fallback>
+                <div class="fixed bottom-4 right-4 bg-white border border-gray-300 rounded shadow p-4">
+                    Loading deferred content...
+                </div>
+            </template>
+            <div>
+                <div class="fixed bottom-4 right-4 bg-white border border-gray-300 rounded shadow p-4">
+                    Deferred content loaded!
+                    {{ test }}
+                </div>
+            </div>
+        </Deferred>
     </div>
 </template>
 

@@ -5,6 +5,7 @@ namespace JesseGall\InertiaOverlay\Http;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\DeferProp;
 use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
 use Inertia\Support\Header;
@@ -28,7 +29,7 @@ readonly class OverlayResponse implements Responsable
         $pageComponent = $this->overlay->getPageComponent();
         $props = $this->scopeProps($this->props);
 
-        if ($this->shouldHydrate()) {
+        if ($this->shouldHydrate($request)) {
             $this->appendPropsToPartialOnlyHeader($request, $props);
         }
 
@@ -46,10 +47,10 @@ readonly class OverlayResponse implements Responsable
             ->all();
     }
 
-    private function shouldHydrate(): bool
+    private function shouldHydrate(Request $request): bool
     {
         if ($this->overlay->hasState(OverlayState::OPENING)) {
-            return true;
+            return $this->overlay->isInitial();
         }
 
         if ($this->overlay->isRefreshRequested()) {
@@ -83,12 +84,24 @@ readonly class OverlayResponse implements Responsable
     {
         $data = $response->getData(true);
 
+        if ($this->overlay->isInitial()) {
+            $deferredProps = collect($this->props)
+                ->filter(fn($value) => $value instanceof DeferProp)
+                ->keys()
+                ->map(fn($value) => "{$this->overlay->getInstanceId()}:{$value}")
+                ->all();
+
+            if ($deferredProps) {
+                $data['deferredProps']['default'] = $deferredProps;
+            }
+        }
+
         $data['overlay'] = [
             'id' => $this->overlay->getId(),
             'variant' => $this->config->variant,
             'size' => $this->config->size,
             'flags' => $this->config->flags,
-            'keys' => array_keys($this->props),
+            'props' => array_keys($this->props),
             'actions' => array_keys($this->actions),
         ];
 

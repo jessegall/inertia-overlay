@@ -6,7 +6,6 @@ use App\Http\Middleware\Overlays\TestOverlayMiddleware;
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\Contracts\AppliesMiddleware;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlaySize;
 use JesseGall\InertiaOverlay\Enums\OverlayVariant;
 use JesseGall\InertiaOverlay\Overlay;
@@ -38,6 +37,13 @@ class DemoModal implements OverlayComponent, AppliesMiddleware
             'closureProp' => fn() => 'This is a prop from a closure',
             'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
             'someValue' => $this->someValue,
+            'deferredProp' => Inertia::defer(function () {
+                sleep(2);
+                return [
+                    'message' => 'This is a deferred prop',
+                    'timestamp' => now()->toDateTimeString(),
+                ];
+            }),
             'mergeProp' => Inertia::merge([
                 [
                     'id' => $id = random_int(0, 5),

@@ -19,6 +19,7 @@ export const headers = {
     OVERLAY_STATE: 'X-Inertia-Overlay-State',
     OVERLAY_FOCUSED: 'X-Inertia-Overlay-Focused',
     OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
+    OVERLAY_INITIAL: 'X-Inertia-Overlay-Initial',
 }
 
 export class OverlayRouter {
@@ -32,6 +33,7 @@ export class OverlayRouter {
     // ----------[ Properties ]----------
 
     private readonly rootUrl = ref<string | null>(null)
+    private readonly counts = new Map<string, number>();
 
     constructor(
         private readonly resolve: OverlayResolver,
@@ -119,6 +121,8 @@ export class OverlayRouter {
             : new URL(window.location.href).searchParams.get("overlay");
 
         if (overlayId) {
+            this.counts.set(overlayId, (this.counts.get(overlayId) ?? 0) + 1);
+
             const overlay = this.resolve(overlayId);
 
             if (! overlay) {
@@ -146,6 +150,7 @@ export class OverlayRouter {
                 [headers.OVERLAY_PAGE_COMPONENT]: page.component,
                 [headers.OVERLAY_ROOT_URL]: this.rootUrl.value,
                 [headers.OVERLAY_FOCUSED]: overlay.isFocused() ? 'true' : 'false',
+                [headers.OVERLAY_INITIAL]: this.counts.get(overlayId) == 1 ? 'true' : 'false',
 
             }
 
@@ -153,6 +158,10 @@ export class OverlayRouter {
                 visit.only = ['__overlay_partial_reload_trigger']
             } else {
                 visit.only = visit.only.map(item => {
+                    if (item.startsWith(`${ overlay.instanceId }:`)) {
+                        return item;
+                    }
+
                     return `${ overlay.instanceId }:${ item }`;
                 });
             }

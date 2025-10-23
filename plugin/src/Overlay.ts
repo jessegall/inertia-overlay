@@ -19,7 +19,8 @@ export interface OverlayConfig {
     variant: OverlayVariant;
     size: OverlaySize;
     flags: OverlayFlag[];
-    keys: string[];
+    props: string[];
+    deferredProps: string[];
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
@@ -152,6 +153,10 @@ export class Overlay {
         return this.config.value !== null;
     }
 
+    public scopedKey(key: string) {
+        return `${ this.instanceId }:${ key }`;
+    }
+
     // ----------[ Internal ]----------
 
     private setConfig(config: OverlayConfig): void {
@@ -173,11 +178,11 @@ export class Overlay {
     private updateProps(page: OverlayPage): void {
         const props: OverlayProps = {};
 
-        for (const key of page.overlay.keys) {
-            const instanceKey = `${ this.instanceId }:${ key }`;
-            const value = page.props[instanceKey];
+        for (const key of page.overlay.props) {
+            const scopedKey = this.scopedKey(key);
+            const value = page.props[scopedKey];
             if (value === undefined || value === null) continue;
-            props[key] = page.props[instanceKey];
+            props[key] = page.props[scopedKey];
         }
 
         this.props.value = {
