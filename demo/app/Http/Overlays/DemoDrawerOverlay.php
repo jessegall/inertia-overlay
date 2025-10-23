@@ -9,16 +9,19 @@ use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlaySize;
 use JesseGall\InertiaOverlay\Enums\OverlayVariant;
 use JesseGall\InertiaOverlay\Overlay;
+use JesseGall\InertiaOverlay\OverlayAction;
 use JesseGall\InertiaOverlay\OverlayConfig;
 
-class DemoDrawerOverlay implements OverlayComponent, ExposesActions
+class DemoDrawerOverlay implements OverlayComponent
 {
+
+    private OverlaySize $size = OverlaySize::XL2;
 
     public function config(): OverlayConfig
     {
         return new OverlayConfig(
             variant: OverlayVariant::DRAWER,
-            size: OverlaySize::XL2,
+            size: session()->get('overlay_size', $this->size),
             flags: [
                 OverlayFlag::SKIP_HYDRATION_ON_REFOCUS,
             ]
@@ -35,17 +38,20 @@ class DemoDrawerOverlay implements OverlayComponent, ExposesActions
         ];
     }
 
-    public function actions(): array
-    {
-        return [
-            'test' => $this->testAction(...),
-        ];
-    }
-
-    private function testAction()
+    #[OverlayAction('test')]
+    private function testAction(Overlay $overlay): void
     {
         $random = rand(1111, 9999);
         session()->flash('message', "This is a message from action testAction(): {$random}");
+        $overlay->hydrate();
+    }
+
+    #[OverlayAction('resize')]
+    private function resizeAction(Overlay $overlay): void
+    {
+        $this->size = OverlaySize::cases()[array_rand(OverlaySize::cases())];
+        session()->put('overlay_size', $this->size);
+        $overlay->hydrate();
     }
 
 }

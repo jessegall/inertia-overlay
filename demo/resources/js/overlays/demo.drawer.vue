@@ -78,6 +78,10 @@ function testAction() {
     runAction('test');
 }
 
+function resizeAction() {
+    runAction('resize');
+}
+
 </script>
 
 <template>
@@ -128,6 +132,9 @@ function testAction() {
         <div class="flex gap-2">
             <Button @click="testAction">
                 Test action
+            </Button>
+            <Button @click="resizeAction">
+                Resize action
             </Button>
         </div>
     </div>

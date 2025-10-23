@@ -8,10 +8,6 @@ const props = defineProps<{
     prop: string;
     closureProp: string;
     lazyProp?: string;
-    mergeProp: Array<{
-        id: number;
-        name: string;
-    }>;
 }>();
 
 const emit = defineEmits(['close']);
