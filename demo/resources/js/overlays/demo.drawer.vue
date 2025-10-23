@@ -72,13 +72,15 @@ function submitError() {
 }
 
 function testAction() {
-    overlayAction('test', {
-        foo: 'bar',
-    });
+    overlayAction('test');
 }
 
 function resizeAction() {
-    overlayAction('resize');
+    overlayAction('resize', {
+        onSuccess: data => {
+            console.log(data);
+        }
+    });
 }
 
 </script>
