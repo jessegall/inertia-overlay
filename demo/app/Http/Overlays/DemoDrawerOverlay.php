@@ -20,7 +20,7 @@ class DemoDrawerOverlay implements OverlayComponent
     {
         return new OverlayConfig(
             variant: OverlayVariant::DRAWER,
-            size: session()->get("{$overlay->getInstanceId()}.size", $this->size),
+            size: $overlay->get('size', $this->size),
             flags: [
                 OverlayFlag::SKIP_HYDRATION_ON_REFOCUS,
             ]
@@ -33,7 +33,7 @@ class DemoDrawerOverlay implements OverlayComponent
             'prop' => 'This is a prop by value',
             'closureProp' => fn() => 'This is a prop from a closure',
             'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
-            'message' => session()->get("{$overlay->getInstanceId()}.message"),
+            'message' => $overlay->get('message', 'Initial message'),
         ];
     }
 
@@ -41,16 +41,14 @@ class DemoDrawerOverlay implements OverlayComponent
     private function testAction(Overlay $overlay): void
     {
         $random = rand(1111, 9999);
-        session()->flash("{$overlay->getInstanceId()}.message", "This is a message from action testAction(): {$random}");
-        $overlay->refresh();
+        $overlay->put('message', "Message from action testAction(): {$random}");
+        $overlay->refresh('message');
     }
 
     #[OverlayAction('resize')]
     private function resizeAction(Overlay $overlay): void
     {
-        $this->size = OverlaySize::cases()[array_rand(OverlaySize::cases())];
-        session()->put("{$overlay->getInstanceId()}.size", $this->size);
-        $overlay->refresh();
+        $overlay->put('size', OverlaySize::cases()[array_rand(OverlaySize::cases())]);
     }
 
 }

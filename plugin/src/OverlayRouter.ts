@@ -1,6 +1,6 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
-import { Page, PendingVisit } from "@inertiajs/core";
+import { CancelToken, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
@@ -19,10 +19,13 @@ export const headers = {
     OVERLAY_STATE: 'X-Inertia-Overlay-State',
     OVERLAY_FOCUSED: 'X-Inertia-Overlay-Focused',
     OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
-    OVERLAY_INITIAL: 'X-Inertia-Overlay-Initial',
+    OVERLAY_REQUEST_COUNTER: 'X-Inertia-Overlay-Request-Counter',
+    OVERLAY_REFOCUS: 'X-Inertia-Overlay-Refocus',
 }
 
 export class OverlayRouter {
+
+    private readonly cancelTokens: CancelToken[] = [];
 
     // ----------[ Events ]----------
 
@@ -32,7 +35,9 @@ export class OverlayRouter {
 
     // ----------[ Properties ]----------
 
+    private readonly previousOverlayId = ref<string | null>(null);
     private readonly rootUrl = ref<string | null>(null)
+    private readonly counter = ref<number>(0);
 
     constructor(
         private readonly resolve: OverlayResolver,
@@ -57,6 +62,7 @@ export class OverlayRouter {
 
     public async open(overlayId: string): Promise<OverlayPage> {
         return await new Promise((resolve, reject) => router.reload({
+            async: true,
             data: {
                 overlay: overlayId,
             },
@@ -75,6 +81,7 @@ export class OverlayRouter {
 
     public async action(action: string, data: Record<string, any> = {}): Promise<Page> {
         return await new Promise((resolve, reject) => router.reload({
+            async: true,
             data,
             headers: {
                 [headers.OVERLAY_ACTION]: action,
@@ -122,8 +129,6 @@ export class OverlayRouter {
         if (overlayId) {
             const overlay = this.resolve(overlayId);
 
-            overlay.incrementCounter();
-
             if (! overlay) {
                 throw new Error(`Could not resolve overlay with ID '${ overlayId }'.`);
             }
@@ -132,7 +137,13 @@ export class OverlayRouter {
                 this.setRootUrl(window.location.href);
             }
 
+            if (this.previousOverlayId.value !== overlayId) {
+                this.counter.value = 0;
+            }
+
             const page = usePage();
+            this.previousOverlayId.value = overlayId;
+            this.counter.value += 1;
 
             visit.headers = {
 
@@ -149,7 +160,8 @@ export class OverlayRouter {
                 [headers.OVERLAY_PAGE_COMPONENT]: page.component,
                 [headers.OVERLAY_ROOT_URL]: this.rootUrl.value,
                 [headers.OVERLAY_FOCUSED]: overlay.isFocused() ? 'true' : 'false',
-                [headers.OVERLAY_INITIAL]: overlay.counter == 1 ? 'true' : 'false',
+                [headers.OVERLAY_REQUEST_COUNTER]: this.counter.value.toString(),
+                [headers.OVERLAY_REFOCUS]: overlay.hasState('open') && this.counter.value === 1 ? 'true' : 'false',
 
             }
 

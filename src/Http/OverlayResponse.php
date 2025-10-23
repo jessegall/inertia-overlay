@@ -24,53 +24,31 @@ readonly class OverlayResponse implements Responsable
         private array $actions = [],
     ) {}
 
-    public function toResponse($request): JsonResponse
+
+    private function shouldRefresh(): bool
     {
-        $pageComponent = $this->overlay->getPageComponent();
-        $props = $this->scopeProps($this->props);
-
-        if ($this->shouldHydrate($request)) {
-            $this->appendPropsToPartialOnlyHeader($request, $props);
-        }
-
-        $response = Inertia::render($pageComponent, $props)->toResponse($request);
-
-        return $this->addOverlayDataToResponse($response);
-    }
-
-    private function scopeProps(array $props): array
-    {
-        $instanceId = $this->overlay->getInstanceId();
-
-        return collect($props)
-            ->mapWithKeys(fn($value, $key) => ["{$instanceId}:{$key}" => $value])
-            ->all();
-    }
-
-    private function shouldHydrate(Request $request): bool
-    {
-        if ($this->overlay->hasState(OverlayState::OPENING)) {
-            return $this->overlay->isInitial();
-        }
-
         if ($this->overlay->isRefreshRequested()) {
             return true;
         }
 
-        if ($this->overlay->isBlurred() && ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS)) {
-            return true;
+        if ($this->overlay->hasState(OverlayState::OPENING)) {
+            return $this->overlay->hasRequestCounter(1);
+        }
+
+        if ($this->overlay->isRefocusing()) {
+            return ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS);
         }
 
         return false;
     }
 
-    private function appendPropsToPartialOnlyHeader(Request $request, array $props): void
+    private function scopeKey(string $key): string
     {
-        $keys = collect($props)
-            ->reject(fn($value) => $value instanceof IgnoreFirstLoad)
-            ->keys()
-            ->all();
+        return "{$this->overlay->getInstanceId()}:{$key}";
+    }
 
+    private function addPropsToPartialOnlyHeader(Request $request, array $keys): void
+    {
         $only = str($request->header(Header::PARTIAL_ONLY, ''))
             ->explode(',')
             ->merge($keys)
@@ -80,16 +58,44 @@ readonly class OverlayResponse implements Responsable
         $request->headers->set(Header::PARTIAL_ONLY, $only);
     }
 
+    private function resolveRefreshProps(array $props): array
+    {
+        $propsToRefresh = $this->overlay->getRefreshProps();
+
+        if ($propsToRefresh === true) {
+            $propsToRefresh = array_keys($props);
+        } else {
+            $propsToRefresh = collect($propsToRefresh)
+                ->map(fn($key) => $this->scopeKey($key))
+                ->all();
+        }
+
+        foreach ($propsToRefresh as $index => $prop) {
+            $value = $props[$prop] ?? null;
+
+            if ($value instanceof IgnoreFirstLoad) {
+                unset($propsToRefresh[$index]);
+            }
+        }
+
+        return $propsToRefresh;
+    }
+
+    private function resolveDeferredProps()
+    {
+        return collect($this->props)
+            ->filter(fn($value) => $value instanceof DeferProp)
+            ->keys()
+            ->map(fn($value) => $this->scopeKey($value))
+            ->all();
+    }
+
     private function addOverlayDataToResponse(JsonResponse $response): JsonResponse
     {
         $data = $response->getData(true);
 
-        if ($this->overlay->isInitial()) {
-            $deferredProps = collect($this->props)
-                ->filter(fn($value) => $value instanceof DeferProp)
-                ->keys()
-                ->map(fn($value) => "{$this->overlay->getInstanceId()}:{$value}")
-                ->all();
+        if ($this->overlay->hasRequestCounter(1)) {
+            $deferredProps = $this->resolveDeferredProps();
 
             if ($deferredProps) {
                 $data['deferredProps']['default'] = $deferredProps;
@@ -106,6 +112,24 @@ readonly class OverlayResponse implements Responsable
         ];
 
         return $response->setData($data);
+    }
+
+    public function toResponse($request): JsonResponse
+    {
+        $scopedProps = collect($this->props)
+            ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
+            ->all();
+
+        if ($this->shouldRefresh()) {
+            $this->addPropsToPartialOnlyHeader($request, $this->resolveRefreshProps($scopedProps));
+        }
+
+        $response = Inertia::render($this->overlay->getPageComponent(), $scopedProps)->toResponse($request);
+        $response = $this->addOverlayDataToResponse($response);
+
+        $this->overlay->reset();
+
+        return $response;
     }
 
 }

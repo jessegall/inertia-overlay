@@ -23,10 +23,8 @@ class DemoModal implements OverlayComponent, AppliesMiddleware
     {
         return new OverlayConfig(
             variant: OverlayVariant::MODAL,
-            size: OverlaySize::XL2,
-            flags: [
-//                OverlayFlag::USE_SHARED_PROPS,
-            ]
+            size: $overlay->remember('size', OverlaySize::cases()[array_rand(OverlaySize::cases())]),
+            flags: []
         );
     }
 
@@ -38,7 +36,6 @@ class DemoModal implements OverlayComponent, AppliesMiddleware
             'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
             'someValue' => $this->someValue,
             'deferredProp' => Inertia::defer(function () {
-                sleep(2);
                 return [
                     'message' => 'This is a deferred prop',
                     'timestamp' => now()->toDateTimeString(),

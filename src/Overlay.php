@@ -2,10 +2,11 @@
 
 namespace JesseGall\InertiaOverlay;
 
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Pipeline\Pipeline;
+use Illuminate\Support\Arr;
 use JesseGall\InertiaOverlay\Contracts\AppliesMiddleware;
-use JesseGall\InertiaOverlay\Contracts\ExposesActions;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
@@ -40,6 +41,11 @@ readonly class Overlay
             props: $this->component->props($this),
             actions: $this->actions,
         );
+    }
+
+    public function reset(): void
+    {
+        $this->remove('refresh');
     }
 
     # ----------[ Headers ]----------
@@ -79,9 +85,19 @@ readonly class Overlay
         return $this->request->header(InertiaOverlay::OVERLAY_PAGE_COMPONENT);
     }
 
-    public function isInitial(): string
+    public function getRequestCounter(): int
     {
-        return filter_var($this->request->header(InertiaOverlay::OVERLAY_INITIAL), FILTER_VALIDATE_BOOLEAN);
+        return (int)$this->request->header(InertiaOverlay::OVERLAY_REQUEST_COUNTER);
+    }
+
+    public function hasRequestCounter(int $counter): bool
+    {
+        return $this->getRequestCounter() === $counter;
+    }
+
+    public function isRefocusing(): bool
+    {
+        return filter_var($this->request->header(InertiaOverlay::OVERLAY_REFOCUS), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function getState(): OverlayState
@@ -108,12 +124,61 @@ readonly class Overlay
 
     public function isRefreshRequested(): bool
     {
-        return session()->get('inertia.overlay.refresh') === $this->getId();
+        return $this->get('refresh') !== null;
     }
 
-    public function refresh(): void
+    public function isFullRefreshRequested(): bool
     {
-        session()->flash('inertia.overlay.refresh', $this->getId());
+        return $this->get('refresh') === true;
+    }
+
+    public function getRefreshProps(): array|bool
+    {
+        return $this->get('refresh', true);
+    }
+
+    public function refresh(array|string|null $data = null): void
+    {
+        if ($data === null) {
+            $this->flash('refresh', true);
+        } elseif (! $this->isFullRefreshRequested()) {
+            $current = $this->get('refresh', []);
+            $this->flash('refresh', array_merge($current, Arr::wrap($data)));
+        }
+    }
+
+    public function get(string $key, mixed $default = null): mixed
+    {
+        return session()->get($this->sessionKey($key), $default);
+    }
+
+    public function flash(string $key, mixed $value): void
+    {
+        session()->flash($this->sessionKey($key), $value);
+    }
+
+    public function put(string $key, mixed $value): void
+    {
+        session()->put($this->sessionKey($key), $value);
+    }
+
+    public function remember(string $key, mixed $value): mixed
+    {
+        if (! $value instanceof Closure) {
+            $value = fn() => $value;
+        }
+        
+        return session()->remember($this->sessionKey($key), $value);
+    }
+
+    public function remove(string $key): void
+    {
+        session()->remove($this->sessionKey($key));
+    }
+
+    public function sessionKey(string $key): mixed
+    {
+        return "overlay.{$this->getInstanceId()}.{$key}";
     }
 
     # ----------[ Parsing ]----------
