@@ -12,81 +12,34 @@ use JesseGall\InertiaOverlay\Http\OverlayResponse;
 use ReflectionClass;
 use ReflectionMethod;
 
-class Overlay
+readonly class Overlay
 {
 
-    private OverlayComponent|null $component = null;
-
-    /**
-     * The overlay component typename.
-     *
-     * @var string
-     */
-    public readonly string $typename;
-
-    /**
-     * The arguments passed to the overlay component.
-     *
-     * @var array|mixed
-     */
-    public array $arguments;
-
-    /**
-     * The overlay component class.
-     *
-     * @var class-string<OverlayConfig>
-     */
-    public readonly string $class;
+    private OverlayComponent $component;
+    private array $actions;
 
     public function __construct(
-        public readonly Request $request,
+        public Request $request,
     )
     {
-        [$this->typename, $this->arguments] = $this->parseOverlayId($this->getId());
-        $this->class = $this->resolveComponentClass($this->typename);
+        [$typename, $arguments] = $this->parseOverlayId($this->getId());
+        $this->component = $this->resolveComponent($typename, $arguments);
+        $this->actions = $this->resolveActions($this->component);
     }
-
-    # ----------[ Resolve ]----------
-
-    private function resolve(): OverlayComponent
-    {
-        if ($this->component !== null) {
-            return $this->component;
-        }
-
-        $middleware = $this->resolveComponentMiddleware($this->class);
-
-        return $this->component = app(Pipeline::class)
-            ->send($this)
-            ->through($middleware)
-            ->then(fn(Overlay $overlay) => $overlay->createComponent(
-                $overlay->class,
-                $overlay->arguments
-            ));
-    }
-
-    # ----------[ Response ]----------
-
-    public function render(): OverlayResponse
-    {
-        $component = $this->resolve();
-        $actions = $this->resolveActions($component);
-
-        return new OverlayResponse(
-            overlay: $this,
-            config: $component->config($this),
-            props: $component->props($this),
-            actions: $actions,
-        );
-    }
-
-    # ----------[ Actions ]----------
 
     public function run(string $action): mixed
     {
-        $component = $this->resolve();
-        $actions = $this->resolveActions($component);
-        return app()->call($actions[$action]);
+        return app()->call($this->actions[$action]);
+    }
+
+    public function render(): OverlayResponse
+    {
+        return new OverlayResponse(
+            overlay: $this,
+            config: $this->component->config($this),
+            props: $this->component->props($this),
+            actions: $this->actions,
+        );
     }
 
     # ----------[ Headers ]----------
@@ -148,14 +101,14 @@ class Overlay
 
     # ----------[ Session ]----------
 
-    public function hydrateRequested(): bool
+    public function isRefreshRequested(): bool
     {
-        return session()->get('inertia.overlay.hydrate') === $this->getId();
+        return session()->get('inertia.overlay.refresh') === $this->getId();
     }
 
-    public function hydrate(): void
+    public function refresh(): void
     {
-        session()->flash('inertia.overlay.hydrate', $this->getId());
+        session()->flash('inertia.overlay.refresh', $this->getId());
     }
 
     # ----------[ Parsing ]----------
@@ -183,11 +136,19 @@ class Overlay
 
     /**
      * @param string $typename
-     * @return  class-string<OverlayConfig>
+     * @param array $arguments
+     * @return OverlayComponent
      */
-    private function resolveComponentClass(string $typename): string
+    private function resolveComponent(string $typename, array $arguments = []): OverlayComponent
     {
-        return app(OverlayRegistrar::class)->resolveComponentClass($typename);
+        $class = app(OverlayRegistrar::class)->resolveComponentClass($typename);
+
+        $middleware = $this->resolveComponentMiddleware($class);
+
+        return app(Pipeline::class)
+            ->send($this)
+            ->through($middleware)
+            ->then(fn() => $this->newComponent($class, $arguments));
     }
 
     /**
@@ -207,7 +168,7 @@ class Overlay
      * @param array $arguments
      * @return OverlayComponent
      */
-    private function createComponent(string $class, array $arguments): OverlayComponent
+    private function newComponent(string $class, array $arguments): OverlayComponent
     {
         if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
             return $class::from($arguments);

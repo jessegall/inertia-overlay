@@ -25,18 +25,19 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        $props = $this->prefixInstanceIdToPropKeys($this->props);
+        $pageComponent = $this->overlay->getPageComponent();
+        $props = $this->scopeProps($this->props);
 
         if ($this->shouldHydrate()) {
-            $this->addNonLazyPropsToPartialOnlyHeader($request, $props);
+            $this->appendPropsToPartialOnlyHeader($request, $props);
         }
 
-        $response = $this->createInertiaResponse($request, $props);
+        $response = Inertia::render($pageComponent, $props)->toResponse($request);
 
         return $this->addOverlayDataToResponse($response);
     }
 
-    private function prefixInstanceIdToPropKeys(array $props): array
+    private function scopeProps(array $props): array
     {
         $instanceId = $this->overlay->getInstanceId();
 
@@ -51,7 +52,7 @@ readonly class OverlayResponse implements Responsable
             return true;
         }
 
-        if ($this->overlay->hydrateRequested()) {
+        if ($this->overlay->isRefreshRequested()) {
             return true;
         }
 
@@ -62,7 +63,7 @@ readonly class OverlayResponse implements Responsable
         return false;
     }
 
-    private function addNonLazyPropsToPartialOnlyHeader(Request $request, array $props): void
+    private function appendPropsToPartialOnlyHeader(Request $request, array $props): void
     {
         $keys = collect($props)
             ->reject(fn($value) => $value instanceof IgnoreFirstLoad)
@@ -78,18 +79,12 @@ readonly class OverlayResponse implements Responsable
         $request->headers->set(Header::PARTIAL_ONLY, $only);
     }
 
-    private function createInertiaResponse(Request $request, array $props): JsonResponse
-    {
-        return Inertia::render($this->overlay->getPageComponent(), $props)->toResponse($request);
-    }
-
     private function addOverlayDataToResponse(JsonResponse $response): JsonResponse
     {
         $data = $response->getData(true);
 
         $data['overlay'] = [
             'id' => $this->overlay->getId(),
-            'component' => $this->overlay->typename,
             'variant' => $this->config->variant,
             'size' => $this->config->size,
             'flags' => $this->config->flags,

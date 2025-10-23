@@ -42,7 +42,7 @@ class DemoDrawerOverlay implements OverlayComponent
     {
         $random = rand(1111, 9999);
         session()->flash("{$overlay->getInstanceId()}.message", "This is a message from action testAction(): {$random}");
-        $overlay->hydrate();
+        $overlay->refresh();
     }
 
     #[OverlayAction('resize')]
@@ -50,7 +50,7 @@ class DemoDrawerOverlay implements OverlayComponent
     {
         $this->size = OverlaySize::cases()[array_rand(OverlaySize::cases())];
         session()->put("{$overlay->getInstanceId()}.size", $this->size);
-        $overlay->hydrate();
+        $overlay->refresh();
     }
 
 }
