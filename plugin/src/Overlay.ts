@@ -1,9 +1,7 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
 import { Component, ref, ShallowRef } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
-import { clone } from "./helpers.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
-import { usePage } from "@inertiajs/vue3";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
@@ -15,12 +13,13 @@ export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
 export type OverlayFlag = 'skip_hydration_on_refocus';
 
 export interface OverlayConfig {
-    id: string;
+    id: string,
     component: string;
     variant: OverlayVariant;
     size: OverlaySize;
-    keys: string[];
     flags: OverlayFlag[];
+    props: OverlayProps,
+    keys: string[];
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
@@ -143,7 +142,11 @@ export class Overlay {
     }
 
     public hasFlag(flag: OverlayFlag): boolean {
-        return this.config.value?.flags[flag] || false;
+        return this.config.value?.flags.includes(flag) ?? false;
+    }
+
+    public isInitialized(): boolean {
+        return this.config.value !== null;
     }
 
     // ----------[ Internal ]----------
@@ -165,51 +168,22 @@ export class Overlay {
     }
 
     private updateProps(props: OverlayProps): void {
-        const _props = this.props.value || {};
-
-        for (const key of this.config.value.keys) {
-            const value = props[key];
-            if (value === undefined || value === null) {
-                continue;
-            }
-            _props[key] = value;
-        }
-
-        this.props.value = _props;
-    }
-
-    private restoreOverlayProps(props: OverlayProps): void {
-        for (const key of this.config.value.keys) {
-            props[key] = clone(this.props[key])
-        }
-    }
-
-    private clearOverlayProps(props: OverlayProps): void {
-        for (const key of this.config.value.keys) {
-            delete props[key];
-        }
+        this.props.value = {
+            ...this.props.value,
+            ...props,
+        };
     }
 
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = visit.url.searchParams.get('overlay');
 
-        if (this.isFocused() && overlayId && overlayId !== this.id) {
-            const page = usePage();
-            this.clearOverlayProps(page.props);
-        }
     }
 
     private handleSuccessfulRouteVisit(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
             this.setConfig(page.overlay);
-
-            if (this.hasState('open') && this.isBlurred() && this.hasFlag('skip_hydration_on_refocus')) {
-                this.restoreOverlayProps(page.props);
-            }
-
-            this.updateProps(page.props);
+            this.updateProps(page.overlay.props);
             this.focus();
         } else {
             this.blur();

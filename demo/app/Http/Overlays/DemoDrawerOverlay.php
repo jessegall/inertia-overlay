@@ -18,8 +18,7 @@ class DemoDrawerOverlay implements OverlayComponent
         return [
             'prop' => 'This is a prop by value',
             'closureProp' => fn() => 'This is a prop from a closure',
-            'lazyProp' => Inertia::optional(
-                fn() => 'This is a prop from an lazy prop'),
+            'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
         ];
     }
 

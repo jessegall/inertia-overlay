@@ -1,9 +1,10 @@
 <script setup lang="ts">
 
-import { computed, h, inject, nextTick, ref, watch } from "vue";
+import { h, ref, watch } from "vue";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import { ReadonlyOverlay } from "../OverlayFactory.ts";
 import OverlayWrapper from "./OverlayWrapper.vue";
+import { OverlayState } from "../Overlay.ts";
 
 interface Props {
     overlay: ReadonlyOverlay
@@ -24,30 +25,32 @@ const OverlayComponent = () => h(overlay.component, {
 // ----------[ Data ]----------
 
 const shouldRenderComponent = ref(false);
+const shouldRenderBackdrop = ref(false);
 
-//----------[ Computed ]----------
+// ----------[ Event Handlers ]----------
 
-const shouldRenderBackdrop = computed<boolean>(() => {
-    return overlay.state === 'opening'
-        || overlay.state === 'open'
-        || overlay.state === 'closing';
-});
-
-// ----------[ Watchers ]----------
-
-watch(() => overlay.state, (state) => {
+function handleState(state: OverlayState) {
     switch (state) {
 
+        case 'opening':
+            shouldRenderBackdrop.value = true;
+            break;
+
         case 'open':
-            nextTick(() => shouldRenderComponent.value = true);
+            shouldRenderComponent.value = true;
             break;
 
         case 'closing':
             shouldRenderComponent.value = false;
+            shouldRenderBackdrop.value = false;
             break;
 
     }
-});
+}
+
+// ----------[ Watchers ]----------
+
+watch(() => overlay.state, handleState, { immediate: true });
 
 </script>
 

@@ -54,11 +54,15 @@
 
     /* Backdrop */
     .inertia-overlay-backdrop {
-        @apply fixed inset-0 flex justify-center items-center bg-black backdrop-blur-sm transition-opacity opacity-0 pointer-events-none z-50;
+        @apply fixed inset-0 bg-black backdrop-blur-sm z-50;
     }
 
     .inertia-overlay-backdrop--active {
-        @apply opacity-20 pointer-events-auto;
+        @apply opacity-20 pointer-events-auto transition-opacity duration-200;
+    }
+
+    .inertia-overlay-backdrop--inactive {
+        @apply opacity-0 pointer-events-none transition-opacity duration-200;
     }
 
     /* Drawer */

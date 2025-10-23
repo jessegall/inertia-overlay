@@ -30,7 +30,7 @@ readonly class OverlayResponse implements Responsable
 
         $response = $this->createInertiaResponse($request);
 
-        return $this->injectOverlayDataInResponse($response);
+        return $this->addOverlayDataToResponse($response);
     }
 
     private function shouldHydrate(): bool
@@ -71,9 +71,18 @@ readonly class OverlayResponse implements Responsable
         return Inertia::render($this->overlay->getPageComponent(), $this->props)->toResponse($request);
     }
 
-    private function injectOverlayDataInResponse(JsonResponse $response): JsonResponse
+    private function addOverlayDataToResponse(JsonResponse $response): JsonResponse
     {
         $data = $response->getData(true);
+        $keys = array_keys($this->props);
+        $props = [];
+
+        foreach ($data['props'] as $key => $value) {
+            if (in_array($key, $keys)) {
+                $props[$key] = $value;
+                unset($data['props'][$key]);
+            }
+        }
 
         $data['overlay'] = [
             'id' => $this->overlay->getId(),
@@ -82,6 +91,7 @@ readonly class OverlayResponse implements Responsable
             'size' => $this->config->size,
             'flags' => $this->config->flags,
             'keys' => array_keys($this->props),
+            'props' => $props,
         ];
 
         return $response->setData($data);
