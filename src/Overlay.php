@@ -39,7 +39,7 @@ class Overlay
     public readonly string $class;
 
     public function __construct(
-        private readonly Request $request,
+        public readonly Request $request,
     )
     {
         [$this->typename, $this->arguments] = $this->parseOverlayId($this->getId());

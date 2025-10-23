@@ -17,7 +17,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['close']);
 
-const { createOverlay, runAction } = useOverlay();
+const { createOverlay, overlayAction } = useOverlay();
 
 function loadLazyProp() {
     router.reload({
@@ -75,11 +75,13 @@ function submitError() {
 }
 
 function testAction() {
-    runAction('test');
+    overlayAction('test', {
+        foo: 'bar',
+    });
 }
 
 function resizeAction() {
-    runAction('resize');
+    overlayAction('resize');
 }
 
 </script>

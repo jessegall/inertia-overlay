@@ -9,13 +9,13 @@ export function useOverlay() {
         return plugin.createOverlay(options);
     }
 
-    function runAction(action: string) {
-        plugin.router.run(action);
+    function overlayAction(action: string, data: Record<string, any> = {}) {
+        plugin.router.action(action, data);
     }
 
     return {
         createOverlay,
-        runAction,
+        overlayAction,
     }
 
 }

@@ -20,7 +20,7 @@ class DemoDrawerOverlay implements OverlayComponent
     {
         return new OverlayConfig(
             variant: OverlayVariant::DRAWER,
-            size: session()->get("{$overlay->getInstanceId()}.overlay_size", $this->size),
+            size: session()->get("{$overlay->getInstanceId()}.size", $this->size),
             flags: [
                 OverlayFlag::SKIP_HYDRATION_ON_REFOCUS,
             ]
@@ -49,7 +49,7 @@ class DemoDrawerOverlay implements OverlayComponent
     private function resizeAction(Overlay $overlay): void
     {
         $this->size = OverlaySize::cases()[array_rand(OverlaySize::cases())];
-        session()->put("{$overlay->getInstanceId()}.overlay_size", $this->size);
+        session()->put("{$overlay->getInstanceId()}.size", $this->size);
         $overlay->hydrate();
     }
 

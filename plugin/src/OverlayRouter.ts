@@ -72,8 +72,9 @@ export class OverlayRouter {
         }));
     }
 
-    public async run(action: string) {
-        await new Promise((resolve, reject) => router.reload({
+    public async action(action: string, data: Record<string, any> = {}): Promise<Page> {
+        return await new Promise((resolve, reject) => router.reload({
+            data,
             headers: {
                 [headers.OVERLAY_ACTION]: action,
             },
