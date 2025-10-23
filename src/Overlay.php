@@ -12,24 +12,31 @@ use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
 use ReflectionClass;
 use ReflectionMethod;
+use RuntimeException;
 
 readonly class Overlay
 {
 
-    private OverlayComponent $component;
-    private array $actions;
+    public string $typename;
+    public array $arguments;
+    public OverlayComponent $component;
+    public array $actions;
 
     public function __construct(
         public Request $request,
     )
     {
-        [$typename, $arguments] = $this->parseOverlayId($this->getId());
-        $this->component = $this->resolveComponent($typename, $arguments);
+        [$this->typename, $this->arguments] = $this->parseOverlayId($this->getId());
+        $this->component = $this->resolveComponent($this->typename, $this->arguments);
         $this->actions = $this->resolveActions($this->component);
     }
 
     public function run(string $action): mixed
     {
+        if (! isset($this->actions[$action])) {
+            throw new RuntimeException("Action '{$action}' not found on overlay '{$this->typename}'.");
+        }
+
         return app()->call($this->actions[$action]);
     }
 
@@ -147,6 +154,17 @@ readonly class Overlay
         }
     }
 
+    public function append(array $data): void
+    {
+        $this->flash('append', $data);
+        $this->refresh(array_keys($data));
+    }
+
+    public function getAppendProps(): array
+    {
+        return $this->get('append', []);
+    }
+
     public function get(string $key, mixed $default = null): mixed
     {
         return session()->get($this->sessionKey($key), $default);
@@ -167,7 +185,7 @@ readonly class Overlay
         if (! $value instanceof Closure) {
             $value = fn() => $value;
         }
-        
+
         return session()->remember($this->sessionKey($key), $value);
     }
 

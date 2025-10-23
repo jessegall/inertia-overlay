@@ -99,7 +99,7 @@ function submitError() {
                 {{ lazyProp }}
             </div>
             <div>
-                <Deferred :data="['deferredProp']">
+                <Deferred data="deferredProp">
                     <template #fallback>
                         Loading deferred prop...
                     </template>

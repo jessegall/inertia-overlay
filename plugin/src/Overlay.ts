@@ -21,6 +21,7 @@ export interface OverlayConfig {
     flags: OverlayFlag[];
     props: string[];
     deferredProps: string[];
+    actions: string[]
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
@@ -165,7 +166,25 @@ export class Overlay {
     }
 
     public scopedKey(key: string) {
+        if (key.startsWith(`${ this.instanceId }:`)) {
+            return key;
+        }
+        
         return `${ this.instanceId }:${ key }`;
+    }
+
+    public unscopeData(props: Record<string, any>): Record<string, any> {
+        const unscoped: Record<string, any> = {};
+
+        for (const key in props) {
+            if (key.startsWith(`${ this.instanceId }:`)) {
+                const unscopedKey = key.replace(`${ this.instanceId }:`, '');
+                unscoped[unscopedKey] = props[key];
+            }
+        }
+
+        return unscoped;
+
     }
 
     // ----------[ Internal ]----------

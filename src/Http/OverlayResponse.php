@@ -24,7 +24,6 @@ readonly class OverlayResponse implements Responsable
         private array $actions = [],
     ) {}
 
-
     private function shouldRefresh(): bool
     {
         if ($this->overlay->isRefreshRequested()) {
@@ -116,7 +115,8 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        $scopedProps = collect($this->props)
+        $scopedProps = collect($this->overlay->getAppendProps())
+            ->merge($this->props)
             ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
             ->all();
 
