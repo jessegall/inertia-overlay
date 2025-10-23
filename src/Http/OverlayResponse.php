@@ -116,8 +116,6 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        sleep(1);
-
         $scopedProps = collect($this->props)
             ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
             ->all();
