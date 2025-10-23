@@ -6,6 +6,7 @@ class InertiaOverlay
 {
 
     public const string OVERLAY = 'X-Inertia-Overlay';
+    public const string OVERLAY_ACTION = 'X-Inertia-Overlay-Action';
     public const string OVERLAY_INDEX = 'X-Inertia-Overlay-Index';
     public const string OVERLAY_ROOT_URL = 'X-Inertia-Overlay-Root-Url';
     public const string OVERLAY_PAGE_COMPONENT = 'X-Inertia-Overlay-Page-Component';

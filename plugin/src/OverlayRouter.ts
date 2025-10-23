@@ -18,6 +18,7 @@ export const headers = {
     OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
     OVERLAY_STATE: 'X-Inertia-Overlay-State',
     OVERLAY_FOCUSED: 'X-Inertia-Overlay-Focused',
+    OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
 }
 
 export class OverlayRouter {
@@ -58,16 +59,30 @@ export class OverlayRouter {
             data: {
                 overlay: overlayId,
             },
-            onSuccess: (page) => {
+            onSuccess(page) {
                 if (isOverlayPage(page)) {
                     resolve(page);
                 } else {
                     reject(new Error('Invalid overlay page response.'));
                 }
             },
-            onError: (error) => {
+            onError(error) {
                 reject(error);
             },
+        }));
+    }
+
+    public async run(action: string) {
+        await new Promise((resolve, reject) => router.reload({
+            headers: {
+                [headers.OVERLAY_ACTION]: action,
+            },
+            onSuccess(page) {
+                resolve(page);
+            },
+            onError(error) {
+                reject(error);
+            }
         }));
     }
 
@@ -78,7 +93,7 @@ export class OverlayRouter {
 
         return await new Promise(resolve => router.visit(this.rootUrl.value,
             {
-                onSuccess: (page) => {
+                onSuccess(page) {
                     resolve(page);
                 }
             }

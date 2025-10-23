@@ -8,6 +8,12 @@ Route::get('/', function () {
     return Inertia::render('Demo');
 });
 
+Route::post('/overlay-action');
+
+Route::get('/redirect', function () {
+    return redirect('/');
+});
+
 Route::post('/submit', function () {
     // Simulate form processing...
     sleep(1);

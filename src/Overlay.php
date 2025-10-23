@@ -5,12 +5,15 @@ namespace JesseGall\InertiaOverlay;
 use Illuminate\Http\Request;
 use Illuminate\Pipeline\Pipeline;
 use JesseGall\InertiaOverlay\Contracts\AppliesMiddleware;
+use JesseGall\InertiaOverlay\Contracts\ExposesActions;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
 
 class Overlay
 {
+
+    private OverlayComponent|null $component = null;
 
     /**
      * The overlay component typename.
@@ -41,29 +44,47 @@ class Overlay
         $this->class = $this->resolveComponentClass($this->typename);
     }
 
-    # ----------[ Response ]----------
+    # ----------[ Resolve ]----------
 
-    public function render(): OverlayResponse
+    private function resolve(): OverlayComponent
     {
+        if ($this->component !== null) {
+            return $this->component;
+        }
+
         $middleware = $this->resolveComponentMiddleware($this->class);
-        $component = $this->applyMiddleware($middleware);
 
-        return new OverlayResponse(
-            overlay: $this,
-            config: $component->config(),
-            props: $component->props($this),
-        );
-    }
-
-    private function applyMiddleware(array $middleware): OverlayComponent
-    {
-        return app(Pipeline::class)
+        return $this->component = app(Pipeline::class)
             ->send($this)
             ->through($middleware)
             ->then(fn(Overlay $overlay) => $overlay->createComponent(
                 $overlay->class,
                 $overlay->arguments
             ));
+    }
+
+    # ----------[ Response ]----------
+
+    public function render(): OverlayResponse
+    {
+        $component = $this->resolve();
+        $actions = $this->resolveActions($component);
+
+        return new OverlayResponse(
+            overlay: $this,
+            config: $component->config(),
+            props: $component->props($this),
+            actions: $actions,
+        );
+    }
+
+    # ----------[ Actions ]----------
+
+    public function run(string $action): mixed
+    {
+        $component = $this->resolve();
+        $actions = $this->resolveActions($component);
+        return app()->call($actions[$action]);
     }
 
     # ----------[ Headers ]----------
@@ -76,6 +97,11 @@ class Overlay
     public function getInstanceId(): string
     {
         return $this->request->header(InertiaOverlay::OVERLAY_INSTANCE_ID);
+    }
+
+    public function getAction(): string|null
+    {
+        return $this->request->header(InertiaOverlay::OVERLAY_ACTION);
     }
 
     public function getParentId(): string
@@ -186,6 +212,19 @@ class Overlay
         }
 
         return app($class, $arguments);
+    }
+
+    /**
+     * @param OverlayComponent $component
+     * @return array<string, callable>
+     */
+    private function resolveActions(OverlayComponent $component): array
+    {
+        if (is_subclass_of($component, ExposesActions::class)) {
+            return $component->actions();
+        }
+
+        return [];
     }
 
 }

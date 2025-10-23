@@ -18,9 +18,9 @@ export interface CreateOverlayOptions {
 
 export class OverlayPlugin {
 
-    private readonly stack: OverlayStack;
-    private readonly router: OverlayRouter;
-    private readonly factory: OverlayFactory;
+    public readonly stack: OverlayStack;
+    public readonly router: OverlayRouter;
+    public readonly factory: OverlayFactory;
 
     constructor(
         public readonly options: OverlayPluginOptions
@@ -33,10 +33,6 @@ export class OverlayPlugin {
     public install(app: App): void {
         this.provideDependencies(app);
         this.injectOverlayRootComponent(app);
-        //
-        // nextTick(() => {
-        //     app.config.globalProperties.$inertia.
-        // });
     }
 
     // ----------[ Setup ]----------

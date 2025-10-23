@@ -19,7 +19,8 @@ readonly class OverlayResponse implements Responsable
     public function __construct(
         private Overlay $overlay,
         private OverlayConfig $config,
-        private array $props,
+        private array $props = [],
+        private array $actions = [],
     ) {}
 
     public function toResponse($request): JsonResponse
@@ -32,7 +33,7 @@ readonly class OverlayResponse implements Responsable
 
         $response = $this->createInertiaResponse($request, $props);
 
-        return $this->addOverlayDataToResponse($response, $props);
+        return $this->addOverlayDataToResponse($response);
     }
 
     private function prefixInstanceIdToPropKeys(array $props): array
@@ -82,7 +83,7 @@ readonly class OverlayResponse implements Responsable
         return Inertia::render($this->overlay->getPageComponent(), $props)->toResponse($request);
     }
 
-    private function addOverlayDataToResponse(JsonResponse $response, array $props): JsonResponse
+    private function addOverlayDataToResponse(JsonResponse $response): JsonResponse
     {
         $data = $response->getData(true);
 
@@ -92,7 +93,8 @@ readonly class OverlayResponse implements Responsable
             'variant' => $this->config->variant,
             'size' => $this->config->size,
             'flags' => $this->config->flags,
-            'keys' => array_keys($props),
+            'keys' => array_keys($this->props),
+            'actions' => array_keys($this->actions),
         ];
 
         return $response->setData($data);

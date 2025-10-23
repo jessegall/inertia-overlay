@@ -12,11 +12,12 @@ const props = defineProps<{
         id: number;
         name: string;
     }>;
+    message?: string;
 }>();
 
 const emit = defineEmits(['close']);
 
-const { createOverlay } = useOverlay();
+const { createOverlay, runAction } = useOverlay();
 
 function loadLazyProp() {
     router.reload({
@@ -73,6 +74,9 @@ function submitError() {
     );
 }
 
+function testAction() {
+    runAction('test');
+}
 
 </script>
 
@@ -87,6 +91,9 @@ function submitError() {
             </div>
             <div>
                 {{ lazyProp }}
+            </div>
+            <div>
+                {{ message }}
             </div>
         </div>
         <div>
@@ -116,6 +123,11 @@ function submitError() {
             </Button>
             <Button @click="submitError">
                 Submit With Error
+            </Button>
+        </div>
+        <div class="flex gap-2">
+            <Button @click="testAction">
+                Test action
             </Button>
         </div>
     </div>

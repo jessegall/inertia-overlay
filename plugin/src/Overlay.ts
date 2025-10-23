@@ -174,8 +174,8 @@ export class Overlay {
         const props: OverlayProps = {};
 
         for (const key of page.overlay.keys) {
-            const propKey = key.replace(`${ this.instanceId }:`, '');
-            props[propKey] = page.props[key];
+            const instanceKey = `${ this.instanceId }:${ key }`;
+            props[key] = page.props[instanceKey];
         }
 
         this.props.value = {

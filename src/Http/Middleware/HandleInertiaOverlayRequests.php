@@ -23,6 +23,11 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
+        if ($action = $overlay->getAction()) {
+            $overlay->run($action);
+            $overlay->flagRedirect();
+        }
+
         return $overlay->render();
     }
 

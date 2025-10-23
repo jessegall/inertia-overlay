@@ -9,8 +9,13 @@ export function useOverlay() {
         return plugin.createOverlay(options);
     }
 
+    function runAction(action: string) {
+        plugin.router.run(action);
+    }
+
     return {
-        createOverlay
+        createOverlay,
+        runAction,
     }
 
 }
