@@ -2,6 +2,7 @@ import { EventEmitter, EventSubscription } from "./event.ts";
 import { Component, ref, ShallowRef } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { OverlayRouter } from "./OverlayRouter.ts";
+import { randomString } from "./helpers.ts";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
@@ -10,7 +11,7 @@ export type OverlayArgs = Record<string, any>;
 export type OverlayProps = Record<string, any>;
 export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
 
-export type OverlayFlag = 'skip_hydration_on_refocus';
+export type OverlayFlag = 'skip_hydration_on_refocus' | 'use_shared_props'
 
 export interface OverlayConfig {
     id: string,
@@ -18,7 +19,6 @@ export interface OverlayConfig {
     variant: OverlayVariant;
     size: OverlaySize;
     flags: OverlayFlag[];
-    props: OverlayProps,
     keys: string[];
 }
 
@@ -41,6 +41,8 @@ export class Overlay {
 
     // ----------[ Properties ]----------
 
+    public readonly instanceId: string;
+
     public readonly id: string;
     public readonly component: ShallowRef<Component>
 
@@ -55,6 +57,7 @@ export class Overlay {
         private readonly router: OverlayRouter,
         { id, component }: OverlayOptions
     ) {
+        this.instanceId = randomString();
         this.id = id;
         this.component = component;
     }
@@ -167,7 +170,14 @@ export class Overlay {
         this.onBlurred.emit();
     }
 
-    private updateProps(props: OverlayProps): void {
+    private updateProps(page: OverlayPage): void {
+        const props: OverlayProps = {};
+
+        for (const key of page.overlay.keys) {
+            const propKey = key.replace(`${ this.instanceId }:`, '');
+            props[propKey] = page.props[key];
+        }
+
         this.props.value = {
             ...this.props.value,
             ...props,
@@ -183,7 +193,7 @@ export class Overlay {
     private handleSuccessfulRouteVisit(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
             this.setConfig(page.overlay);
-            this.updateProps(page.overlay.props);
+            this.updateProps(page);
             this.focus();
         } else {
             this.blur();

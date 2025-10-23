@@ -24,13 +24,24 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
+        $props = $this->prefixInstanceIdToPropKeys($this->props);
+
         if ($this->shouldHydrate()) {
-            $this->addNonLazyPropsToPartialOnlyHeader($request);
+            $this->addNonLazyPropsToPartialOnlyHeader($request, $props);
         }
 
-        $response = $this->createInertiaResponse($request);
+        $response = $this->createInertiaResponse($request, $props);
 
-        return $this->addOverlayDataToResponse($response);
+        return $this->addOverlayDataToResponse($response, $props);
+    }
+
+    private function prefixInstanceIdToPropKeys(array $props): array
+    {
+        $instanceId = $this->overlay->getInstanceId();
+
+        return collect($props)
+            ->mapWithKeys(fn($value, $key) => ["{$instanceId}:{$key}" => $value])
+            ->all();
     }
 
     private function shouldHydrate(): bool
@@ -50,9 +61,9 @@ readonly class OverlayResponse implements Responsable
         return false;
     }
 
-    private function addNonLazyPropsToPartialOnlyHeader(Request $request): void
+    private function addNonLazyPropsToPartialOnlyHeader(Request $request, array $props): void
     {
-        $keys = collect($this->props)
+        $keys = collect($props)
             ->reject(fn($value) => $value instanceof IgnoreFirstLoad)
             ->keys()
             ->all();
@@ -66,23 +77,14 @@ readonly class OverlayResponse implements Responsable
         $request->headers->set(Header::PARTIAL_ONLY, $only);
     }
 
-    private function createInertiaResponse(Request $request): JsonResponse
+    private function createInertiaResponse(Request $request, array $props): JsonResponse
     {
-        return Inertia::render($this->overlay->getPageComponent(), $this->props)->toResponse($request);
+        return Inertia::render($this->overlay->getPageComponent(), $props)->toResponse($request);
     }
 
-    private function addOverlayDataToResponse(JsonResponse $response): JsonResponse
+    private function addOverlayDataToResponse(JsonResponse $response, array $props): JsonResponse
     {
         $data = $response->getData(true);
-        $keys = array_keys($this->props);
-        $props = [];
-
-        foreach ($data['props'] as $key => $value) {
-            if (in_array($key, $keys)) {
-                $props[$key] = $value;
-                unset($data['props'][$key]);
-            }
-        }
 
         $data['overlay'] = [
             'id' => $this->overlay->getId(),
@@ -90,8 +92,7 @@ readonly class OverlayResponse implements Responsable
             'variant' => $this->config->variant,
             'size' => $this->config->size,
             'flags' => $this->config->flags,
-            'keys' => array_keys($this->props),
-            'props' => $props,
+            'keys' => array_keys($props),
         ];
 
         return $response->setData($data);

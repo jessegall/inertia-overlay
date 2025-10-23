@@ -8,7 +8,10 @@ const props = defineProps<{
     prop: string;
     closureProp: string;
     lazyProp?: string;
-    someValue?: string;
+    mergeProp: Array<{
+        id: number;
+        name: string;
+    }>;
 }>();
 
 const emit = defineEmits(['close']);
@@ -18,6 +21,12 @@ const { createOverlay } = useOverlay();
 function loadLazyProp() {
     router.reload({
         only: ['lazyProp']
+    })
+}
+
+function reloadMergeProp() {
+    router.reload({
+        only: ['mergeProp']
     })
 }
 
@@ -60,6 +69,7 @@ function submitError() {
             prop: props.prop,
             closureProp: props.closureProp,
             lazyProp: props.lazyProp,
+            list: props.list,
         },
         {
             onSuccess: () => {
@@ -84,8 +94,15 @@ function submitError() {
             <div>
                 {{ lazyProp }}
             </div>
-            <div>
-                {{ someValue }}
+        </div>
+        <div>
+            <div v-for="item in mergeProp" :key="item.id">
+                <div>
+                    {{ item.id }}
+                </div>
+                <div>
+                    {{ item.name }}
+                </div>
             </div>
         </div>
         <div class="flex gap-2">
@@ -105,6 +122,9 @@ function submitError() {
             </Button>
             <Button @click="submitError">
                 Submit With Error
+            </Button>
+            <Button @click="reloadMergeProp">
+                Reload Merge Prop
             </Button>
         </div>
     </div>

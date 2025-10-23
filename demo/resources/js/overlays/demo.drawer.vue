@@ -8,7 +8,10 @@ const props = defineProps<{
     prop: string;
     closureProp: string;
     lazyProp?: string;
-
+    mergeProp: Array<{
+        id: number;
+        name: string;
+    }>;
 }>();
 
 const emit = defineEmits(['close']);
@@ -45,7 +48,6 @@ function submit() {
             prop: props.prop,
             closureProp: props.closureProp,
             lazyProp: props.lazyProp,
-            list: props.list,
         },
         {
             onSuccess: () => {
@@ -87,7 +89,16 @@ function submitError() {
                 {{ lazyProp }}
             </div>
         </div>
-
+        <div>
+            <li v-for="item in mergeProp" :key="item.id">
+                <div>
+                    {{ item.id }}
+                </div>
+                <div>
+                    {{ item.name }}
+                </div>
+            </li>
+        </div>
         <div class="flex gap-2">
             <Button @click="loadLazyProp">
                 Load lazy props

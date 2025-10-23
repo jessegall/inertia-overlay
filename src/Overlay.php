@@ -73,6 +73,11 @@ class Overlay
         return $this->request->header(InertiaOverlay::OVERLAY_ID);
     }
 
+    public function getInstanceId(): string
+    {
+        return $this->request->header(InertiaOverlay::OVERLAY_INSTANCE_ID);
+    }
+
     public function getParentId(): string
     {
         return $this->request->header(InertiaOverlay::OVERLAY_PARENT_ID);

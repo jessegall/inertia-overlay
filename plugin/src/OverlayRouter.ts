@@ -1,4 +1,4 @@
-import { router, usePage } from "@inertiajs/vue3";
+import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
@@ -13,6 +13,7 @@ export const headers = {
     OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
     OVERLAY_PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
+    OVERLAY_INSTANCE_ID: 'X-Inertia-Overlay-Instance',
     OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
     OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
     OVERLAY_STATE: 'X-Inertia-Overlay-State',
@@ -122,6 +123,7 @@ export class OverlayRouter {
 
                 [headers.OVERLAY]: 'true',
                 [headers.OVERLAY_ID]: overlay.id,
+                [headers.OVERLAY_INSTANCE_ID]: overlay.instanceId,
                 [headers.OVERLAY_INDEX]: overlay.index.toString(),
                 [headers.OVERLAY_STATE]: overlay.state,
                 [headers.OVERLAY_PARENT_ID]: overlay.parentId,
@@ -133,6 +135,10 @@ export class OverlayRouter {
 
             if (visit.only.length === 0) {
                 visit.only = ['__overlay_partial_reload_trigger']
+            } else {
+                visit.only = visit.only.map(item => {
+                    return `${ overlay.instanceId }:${ item }`;
+                });
             }
         } else {
             this.clearRootUrl();

@@ -1,5 +1,5 @@
 import { OverlayStack } from "./OverlayStack.ts";
-import { App, h } from "vue";
+import { App, h, nextTick } from "vue";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayArgs, OverlayType } from "./Overlay.ts";
@@ -33,6 +33,10 @@ export class OverlayPlugin {
     public install(app: App): void {
         this.provideDependencies(app);
         this.injectOverlayRootComponent(app);
+        //
+        // nextTick(() => {
+        //     app.config.globalProperties.$inertia.
+        // });
     }
 
     // ----------[ Setup ]----------
