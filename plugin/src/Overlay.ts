@@ -37,6 +37,7 @@ const activeRequests = ref<number>(0);
 export class Overlay {
 
     private subscription = new EventSubscription();
+    private destroyed = ref(false);
 
     // ----------[ Events ]----------
 
@@ -133,11 +134,28 @@ export class Overlay {
         this.unsubscribe();
     }
 
+    public destroy(): void {
+        this.setState('closed');
+        this.setParentId(null);
+        this.setIndex(-1);
+        this.unsubscribe();
+        this.onStatusChange.clear();
+        this.onFocused.clear();
+        this.onBlurred.clear();
+        this.destroyed.value = true;
+        console.log(`Overlay instance "${ this.id }" destroyed.`);
+    }
+
     public setParentId(parentId: string | null): void {
         this.parentId.value = parentId;
     }
 
     public setState(state: OverlayState): void {
+        if (this.isDestroyed()) {
+            console.error('Cannot set state on destroyed overlay instance.', this.id);
+            return;
+        }
+
         this.state.value = state;
         this.onStatusChange.emit(state);
     }
@@ -164,6 +182,10 @@ export class Overlay {
         }
 
         return `${ this.instanceId }:${ key }`;
+    }
+
+    public isDestroyed(): boolean {
+        return this.destroyed.value;
     }
 
     // ----------[ Internal ]----------
@@ -227,7 +249,7 @@ export class Overlay {
     private handleOverlayPageLoad(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
             const config = page.overlay;
-            
+
             this.setConfig(config);
             this.updateProps(page);
 

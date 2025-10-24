@@ -1,6 +1,6 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
-import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
+import { ActiveVisit, GlobalEvent, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
@@ -31,6 +31,7 @@ export class OverlayRouter {
     public readonly onSuccessfulRouteVisit = new EventEmitter<Page>();
     public readonly onFinishedRouteVisit = new EventEmitter<ActiveVisit>();
     public readonly onOverlayPageLoad = new EventEmitter<OverlayPage>();
+    public readonly onNavigated = new EventEmitter<Page>();
 
     // ----------[ Properties ]----------
 
@@ -51,6 +52,7 @@ export class OverlayRouter {
         router.on('before', event => this.onBeforeRouteVisit.emit(event.detail.visit));
         router.on('success', event => this.onSuccessfulRouteVisit.emit(event.detail.page));
         router.on('finish', event => this.onFinishedRouteVisit.emit(event.detail.visit));
+        router.on('navigate', event => this.onNavigated.emit(event.detail.page));
     }
 
     private setupListeners(): void {

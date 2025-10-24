@@ -20,15 +20,15 @@ readonly class HandleInertiaOverlayRequests
 
         if ($request->method() !== Request::METHOD_GET) {
             $overlay->refresh();
-            return $next($request);
-        }
 
-        if ($action = $overlay->getAction()) {
-            $overlay->run($action);
+            if ($action = $overlay->getAction()) {
+                $overlay->run($action);
+            }
+
+            return $next($request);
         }
 
         return $overlay->render();
     }
-
 
 }

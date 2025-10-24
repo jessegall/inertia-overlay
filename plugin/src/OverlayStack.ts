@@ -44,4 +44,12 @@ export class OverlayStack {
         return this.overlays.value.find(overlay => overlay.id === id) || null;
     }
 
+    public all(): ReadonlyOverlay[] {
+        return this.overlays.value;
+    }
+
+    public clear(): void {
+        this.overlays.value = [];
+    }
+
 }
