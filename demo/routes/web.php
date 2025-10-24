@@ -10,7 +10,9 @@ Route::get('/', function () {
     ]);
 });
 
-Route::post('/overlay-action');
+Route::get('/demo-other-page', function () {
+    return Inertia::render('DemoOtherPage');
+});
 
 Route::get('/redirect', function () {
     return redirect('/');

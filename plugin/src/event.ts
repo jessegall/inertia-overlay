@@ -31,6 +31,10 @@ export class EventEmitter<T = any> {
         return unsubscribe;
     }
 
+    public clear() {
+        this.listeners.clear();
+    }
+
     public unsubscribe(listenerId: string) {
         this.listeners.delete(listenerId);
     }

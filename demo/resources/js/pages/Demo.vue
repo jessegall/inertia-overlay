@@ -2,13 +2,14 @@
 
 import Button from "@/components/Button.vue";
 import { useOverlay } from "@jessegall/inertia-overlay";
-import { Deferred } from "@inertiajs/vue3";
+import { Deferred, router } from "@inertiajs/vue3";
 
 const { createOverlay } = useOverlay();
 
 interface Props {
     test?: string;
 }
+
 const props = defineProps<Props>();
 
 function createDemoModal() {
@@ -20,13 +21,20 @@ function createDemoModal() {
     overlay.open();
 }
 
+function goToDemoOtherPage() {
+    router.visit('/demo-other-page');
+}
+
 </script>
 
 <template>
     <div class="h-screen max-w-7xl mx-auto p-4">
-        <div class="flex items-center justify-center h-full">
+        <div class="flex items-center justify-center h-full gap-6">
             <Button @click="createDemoModal">
                 Open Demo Modal
+            </Button>
+            <Button @click="goToDemoOtherPage">
+                Go to Demo Other Page
             </Button>
         </div>
         <Deferred :data="['test']">
