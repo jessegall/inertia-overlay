@@ -1,6 +1,6 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
-import { ActiveVisit, GlobalEvent, Page, PendingVisit } from "@inertiajs/core";
+import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
@@ -82,18 +82,24 @@ export class OverlayRouter {
     }
 
     public async action(action: string, data: Record<string, any> = {}): Promise<Page> {
-        return await new Promise((resolve, reject) => router.post('_inertia/overlay', data, {
-            async: true,
-            headers: {
-                [headers.OVERLAY_ACTION]: action,
+        return await new Promise((resolve, reject) => router.post('_inertia/overlay',
+            {
+                ...data,
+                overlay: this.resolveOverlayQueryParam(),
             },
-            onSuccess(page) {
-                resolve(page);
-            },
-            onError(error) {
-                reject(error);
+            {
+                async: true,
+                headers: {
+                    [headers.OVERLAY_ACTION]: action,
+                },
+                onSuccess(page) {
+                    resolve(page);
+                },
+                onError(error) {
+                    reject(error);
+                }
             }
-        }));
+        ));
     }
 
     public async navigateToRoot(): Promise<Page> {

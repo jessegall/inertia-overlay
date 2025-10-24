@@ -72,7 +72,11 @@ function submitError() {
 }
 
 function testAction() {
-    overlayAction('test');
+    overlayAction('test', {
+        data: {
+            example: 123,
+        }
+    });
 }
 
 function resizeAction() {

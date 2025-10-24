@@ -13,14 +13,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     {
         $this->app->singleton(Overlay::class);
         $this->registerRegistrar();
-
-        Route::post('_inertia/overlay', function (Overlay $overlay) {
-            if ($action = $overlay->getAction()) {
-                $overlay->run($action);
-            }
-
-            return back();
-        });
+        $this->registerActionRoute();
     }
 
     public function boot(): void
@@ -45,6 +38,16 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         });
     }
 
+    private function registerActionRoute(): void
+    {
+        Route::middleware('web')->post('_inertia/overlay', function (Overlay $overlay) {
+            if ($action = $overlay->getAction()) {
+                $overlay->run($action);
+            }
+
+            return back();
+        });
+    }
 
     private function bootMacros(): void
     {
