@@ -23,6 +23,10 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
+        if ($overlay->closeRequested()) {
+            return back();
+        }
+
         return $overlay->render();
     }
 
