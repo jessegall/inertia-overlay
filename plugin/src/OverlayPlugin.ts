@@ -4,7 +4,7 @@ import OverlayRoot from "./Components/OverlayRoot.vue";
 import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayArgs, OverlayType } from "./Overlay.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
-import { initDeferredComponent } from "./Deferred.ts";
+import { extendDeferredComponent } from "./Deferred.ts";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -12,10 +12,13 @@ export interface OverlayPluginOptions<T = any> {
     resolve: OverlayComponentResolver<T>;
 }
 
-export interface CreateOverlayOptions {
+export type CreateOverlayOptions = {
     type: OverlayType;
     args: OverlayArgs
+} | {
+    id: string;
 }
+
 
 export class OverlayPlugin {
 
@@ -34,7 +37,8 @@ export class OverlayPlugin {
     public install(app: App): void {
         this.provideDependencies(app);
         this.injectOverlayRootComponent(app);
-        initDeferredComponent(this.stack)
+        this.extendComponents(app);
+        this.handleInitialPageLoad();
     }
 
     // ----------[ Setup ]----------
@@ -56,11 +60,28 @@ export class OverlayPlugin {
         };
     }
 
+    private extendComponents(app: App): void {
+        extendDeferredComponent(this.stack)
+    }
+
+    private handleInitialPageLoad(): void {
+        const overlayId = this.router.getOverlayQueryParam();
+
+        if (overlayId) {
+            const overlay = this.createOverlay({ id: overlayId });
+            overlay.open();
+        }
+    }
+
     // ----------[ Api ]----------
 
     public createOverlay(options: CreateOverlayOptions): ReadonlyOverlay {
-        const overlay = this.factory.make(options.type, options.args);
+        const overlay = 'id' in options ?
+            this.factory.makeFromId(options.id) :
+            this.factory.make(options.type, options.args);
+
         overlay.onStatusChange.on((status) => this.handleOverlayStatusChange(overlay, status));
+
         return overlay;
     }
 

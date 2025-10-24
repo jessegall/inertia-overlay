@@ -22,6 +22,17 @@ export class OverlayFactory {
         return toReadonly(overlay);
     }
 
+    public makeFromId(overlayId: string): ReadonlyOverlay {
+        const [component] = overlayId.split(':');
+
+        const overlay = new Overlay(this.router, {
+            id: overlayId,
+            component: this.resolveComponent(component),
+        });
+
+        return toReadonly(overlay);
+    }
+
     private resolveComponent(type: string): ShallowRef<Component> {
         return shallowRef(defineAsyncComponent(this.componentResolver(type)));
     }

@@ -22,6 +22,7 @@ export interface OverlayConfig {
     props: string[];
     deferredProps: string[];
     actions: string[]
+    closeRequested: boolean;
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
@@ -183,7 +184,6 @@ export class Overlay {
         }
 
         return unscoped;
-
     }
 
     // ----------[ Internal ]----------
@@ -237,7 +237,6 @@ export class Overlay {
             activeRequests.value += 1;
         }
     }
-
 
     private handleFinishedRouteVisit(visit: ActiveVisit): void {
         const overlayId = visit.method === 'get'

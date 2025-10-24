@@ -2,7 +2,7 @@ import { Deferred } from "@inertiajs/vue3";
 import { OverlayStack } from "./OverlayStack.ts";
 import { ComponentInstance } from "vue";
 
-export function initDeferredComponent(stack: OverlayStack): void {
+export function extendDeferredComponent(stack: OverlayStack): void {
     const overlayContextCache = new WeakMap<ComponentInstance<any>, string[]>();
 
     Deferred.render = function () {

@@ -80,9 +80,8 @@ export class OverlayRouter {
     }
 
     public async action(action: string, data: Record<string, any> = {}): Promise<Page> {
-        return await new Promise((resolve, reject) => router.reload({
+        return await new Promise((resolve, reject) => router.post('_inertia/overlay', data, {
             async: true,
-            data,
             headers: {
                 [headers.OVERLAY_ACTION]: action,
             },
@@ -103,6 +102,8 @@ export class OverlayRouter {
 
         return await new Promise(resolve => router.visit(this.rootUrl.value,
             {
+                preserveState: true,
+                preserveScroll: true,
                 onSuccess(page) {
                     resolve(page);
                 }
@@ -118,6 +119,11 @@ export class OverlayRouter {
 
     public clearRootUrl(): void {
         this.rootUrl.value = null;
+    }
+
+    public getOverlayQueryParam(): string | null {
+        const url = new URL(window.location.href);
+        return url.searchParams.get("overlay");
     }
 
     // ----------[ Event Handlers ]----------
