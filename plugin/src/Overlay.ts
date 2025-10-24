@@ -71,7 +71,6 @@ export class Overlay {
     private subscribe(): void {
         this.router.onBeforeRouteVisit.on({
             handler: visit => this.handleBeforeRouteVisit(visit),
-            priority: () => this.index.value,
             subscription: this.subscription,
         });
 
@@ -169,7 +168,7 @@ export class Overlay {
         if (key.startsWith(`${ this.instanceId }:`)) {
             return key;
         }
-        
+
         return `${ this.instanceId }:${ key }`;
     }
 
@@ -239,6 +238,7 @@ export class Overlay {
         }
     }
 
+
     private handleFinishedRouteVisit(visit: ActiveVisit): void {
         const overlayId = visit.method === 'get'
             ? visit.url.searchParams.get("overlay")
@@ -253,9 +253,15 @@ export class Overlay {
 
     private handleSuccessfulRouteVisit(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
-            this.setConfig(page.overlay);
+            const config = page.overlay;
+
+            this.setConfig(config);
             this.updateProps(page);
             this.focus();
+
+            if (config.closeRequested) {
+                this.close();
+            }
         } else {
             this.blur();
         }

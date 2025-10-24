@@ -18,5 +18,6 @@ class InertiaOverlay
     public const string OVERLAY_REQUEST_COUNTER = 'X-Inertia-Overlay-Request-Counter';
     public const string OVERLAY_REFOCUS = 'X-Inertia-Overlay-Refocus';
 
+    public const string OVERLAY_CLOSE = 'X-Inertia-Overlay-Close';
 
 }

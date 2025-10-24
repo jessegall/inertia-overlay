@@ -11,6 +11,7 @@ use Inertia\Inertia;
 use Inertia\Support\Header;
 use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
+use JesseGall\InertiaOverlay\InertiaOverlay;
 use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlayConfig;
 
@@ -88,6 +89,7 @@ readonly class OverlayResponse implements Responsable
             'flags' => $this->config->flags,
             'props' => array_keys($this->props),
             'actions' => array_keys($this->actions),
+            'closeRequested' => $this->overlay->closeRequested(),
         ];
 
         return $response->setData($data);
@@ -105,6 +107,10 @@ readonly class OverlayResponse implements Responsable
 
         $response = Inertia::render($this->overlay->getPageComponent(), $props)->toResponse($request);
         $response = $this->addOverlayDataToResponse($response);
+
+        if ($this->overlay->closeRequested()) {
+            $response->headers->set(InertiaOverlay::OVERLAY_CLOSE, $this->overlay->getId());
+        }
 
         $this->overlay->reset();
 

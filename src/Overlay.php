@@ -55,7 +55,7 @@ readonly class Overlay
         $this->remove('refresh');
     }
 
-    # ----------[ Headers ]----------
+    # ----------[ Request Headers ]----------
 
     public function getId(): string
     {
@@ -125,6 +125,18 @@ readonly class Overlay
     public function isBlurred(): bool
     {
         return ! $this->isFocused();
+    }
+
+    # ----------[ Response Headers ]----------
+
+    public function close(): void
+    {
+        $this->flash('close', true);
+    }
+
+    public function closeRequested(): bool
+    {
+        return $this->get('close', false) === true;
     }
 
     # ----------[ Session ]----------

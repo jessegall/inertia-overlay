@@ -146,6 +146,9 @@ export class OverlayRouter {
             this.previousOverlayId.value = overlayId;
             this.counter.value += 1;
 
+            visit.preserveScroll = true;
+            visit.preserveState = true;
+
             visit.headers = {
 
                 ...visit.headers,

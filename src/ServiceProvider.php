@@ -10,6 +10,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(Overlay::class);
         $this->registerRegistrar();
     }
 
@@ -34,6 +35,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
             return $registrar;
         });
     }
+
 
     private function bootMacros(): void
     {
