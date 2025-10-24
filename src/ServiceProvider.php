@@ -14,7 +14,13 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->app->singleton(Overlay::class);
         $this->registerRegistrar();
 
-        Route::post('_inertia/overlay', fn() => back());
+        Route::post('_inertia/overlay', function (Overlay $overlay) {
+            if ($action = $overlay->getAction()) {
+                $overlay->run($action);
+            }
+
+            return back();
+        });
     }
 
     public function boot(): void

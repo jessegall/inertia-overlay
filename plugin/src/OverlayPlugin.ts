@@ -4,7 +4,7 @@ import OverlayRoot from "./Components/OverlayRoot.vue";
 import { CreateOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
-import { Page } from "@inertiajs/core";
+import { ActiveVisit, Page } from "@inertiajs/core";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -60,6 +60,7 @@ export class OverlayPlugin {
     }
 
     private setupListeners(): void {
+        this.router.onFinishedRouteVisit.on(visit => this.handleFinishedRouteVisit(visit));
         this.router.onNavigated.on((page) => this.handleNavigated(page));
     }
 
@@ -92,6 +93,10 @@ export class OverlayPlugin {
 
     // ----------[ EventHandlers ]----------
 
+    private handleFinishedRouteVisit(page: ActiveVisit): void {
+        this.currentPath.value = page.url.pathname;
+    }
+
     private handleNavigated(page: Page): void {
         const previousPath = this.currentPath.value;
         const newUrl = new URL(page.url, window.location.origin);
@@ -105,8 +110,6 @@ export class OverlayPlugin {
             }
 
             this.stack.clear();
-            this.currentPath.value = newUrl.pathname;
-            console.log(this.overlayInstances.keys());
         }
     }
 
