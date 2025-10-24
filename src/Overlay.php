@@ -45,7 +45,7 @@ readonly class Overlay
         return new OverlayResponse(
             overlay: $this,
             config: $this->component->config($this),
-            props: $this->component->props($this),
+            props: ! $this->closeRequested() ? $this->component->props($this) : [],
             actions: $this->actions,
         );
     }
