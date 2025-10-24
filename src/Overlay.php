@@ -141,7 +141,7 @@ readonly class Overlay
 
     public function getRefreshProps(): array|bool
     {
-        return $this->get('refresh', true);
+        return $this->get('refresh', false);
     }
 
     public function refresh(array|string|null $data = null): void

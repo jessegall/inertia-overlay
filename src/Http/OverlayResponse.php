@@ -22,23 +22,15 @@ readonly class OverlayResponse implements Responsable
         private OverlayConfig $config,
         private array $props = [],
         private array $actions = [],
-    ) {}
-
-    private function shouldRefresh(): bool
+    )
     {
-        if ($this->overlay->isRefreshRequested()) {
-            return true;
+        if ($this->overlay->hasState(OverlayState::OPENING) && $this->overlay->hasRequestCounter(1)) {
+            $this->overlay->refresh();
         }
 
-        if ($this->overlay->hasState(OverlayState::OPENING)) {
-            return $this->overlay->hasRequestCounter(1);
+        if ($this->overlay->isRefocusing() && ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS)) {
+            $this->overlay->refresh();
         }
-
-        if ($this->overlay->isRefocusing()) {
-            return ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS);
-        }
-
-        return false;
     }
 
     private function scopeKey(string $key): string
@@ -46,18 +38,7 @@ readonly class OverlayResponse implements Responsable
         return "{$this->overlay->getInstanceId()}:{$key}";
     }
 
-    private function addPropsToPartialOnlyHeader(Request $request, array $keys): void
-    {
-        $only = str($request->header(Header::PARTIAL_ONLY, ''))
-            ->explode(',')
-            ->merge($keys)
-            ->unique()
-            ->join(',');
-
-        $request->headers->set(Header::PARTIAL_ONLY, $only);
-    }
-
-    private function resolveRefreshProps(array $props): array
+    private function resolveRefreshProps(Request $request, array $props): array
     {
         $propsToRefresh = $this->overlay->getRefreshProps();
 
@@ -72,20 +53,15 @@ readonly class OverlayResponse implements Responsable
         foreach ($propsToRefresh as $index => $prop) {
             $value = $props[$prop] ?? null;
 
-            if ($value instanceof IgnoreFirstLoad) {
+            if ($value === null || $value instanceof IgnoreFirstLoad) {
                 unset($propsToRefresh[$index]);
             }
         }
 
-        return $propsToRefresh;
-    }
-
-    private function resolveDeferredProps()
-    {
-        return collect($this->props)
-            ->filter(fn($value) => $value instanceof DeferProp)
-            ->keys()
-            ->map(fn($value) => $this->scopeKey($value))
+        return str($request->header(Header::PARTIAL_ONLY, ''))
+            ->explode(',')
+            ->merge($propsToRefresh)
+            ->unique()
             ->all();
     }
 
@@ -94,7 +70,11 @@ readonly class OverlayResponse implements Responsable
         $data = $response->getData(true);
 
         if ($this->overlay->hasRequestCounter(1)) {
-            $deferredProps = $this->resolveDeferredProps();
+            $deferredProps = collect($this->props)
+                ->filter(fn($value) => $value instanceof DeferProp)
+                ->keys()
+                ->map(fn($value) => $this->scopeKey($value))
+                ->all();
 
             if ($deferredProps) {
                 $data['deferredProps']['default'] = $deferredProps;
@@ -115,16 +95,15 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        $scopedProps = collect($this->overlay->getAppendProps())
-            ->merge($this->props)
+        $props = collect($this->props)
+            ->merge($this->overlay->getAppendProps())
             ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
             ->all();
 
-        if ($this->shouldRefresh()) {
-            $this->addPropsToPartialOnlyHeader($request, $this->resolveRefreshProps($scopedProps));
-        }
+        $refreshProps = $this->resolveRefreshProps($request, $props);
+        $request->headers->set(Header::PARTIAL_ONLY, implode(',', $refreshProps));
 
-        $response = Inertia::render($this->overlay->getPageComponent(), $scopedProps)->toResponse($request);
+        $response = Inertia::render($this->overlay->getPageComponent(), $props)->toResponse($request);
         $response = $this->addOverlayDataToResponse($response);
 
         $this->overlay->reset();
