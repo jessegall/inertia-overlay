@@ -39,7 +39,7 @@ export class OverlayRouter {
     private readonly counter = ref<number>(0);
 
     constructor(
-        private readonly resolve: OverlayResolver,
+        private readonly overlayResolver: OverlayResolver,
     ) {
         this.setupDispatchers();
         this.setupListeners();
@@ -121,7 +121,13 @@ export class OverlayRouter {
         this.rootUrl.value = null;
     }
 
-    public getOverlayQueryParam(): string | null {
+    public resolveOverlayId(visit: ActiveVisit | PendingVisit) {
+        return visit.method === 'get'
+            ? visit.url.searchParams.get("overlay")
+            : new URL(window.location.href).searchParams.get("overlay");
+    }
+
+    public resolveOverlayQueryParam(): string | null {
         const url = new URL(window.location.href);
         return url.searchParams.get("overlay");
     }
@@ -129,12 +135,10 @@ export class OverlayRouter {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = visit.method === 'get'
-            ? visit.url.searchParams.get("overlay")
-            : new URL(window.location.href).searchParams.get("overlay");
+        const overlayId = this.resolveOverlayId(visit)
 
         if (overlayId) {
-            const overlay = this.resolve(overlayId);
+            const overlay = this.overlayResolver(overlayId);
 
             if (! overlay) {
                 throw new Error(`Could not resolve overlay with ID '${ overlayId }'.`);

@@ -139,6 +139,23 @@ readonly class Overlay
         return $this->get('close', false) === true;
     }
 
+    public function swap(string $type, array $arguments = []): void
+    {
+        if (class_exists($type)) {
+            $type = app(OverlayRegistrar::class)->resolveTypename($type);
+        }
+
+        $this->flash('swap', [
+            'type' => $type,
+            'args' => $arguments,
+        ]);
+    }
+
+    public function swapRequested(): array|null
+    {
+        return $this->get('swap');
+    }
+
     # ----------[ Session ]----------
 
     public function isRefreshRequested(): bool

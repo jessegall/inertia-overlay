@@ -3,32 +3,30 @@ import { OverlayStack } from "./OverlayStack.ts";
 import { ComponentInstance } from "vue";
 
 export function extendDeferredComponent(stack: OverlayStack): void {
-    const overlayContextCache = new WeakMap<ComponentInstance<any>, string[]>();
+    const scopes = new WeakMap<ComponentInstance<any>, string>();
 
     Deferred.render = function () {
         if (! this.$slots.fallback) {
             throw new Error("`<Deferred>` requires a `<template #fallback>` slot");
         }
 
-        function resolveKeys(data: string | string[]): string[] {
-            return Array.isArray(data) ? data : [data];
+        function resolveKeys(data: string | string[], scope: string | null): string[] {
+            const keys = Array.isArray(data) ? data : [data];
+            if (scope) {
+                return keys.map((key) => `${ scope }:${ key }`);
+            }
+            return keys;
         }
 
-        let keys = overlayContextCache.get(this);
-
-        if (! keys) {
+        if (! scopes.has(this) && isInOverlayContext(this)) {
             const overlay = stack.peek();
-
-            if (overlay && isInOverlayContext(this)) {
-                keys = resolveKeys(this.$props.data).map(key => overlay.scopedKey(key));
-            } else {
-                keys = resolveKeys(this.$props.data);
-            }
-
-            if (keys.every((key) => this.$page.props[key] !== undefined)) {
-                overlayContextCache.set(this, keys);
+            if (overlay) {
+                scopes.set(this, overlay.instanceId);
             }
         }
+
+        const scope = scopes.get(this);
+        const keys = resolveKeys(this.$props.data, scope);
 
         return keys.every((key) => this.$page.props[key] !== undefined)
             ? this.$slots.default?.()

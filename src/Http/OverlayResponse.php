@@ -90,6 +90,7 @@ readonly class OverlayResponse implements Responsable
             'props' => array_keys($this->props),
             'actions' => array_keys($this->actions),
             'closeRequested' => $this->overlay->closeRequested(),
+            'swapRequested' => $this->overlay->swapRequested(),
         ];
 
         return $response->setData($data);

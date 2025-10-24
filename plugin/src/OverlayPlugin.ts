@@ -1,8 +1,7 @@
 import { OverlayStack } from "./OverlayStack.ts";
 import { App, h } from "vue";
 import OverlayRoot from "./Components/OverlayRoot.vue";
-import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
-import { OverlayArgs, OverlayType } from "./Overlay.ts";
+import { CreateOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
 
@@ -10,13 +9,6 @@ export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<
 
 export interface OverlayPluginOptions<T = any> {
     resolve: OverlayComponentResolver<T>;
-}
-
-export type CreateOverlayOptions = {
-    type: OverlayType;
-    args: OverlayArgs
-} | {
-    id: string;
 }
 
 
@@ -35,15 +27,15 @@ export class OverlayPlugin {
     }
 
     public install(app: App): void {
-        this.provideDependencies(app);
+        this.registerBindings(app);
         this.injectOverlayRootComponent(app);
-        this.extendComponents(app);
+        this.extendComponents();
         this.handleInitialPageLoad();
     }
 
     // ----------[ Setup ]----------
 
-    private provideDependencies(app: App): void {
+    private registerBindings(app: App): void {
         app.provide('overlay.plugin', this);
         app.provide('overlay.stack', this.stack);
         app.provide('overlay.router', this.router);
@@ -60,13 +52,12 @@ export class OverlayPlugin {
         };
     }
 
-    private extendComponents(app: App): void {
+    private extendComponents(): void {
         extendDeferredComponent(this.stack)
     }
 
     private handleInitialPageLoad(): void {
-        const overlayId = this.router.getOverlayQueryParam();
-
+        const overlayId = this.router.resolveOverlayQueryParam();
         if (overlayId) {
             const overlay = this.createOverlay({ id: overlayId });
             overlay.open();
@@ -76,12 +67,8 @@ export class OverlayPlugin {
     // ----------[ Api ]----------
 
     public createOverlay(options: CreateOverlayOptions): ReadonlyOverlay {
-        const overlay = 'id' in options ?
-            this.factory.makeFromId(options.id) :
-            this.factory.make(options.type, options.args);
-
+        const overlay = this.factory.make(options);
         overlay.onStatusChange.on((status) => this.handleOverlayStatusChange(overlay, status));
-
         return overlay;
     }
 
@@ -94,9 +81,6 @@ export class OverlayPlugin {
                 overlay.setParentId(this.stack.peekId());
                 overlay.setIndex(this.stack.size());
                 this.stack.push(overlay);
-                break;
-
-            case 'closing':
                 break;
 
             case "closed":

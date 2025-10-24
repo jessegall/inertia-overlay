@@ -1,6 +1,8 @@
 import { inject } from "vue";
-import { CreateOverlayOptions, OverlayPlugin } from "../OverlayPlugin.ts";
+import { OverlayPlugin } from "../OverlayPlugin.ts";
 import { OverlayProps } from "../Overlay.ts";
+import { CreateOverlayOptions } from "../OverlayFactory.ts";
+import { unscopeData } from "../helpers.ts";
 
 interface OverlayActionOptions {
     data?: Record<string, any>;
@@ -31,7 +33,7 @@ export function useOverlay() {
         const page = await plugin.router.action(action, options.data);
 
         if (options.onSuccess) {
-            options.onSuccess(overlay.unscopeData(page.props));
+            options.onSuccess(unscopeData(overlay.instanceId, page.props));
         }
     }
 

@@ -6,6 +6,13 @@ import { OverlayComponentResolver } from "./OverlayPlugin.ts";
 
 export type ReadonlyOverlay = Readonly<Reactive<Overlay>>;
 
+export type CreateOverlayOptions = {
+    type: OverlayType;
+    args: OverlayArgs
+} | {
+    id: string;
+}
+
 export class OverlayFactory {
 
     constructor(
@@ -13,7 +20,17 @@ export class OverlayFactory {
         private readonly router: OverlayRouter,
     ) {}
 
-    public make(type: OverlayType, args: OverlayArgs): ReadonlyOverlay {
+    // ----------[ Api ]----------
+
+    public make(options: CreateOverlayOptions) {
+        if ('type' in options) {
+            return this.makeFromType(options.type, options.args);
+        } else {
+            return this.makeFromId(options.id);
+        }
+    }
+
+    public makeFromType(type: OverlayType, args: OverlayArgs): ReadonlyOverlay {
         const overlay = new Overlay(this.router, {
             id: this.generateOverlayId(type, args),
             component: this.resolveComponent(type),
@@ -23,22 +40,24 @@ export class OverlayFactory {
     }
 
     public makeFromId(overlayId: string): ReadonlyOverlay {
-        const [component] = overlayId.split(':');
+        const [type] = overlayId.split(':');
 
         const overlay = new Overlay(this.router, {
             id: overlayId,
-            component: this.resolveComponent(component),
+            component: this.resolveComponent(type),
         });
 
         return toReadonly(overlay);
     }
+
+    // ----------[ Internal ]----------
 
     private resolveComponent(type: string): ShallowRef<Component> {
         return shallowRef(defineAsyncComponent(this.componentResolver(type)));
     }
 
     private generateOverlayId(type: OverlayType, args: OverlayArgs): string {
-        args['_instanceId'] = randomString();
+        args['_salt'] = randomString();
 
         const json = JSON.stringify(args);
         const encoded = encodeURIComponent(json);

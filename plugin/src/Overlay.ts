@@ -1,5 +1,5 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { Component, nextTick, ref, ShallowRef } from "vue";
+import { Component, ref, ShallowRef } from "vue";
 import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { randomString } from "./helpers.ts";
@@ -46,9 +46,8 @@ export class Overlay {
 
     // ----------[ Properties ]----------
 
-    public readonly instanceId: string;
-
     public readonly id: string;
+    public readonly instanceId: string;
     public readonly component: ShallowRef<Component>
 
     public readonly parentId = ref<string | null>(null);
@@ -62,8 +61,8 @@ export class Overlay {
         private readonly router: OverlayRouter,
         { id, component }: OverlayOptions
     ) {
-        this.instanceId = randomString();
         this.id = id;
+        this.instanceId = randomString();
         this.component = component;
     }
 
@@ -81,7 +80,7 @@ export class Overlay {
         });
 
         this.router.onOverlayPageLoad.on({
-            handler: page => this.handleSuccessfulRouteVisit(page),
+            handler: page => this.handleOverlayPageLoad(page),
             priority: () => this.index.value,
             subscription: this.subscription,
         });
@@ -96,18 +95,20 @@ export class Overlay {
     public async open(): Promise<void> {
         if (! this.hasState('closed')) return;
 
-        await this.waitForTransitions();
+        await this.waitForActiveRequests();
 
         this.subscribe();
         this.setState('opening');
+
         await this.router.open(this.id);
+
         this.setState('open');
     }
 
     public async close(): Promise<void> {
         if (! this.hasState('open')) return;
 
-        await this.waitForTransitions();
+        await this.waitForActiveRequests();
 
         this.setState('closing');
 
@@ -157,14 +158,6 @@ export class Overlay {
         return ! this.focused.value;
     }
 
-    public hasFlag(flag: OverlayFlag): boolean {
-        return this.config.value?.flags.includes(flag) ?? false;
-    }
-
-    public isInitialized(): boolean {
-        return this.config.value !== null;
-    }
-
     public scopedKey(key: string) {
         if (key.startsWith(`${ this.instanceId }:`)) {
             return key;
@@ -173,26 +166,7 @@ export class Overlay {
         return `${ this.instanceId }:${ key }`;
     }
 
-    public unscopeData(props: Record<string, any>): Record<string, any> {
-        const unscoped: Record<string, any> = {};
-
-        for (const key in props) {
-            if (key.startsWith(`${ this.instanceId }:`)) {
-                const unscopedKey = key.replace(`${ this.instanceId }:`, '');
-                unscoped[unscopedKey] = props[key];
-            }
-        }
-
-        return unscoped;
-    }
-
     // ----------[ Internal ]----------
-
-    private async waitForTransitions(): Promise<void> {
-        while (activeRequests.value > 0) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-    }
 
     private setConfig(config: OverlayConfig): void {
         this.config.value = config;
@@ -226,12 +200,16 @@ export class Overlay {
         };
     }
 
+    private async waitForActiveRequests(): Promise<void> {
+        while (activeRequests.value > 0) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    }
+
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = visit.method === 'get'
-            ? visit.url.searchParams.get("overlay")
-            : new URL(window.location.href).searchParams.get("overlay");
+        const overlayId = this.router.resolveOverlayId(visit);
 
         if (overlayId === this.id) {
             activeRequests.value += 1;
@@ -239,27 +217,24 @@ export class Overlay {
     }
 
     private handleFinishedRouteVisit(visit: ActiveVisit): void {
-        const overlayId = visit.method === 'get'
-            ? visit.url.searchParams.get("overlay")
-            : new URL(window.location.href).searchParams.get("overlay");
+        const overlayId = this.router.resolveOverlayId(visit);
 
         if (overlayId === this.id) {
-            nextTick(() => {
-                activeRequests.value -= 1;
-            })
+            activeRequests.value -= 1;
         }
     }
 
-    private handleSuccessfulRouteVisit(page: OverlayPage): void {
+    private handleOverlayPageLoad(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
             const config = page.overlay;
-
+            
             this.setConfig(config);
             this.updateProps(page);
-            this.focus();
 
             if (config.closeRequested) {
                 this.close();
+            } else {
+                this.focus();
             }
         } else {
             this.blur();
