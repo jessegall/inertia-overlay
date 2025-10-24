@@ -18,13 +18,14 @@ readonly class HandleInertiaOverlayRequests
 
         $overlay = app(Overlay::class);
 
+        if ($action = $overlay->getAction()) {
+            $overlay->run($action);
+            return $overlay->render();
+        }
+
         if ($request->method() !== Request::METHOD_GET) {
             $overlay->refresh();
             return $next($request);
-        }
-
-        if ($overlay->closeRequested()) {
-            return back();
         }
 
         return $overlay->render();

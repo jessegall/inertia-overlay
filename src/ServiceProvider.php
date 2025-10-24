@@ -4,7 +4,6 @@ namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
@@ -13,7 +12,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     {
         $this->app->singleton(Overlay::class);
         $this->registerRegistrar();
-        $this->registerActionRoute();
     }
 
     public function boot(): void
@@ -35,17 +33,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
             }
 
             return $registrar;
-        });
-    }
-
-    private function registerActionRoute(): void
-    {
-        Route::middleware('web')->post('_inertia/overlay', function (Overlay $overlay) {
-            if ($action = $overlay->getAction()) {
-                $overlay->run($action);
-            }
-
-            return back();
         });
     }
 

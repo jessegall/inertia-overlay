@@ -82,10 +82,11 @@ export class OverlayRouter {
     }
 
     public async action(action: string, data: Record<string, any> = {}): Promise<Page> {
-        return await new Promise((resolve, reject) => router.post('_inertia/overlay',
+        return await new Promise((resolve, reject) => router.post(window.location.href,
             {
                 ...data,
                 overlay: this.resolveOverlayQueryParam(),
+                _method: 'GET',
             },
             {
                 async: true,

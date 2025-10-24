@@ -59,7 +59,7 @@ readonly class Overlay
 
     public function getId(): string
     {
-        return $this->request->header(InertiaOverlay::OVERLAY_ID);
+        return $this->request->query('overlay') ?? $this->request->header(InertiaOverlay::OVERLAY_ID);
     }
 
     public function getInstanceId(): string
