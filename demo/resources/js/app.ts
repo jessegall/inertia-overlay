@@ -18,16 +18,16 @@ createInertiaApp({
         ),
     setup({ el, App, props, plugin }) {
 
-        const inertiaOverlayPlugin = createInertiaOverlayPlugin({
+        const { inertiaOverlayPlugin, inertiaOverlayRenderer } = createInertiaOverlayPlugin({
             resolve: type => {
                 const overlays = import.meta.glob('./overlays/**/*.vue');
                 return overlays[`./overlays/${ type }.vue`];
             }
         });
 
-        createApp({ render: () => h(App, props) })
-            .use(plugin)
+        createApp({ render: inertiaOverlayRenderer(() => h(App, props)) })
             .use(inertiaOverlayPlugin)
+            .use(plugin)
             .mount(el);
     },
     progress: {

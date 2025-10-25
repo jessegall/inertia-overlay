@@ -1,6 +1,5 @@
 import { OverlayStack } from "./OverlayStack.ts";
-import { App, computed, h, nextTick, reactive, shallowRef } from "vue";
-import OverlayRoot from "./Components/OverlayRoot.vue";
+import { App, computed, nextTick, reactive, shallowRef } from "vue";
 import { CreateOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
@@ -39,7 +38,6 @@ export class OverlayPlugin {
 
     public install(app: App): void {
         this.registerBindings(app);
-        this.injectOverlayRootComponent(app);
         this.extendComponents();
 
         nextTick(() => {
@@ -54,16 +52,6 @@ export class OverlayPlugin {
         app.provide('overlay.stack', this.stack);
         app.provide('overlay.router', this.router);
         app.provide('overlay.factory', this.factory);
-    }
-
-    private injectOverlayRootComponent(app: any) {
-        const originalRender = app._component.render;
-        app._component.render = function () {
-            return h('div', null, [
-                originalRender.call(this),
-                h(OverlayRoot)
-            ]);
-        };
     }
 
     private extendComponents(): void {

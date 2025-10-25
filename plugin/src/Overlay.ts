@@ -161,7 +161,6 @@ export class Overlay {
     }
 
     public setState(state: OverlayState): void {
-        this.assertNotDestroyed();
         if (this.state.value === state) return;
         this.state.value = state;
         this.onStatusChange.emit(state);

@@ -40,13 +40,13 @@ export class OverlayRouter {
     constructor(
         private readonly overlayResolver: OverlayResolver,
     ) {
-        this.setupDispatchers();
+        this.setupEvents();
         this.setupListeners();
     }
 
     // ----------[ Setup ]----------
 
-    private setupDispatchers(): void {
+    private setupEvents(): void {
         router.on('before', event => this.onBeforeRouteVisit.emit(event.detail.visit));
         router.on('success', event => this.onSuccessfulRouteVisit.emit(event.detail.page));
         router.on('finish', event => this.onFinishedRouteVisit.emit(event.detail.visit));

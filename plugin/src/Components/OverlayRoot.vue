@@ -7,10 +7,10 @@ import OverlayRenderer from "./OverlayRenderer.vue";
 
 const stack = useOverlayStack();
 
-
 </script>
 
 <template>
+    <slot/>
     <Teleport to="body">
         <div id="overlay-root">
             <template v-for="overlay in stack" :key="overlay.id">
