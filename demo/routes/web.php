@@ -6,12 +6,19 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Demo', [
-        'test' => Inertia::defer(fn() => 'This is a deferred prop!'),
+        'test' => '123'
     ]);
 });
 
 Route::get('/demo-other-page', function () {
     return Inertia::render('DemoOtherPage');
+});
+
+Route::get('/overlay', function () {
+    return Inertia::overlay('DemoDrawer', [
+        'someInitialData' => 'This is some initial data passed when opening the overlay.',
+        'array_data' => ['one', 'two', 'three'],
+    ]);
 });
 
 Route::get('/redirect', function () {

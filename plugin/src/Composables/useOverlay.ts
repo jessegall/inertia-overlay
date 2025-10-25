@@ -25,12 +25,7 @@ export function useOverlay() {
             return;
         }
 
-        if (! overlay.config.actions.includes(action)) {
-            console.error(`Overlay action "${ action }" is not available for overlay "${ overlay.id }".`);
-            return;
-        }
-
-        const page = await plugin.router.action(action, options.data);
+        const page = await plugin.router.action(overlay.id, action, options.data);
 
         if (options.onSuccess) {
             options.onSuccess(unscopeData(overlay.instanceId, page.props));

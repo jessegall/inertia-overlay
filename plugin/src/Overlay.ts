@@ -1,7 +1,7 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
 import { Component, ref, ShallowRef } from "vue";
 import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
-import { OverlayRouter } from "./OverlayRouter.ts";
+import { header, OverlayRouter } from "./OverlayRouter.ts";
 import { randomString } from "./helpers.ts";
 
 export type OverlayType = string;
@@ -211,6 +211,20 @@ export class Overlay {
 
         if (overlayId === this.id) {
             activeRequests.value += 1;
+
+            visit.headers = {
+                ...visit.headers,
+                [header.OVERLAY]: 'true',
+                [header.OVERLAY_ID]: this.id,
+                [header.OVERLAY_INSTANCE_ID]: this.instanceId,
+                [header.OVERLAY_PARENT_ID]: this.parentId.value,
+                [header.OVERLAY_INDEX]: this.index.value.toString(),
+                [header.OVERLAY_STATE]: this.state.value,
+                [header.OVERLAY_FOCUSED]: this.isFocused() ? 'true' : 'false',
+                [header.OVERLAY_REFOCUS]: this.hasState('open') && this.isBlurred() ? 'true' : 'false',
+            }
+
+            visit.only = visit.only.map(item => this.scopedKey(item));
         }
     }
 

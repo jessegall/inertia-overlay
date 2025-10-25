@@ -2,7 +2,7 @@
 
 namespace JesseGall\InertiaOverlay;
 
-class InertiaOverlay
+class Header
 {
 
     public const string OVERLAY = 'X-Inertia-Overlay';
@@ -18,6 +18,6 @@ class InertiaOverlay
     public const string OVERLAY_REQUEST_COUNTER = 'X-Inertia-Overlay-Request-Counter';
     public const string OVERLAY_REFOCUS = 'X-Inertia-Overlay-Refocus';
 
-    public const string OVERLAY_CLOSE = 'X-Inertia-Overlay-Close';
+    public const string INTERNAL_REQUEST = 'X-Inertia-Overlay-Target-Route';
 
 }

@@ -4,15 +4,16 @@ namespace JesseGall\InertiaOverlay\Contracts;
 
 use Closure;
 use JesseGall\InertiaOverlay\Overlay;
+use JesseGall\InertiaOverlay\OverlayInput;
 
 interface OverlayMiddleware
 {
 
     /**
-     * @param Overlay $overlay
+     * @param OverlayInput $arguments
      * @param (Closure(Overlay): Overlay) $next
      * @return Overlay
      */
-    public function handle(Overlay $overlay, Closure $next);
+    public function handle(OverlayInput $arguments, Closure $next);
 
 }

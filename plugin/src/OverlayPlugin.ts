@@ -4,6 +4,8 @@ import { CreateOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./Overlay
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
 import { OverlayState } from "./Overlay.ts";
+import { Page, PendingVisit } from "@inertiajs/core";
+import { isOverlayPage } from "./helpers.ts";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -38,6 +40,7 @@ export class OverlayPlugin {
 
     public install(app: App): void {
         this.registerBindings(app);
+        this.registerListeners(app);
         this.extendComponents();
 
         nextTick(() => {
@@ -52,6 +55,10 @@ export class OverlayPlugin {
         app.provide('overlay.stack', this.stack);
         app.provide('overlay.router', this.router);
         app.provide('overlay.factory', this.factory);
+    }
+
+    private registerListeners(app: App): void {
+        this.router.onNavigated.on((event) => this.handleNavigated(event));
     }
 
     private extendComponents(): void {
@@ -123,6 +130,22 @@ export class OverlayPlugin {
         });
 
         return overlay;
+    }
+
+    // ----------[ Event Handlers ]----------
+
+    private handleNavigated(page: Page): void {
+        console.log("Navigated to non-overlay page, setting root URL.");
+
+        if (isOverlayPage(page)) {
+            const overlayId = page.overlay.id;
+            if (! this.overlayInstances.has(overlayId)) {
+                const overlay = this.createOverlay({ id: overlayId });
+                overlay.open()
+            }
+        } else if (this.stack.size() === 0) {
+            this.router.setRootUrl(this.router.currentUrl.href);
+        }
     }
 
 }

@@ -8,10 +8,9 @@ use Illuminate\Http\Request;
 use Inertia\DeferProp;
 use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
-use Inertia\Support\Header;
+use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
-use JesseGall\InertiaOverlay\InertiaOverlay;
 use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlayConfig;
 
@@ -22,21 +21,20 @@ readonly class OverlayResponse implements Responsable
         private Overlay $overlay,
         private OverlayConfig $config,
         private array $props = [],
-        private array $actions = [],
     )
     {
         if ($this->overlay->hasState(OverlayState::OPENING) && $this->overlay->hasRequestCounter(1)) {
             $this->overlay->refresh();
         }
 
-        if ($this->overlay->isRefocusing() && ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS)) {
+        if ($this->overlay->isRefocusing() && $this->overlay->hasRequestCounter(1) && ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS)) {
             $this->overlay->refresh();
         }
     }
 
     private function scopeKey(string $key): string
     {
-        return "{$this->overlay->getInstanceId()}:{$key}";
+        return "{$this->overlay->instanceId}:{$key}";
     }
 
     private function resolveRefreshProps(Request $request, array $props): array
@@ -59,7 +57,7 @@ readonly class OverlayResponse implements Responsable
             }
         }
 
-        return str($request->header(Header::PARTIAL_ONLY, ''))
+        return str($request->header(InertiaHeader::PARTIAL_ONLY, ''))
             ->explode(',')
             ->merge($propsToRefresh)
             ->unique()
@@ -83,14 +81,12 @@ readonly class OverlayResponse implements Responsable
         }
 
         $data['overlay'] = [
-            'id' => $this->overlay->getId(),
+            'id' => $this->overlay->id,
             'variant' => $this->config->variant,
             'size' => $this->config->size,
             'flags' => $this->config->flags,
             'props' => array_keys($this->props),
-            'actions' => array_keys($this->actions),
             'closeRequested' => $this->overlay->closeRequested(),
-            'swapRequested' => $this->overlay->swapRequested(),
         ];
 
         return $response->setData($data);
@@ -104,14 +100,10 @@ readonly class OverlayResponse implements Responsable
             ->all();
 
         $refreshProps = $this->resolveRefreshProps($request, $props);
-        $request->headers->set(Header::PARTIAL_ONLY, implode(',', $refreshProps));
+        $request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', $refreshProps));
 
         $response = Inertia::render($this->overlay->getPageComponent(), $props)->toResponse($request);
         $response = $this->addOverlayDataToResponse($response);
-
-        if ($this->overlay->closeRequested()) {
-            $response->headers->set(InertiaOverlay::OVERLAY_CLOSE, $this->overlay->getId());
-        }
 
         $this->overlay->reset();
 

@@ -25,6 +25,10 @@ function goToDemoOtherPage() {
     router.visit('/demo-other-page');
 }
 
+function openDemoDrawer() {
+    router.visit('/overlay');
+}
+
 </script>
 
 <template>
@@ -35,6 +39,9 @@ function goToDemoOtherPage() {
             </Button>
             <Button @click="goToDemoOtherPage">
                 Go to Demo Other Page
+            </Button>
+            <Button @click="openDemoDrawer">
+                Open overlay by navigating
             </Button>
         </div>
         <Deferred :data="['test']">

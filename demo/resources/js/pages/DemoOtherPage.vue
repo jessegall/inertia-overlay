@@ -31,6 +31,17 @@ function goToDemoPage() {
     router.visit('/');
 }
 
+function openDemoDrawer() {
+    router.visit('/overlay');
+}
+
+function openDemoDrawerLink() {
+    router.post('/overlay', {
+        _method: 'GET',
+        only: ['overlay']
+    });
+}
+
 watch(() => instance.id, (id) => {
     console.log(id);
 }, { deep: true });
@@ -48,6 +59,12 @@ watch(() => instance.id, (id) => {
             </Button>
             <Button @click="goToDemoPage">
                 Go to Demo Page
+            </Button>
+            <Button @click="openDemoDrawer">
+                Open overlay by navigating
+            </Button>
+            <Button @click="openDemoDrawerLink">
+                Open overlay by navigating Link
             </Button>
         </div>
     </div>

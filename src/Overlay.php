@@ -4,49 +4,34 @@ namespace JesseGall\InertiaOverlay;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Arr;
-use JesseGall\InertiaOverlay\Contracts\AppliesMiddleware;
+use Illuminate\Support\Str;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
-use ReflectionClass;
-use ReflectionMethod;
-use RuntimeException;
 
 readonly class Overlay
 {
 
-    public string $typename;
-    public array $arguments;
-    public OverlayComponent $component;
-    public array $actions;
+    public OverlayInput $input;
 
     public function __construct(
         public Request $request,
+        public string $id,
+        public string $instanceId,
+        public string $type,
+        public array $data = [],
     )
     {
-        [$this->typename, $this->arguments] = $this->parseOverlayId($this->getId());
-        $this->component = $this->resolveComponent($this->typename, $this->arguments);
-        $this->actions = $this->resolveActions($this->component);
+        $this->input = new OverlayInput($data);
     }
 
-    public function run(string $action): mixed
-    {
-        if (! isset($this->actions[$action])) {
-            throw new RuntimeException("Action '{$action}' not found on overlay '{$this->typename}'.");
-        }
-
-        return app()->call($this->actions[$action]);
-    }
-
-    public function render(): OverlayResponse
+    public function render(OverlayComponent $component): OverlayResponse
     {
         return new OverlayResponse(
             overlay: $this,
-            config: $this->component->config($this),
-            props: $this->component->props($this),
-            actions: $this->actions,
+            config: $component->config($this),
+            props: $component->props($this),
         );
     }
 
@@ -57,44 +42,39 @@ readonly class Overlay
 
     # ----------[ Request Headers ]----------
 
-    public function getId(): string
-    {
-        return $this->request->query('overlay') ?? $this->request->header(InertiaOverlay::OVERLAY_ID);
-    }
-
-    public function getInstanceId(): string
-    {
-        return $this->request->header(InertiaOverlay::OVERLAY_INSTANCE_ID);
-    }
-
     public function getAction(): string|null
     {
-        return $this->request->header(InertiaOverlay::OVERLAY_ACTION);
+        return $this->request->header(Header::OVERLAY_ACTION);
     }
 
     public function getParentId(): string
     {
-        return $this->request->header(InertiaOverlay::OVERLAY_PARENT_ID);
+        return $this->request->header(Header::OVERLAY_PARENT_ID);
     }
 
     public function getIndex(): int
     {
-        return (int)$this->request->header(InertiaOverlay::OVERLAY_INDEX);
+        return (int)$this->request->header(Header::OVERLAY_INDEX);
     }
 
     public function getRootUrl(): string
     {
-        return $this->request->header(InertiaOverlay::OVERLAY_ROOT_URL);
+        return $this->request->header(Header::OVERLAY_ROOT_URL);
     }
 
     public function getPageComponent(): string
     {
-        return $this->request->header(InertiaOverlay::OVERLAY_PAGE_COMPONENT);
+        return $this->request->header(Header::OVERLAY_PAGE_COMPONENT);
+    }
+
+    public function setPageComponent(string $component): void
+    {
+        $this->request->headers->set(Header::OVERLAY_PAGE_COMPONENT, $component);
     }
 
     public function getRequestCounter(): int
     {
-        return (int)$this->request->header(InertiaOverlay::OVERLAY_REQUEST_COUNTER);
+        return (int)$this->request->header(Header::OVERLAY_REQUEST_COUNTER);
     }
 
     public function hasRequestCounter(int $counter): bool
@@ -104,12 +84,12 @@ readonly class Overlay
 
     public function isRefocusing(): bool
     {
-        return filter_var($this->request->header(InertiaOverlay::OVERLAY_REFOCUS), FILTER_VALIDATE_BOOLEAN);
+        return filter_var($this->request->header(Header::OVERLAY_REFOCUS), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function getState(): OverlayState
     {
-        return OverlayState::from($this->request->header(InertiaOverlay::OVERLAY_STATE));
+        return OverlayState::from($this->request->header(Header::OVERLAY_STATE, 'closed'));
     }
 
     public function hasState(OverlayState $state): bool
@@ -119,7 +99,12 @@ readonly class Overlay
 
     public function isFocused(): bool
     {
-        return filter_var($this->request->header(InertiaOverlay::OVERLAY_FOCUSED), FILTER_VALIDATE_BOOLEAN);
+        return filter_var($this->request->header(Header::OVERLAY_FOCUSED), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function shouldForwardedToRoute(): bool
+    {
+        return $this->request->hasHeader(Header::INTERNAL_REQUEST);
     }
 
     public function isBlurred(): bool
@@ -137,23 +122,6 @@ readonly class Overlay
     public function closeRequested(): bool
     {
         return $this->get('close', false) === true;
-    }
-
-    public function swap(string $type, array $arguments = []): void
-    {
-        if (class_exists($type)) {
-            $type = app(OverlayRegistrar::class)->resolveTypename($type);
-        }
-
-        $this->flash('swap', [
-            'type' => $type,
-            'args' => $arguments,
-        ]);
-    }
-
-    public function swapRequested(): array|null
-    {
-        return $this->get('swap');
     }
 
     # ----------[ Session ]----------
@@ -225,91 +193,47 @@ readonly class Overlay
 
     public function sessionKey(string $key): mixed
     {
-        return "overlay.{$this->getInstanceId()}.{$key}";
+        return "overlay.{$this->instanceId}.{$key}";
     }
 
-    # ----------[ Parsing ]----------
+    # ----------[ Factory ]----------
 
-    private function parseOverlayId(string $overlayId): array
+    public static function new(string|null $type, array $data = []): static
     {
-        $segments = explode(':', $overlayId);
+        $idSegments = [
+            app(OverlayComponentRegistrar::class)->resolveTypename($type),
+            base64_encode(rawurlencode(json_encode($data))),
+        ];
+
+        return app(static::class,
+            [
+                'id' => implode(':', $idSegments),
+                'instanceId' => Str::random(8),
+                'type' => $type,
+                'data' => $data,
+            ]
+        );
+    }
+
+    public static function fromRequest(Request $request): static
+    {
+        $segments = explode(':', $request->query('overlay', $request->header(Header::OVERLAY_ID)), 2);
 
         $typename = $segments[0];
-
         $encodedArguments = $segments[1] ?? '';
-        $arguments = $this->parseEncodedArguments($encodedArguments);
-
-        return [$typename, $arguments];
-    }
-
-    private function parseEncodedArguments(string $encodedArguments): mixed
-    {
         $decoded = base64_decode($encodedArguments);
         $json = rawurldecode($decoded);
-        return json_decode($json, true) ?? [];
-    }
+        $arguments = json_decode($json, true) ?? [];
 
-    # ----------[ Component ]----------
+        $type = app(OverlayComponentRegistrar::class)->resolveComponentClass($typename);
 
-    /**
-     * @param string $typename
-     * @param array $arguments
-     * @return OverlayComponent
-     */
-    private function resolveComponent(string $typename, array $arguments = []): OverlayComponent
-    {
-        $class = app(OverlayRegistrar::class)->resolveComponentClass($typename);
-
-        $middleware = $this->resolveComponentMiddleware($class);
-
-        return app(Pipeline::class)
-            ->send($this)
-            ->through($middleware)
-            ->then(fn() => $this->newComponent($class, $arguments));
-    }
-
-    /**
-     * @param class-string<OverlayConfig> $class
-     */
-    private function resolveComponentMiddleware(string $class): array
-    {
-        if (is_subclass_of($class, AppliesMiddleware::class)) {
-            return $class::middleware();
-        }
-
-        return [];
-    }
-
-    /**
-     * @param class-string<OverlayComponent> $class
-     * @param array $arguments
-     * @return OverlayComponent
-     */
-    private function newComponent(string $class, array $arguments): OverlayComponent
-    {
-        if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
-            return $class::from($arguments);
-        }
-
-        return app($class, $arguments);
-    }
-
-    /**
-     * @param OverlayComponent $component
-     * @return array<string, callable>
-     */
-    private function resolveActions(OverlayComponent $component): array
-    {
-        $reflector = new ReflectionClass($component);
-
-        return collect($reflector->getMethods())
-            ->filter(fn(ReflectionMethod $method) => $method->getAttributes(OverlayAction::class))
-            ->mapWithKeys(function (ReflectionMethod $method) use ($component) {
-                [$attribute] = $method->getAttributes(OverlayAction::class);
-                $instance = $attribute->newInstance();
-                return [$instance->name => $method->getClosure($component)];
-            })
-            ->all();
+        return app(static::class, [
+            'request' => $request,
+            'id' => $request->query('overlay', $request->header(Header::OVERLAY_ID)),
+            'instanceId' => $request->header(Header::OVERLAY_INSTANCE_ID),
+            'type' => $type,
+            'data' => $arguments,
+        ]);
     }
 
 }

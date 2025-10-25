@@ -5,7 +5,7 @@ namespace JesseGall\InertiaOverlay;
 use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
-class OverlayRegistrar
+class OverlayComponentRegistrar
 {
 
     private array $overlays = [];

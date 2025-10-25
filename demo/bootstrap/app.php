@@ -15,9 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
+            HandleInertiaOverlayRequests::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-            HandleInertiaOverlayRequests::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

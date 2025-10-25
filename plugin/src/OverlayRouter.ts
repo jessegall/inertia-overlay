@@ -6,10 +6,10 @@ import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
 import { OverlayResolver } from "./OverlayPlugin.ts";
 
-export const headers = {
+export const header = {
     OVERLAY: 'X-Inertia-Overlay',
     OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
-    OVERLAY_PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
+    PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
     OVERLAY_INSTANCE_ID: 'X-Inertia-Overlay-Instance',
     OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
@@ -54,13 +54,23 @@ export class OverlayRouter {
     }
 
     private setupListeners(): void {
-        this.onBeforeRouteVisit.on(visit => this.handleBeforeRouteVisit(visit));
+        this.onBeforeRouteVisit.on({
+            handler: visit => this.handleBeforeRouteVisit(visit),
+            priority: -1
+        });
+
         this.onSuccessfulRouteVisit.on(page => this.handleSuccessfulRouteVisit(page));
     }
 
     // ----------[ Api ]----------
 
     public async open(overlayId: string): Promise<OverlayPage> {
+        const page = usePage();
+
+        if (isOverlayPage(page) && page.overlay.id === overlayId) {
+            return page;
+        }
+
         return await new Promise((resolve, reject) => router.reload({
             async: true,
             data: {
@@ -79,17 +89,17 @@ export class OverlayRouter {
         }));
     }
 
-    public async action(action: string, data: Record<string, any> = {}): Promise<Page> {
+    public async action(overlayId: string, action: string, data: Record<string, any> = {}): Promise<Page> {
         return await new Promise((resolve, reject) => router.post(window.location.href,
             {
                 ...data,
-                overlay: this.resolveOverlayQueryParam(),
+                overlay: overlayId,
                 _method: 'GET',
             },
             {
                 async: true,
                 headers: {
-                    [headers.OVERLAY_ACTION]: action,
+                    [header.OVERLAY_ACTION]: action,
                 },
                 onSuccess(page) {
                     resolve(page);
@@ -124,10 +134,6 @@ export class OverlayRouter {
         this.rootUrl.value = _url.toString();
     }
 
-    public clearRootUrl(): void {
-        this.rootUrl.value = null;
-    }
-
     public resolveOverlayId(visit: ActiveVisit | PendingVisit) {
         return visit.method === 'get'
             ? visit.url.searchParams.get("overlay")
@@ -141,63 +147,37 @@ export class OverlayRouter {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = this.resolveOverlayId(visit)
+        const page = usePage();
+        const overlayId = this.resolveOverlayId(visit) ?? visit.headers[header.OVERLAY_ID];
 
-        if (overlayId) {
-            const overlay = this.overlayResolver(overlayId);
+        visit.headers[header.PAGE_COMPONENT] = page.component;
 
-            if (! overlay) {
-                throw new Error(`Could not resolve overlay with ID '${ overlayId }'.`);
-            }
+        if (! overlayId) {
+            this.previousOverlayId.value = null;
+            return;
+        }
 
-            if (! this.rootUrl.value) {
-                this.setRootUrl(window.location.href);
-            }
+        const overlay = this.overlayResolver(overlayId);
 
-            if (this.previousOverlayId.value !== overlayId) {
-                this.counter.value = 0;
-            }
+        if (this.previousOverlayId.value !== overlayId) {
+            this.counter.value = 0;
+        }
 
-            const page = usePage();
-            this.previousOverlayId.value = overlayId;
-            this.counter.value += 1;
+        this.previousOverlayId.value = overlayId;
+        this.counter.value += 1;
 
-            visit.preserveScroll = true;
-            visit.preserveState = true;
+        visit.preserveScroll = true;
+        visit.preserveState = true;
 
-            visit.headers = {
+        visit.headers = {
+            ...visit.headers,
+            [header.OVERLAY_ROOT_URL]: this.rootUrl.value,
+            [header.OVERLAY_REQUEST_COUNTER]: this.counter.value.toString(),
+            [header.OVERLAY_REFOCUS]: overlay.hasState('open') && this.counter.value === 1 ? 'true' : 'false',
+        }
 
-                ...visit.headers,
-
-                // -----[ Overlay Headers ]-----
-
-                [headers.OVERLAY]: 'true',
-                [headers.OVERLAY_ID]: overlay.id,
-                [headers.OVERLAY_INSTANCE_ID]: overlay.instanceId,
-                [headers.OVERLAY_INDEX]: overlay.index.toString(),
-                [headers.OVERLAY_STATE]: overlay.state,
-                [headers.OVERLAY_PARENT_ID]: overlay.parentId,
-                [headers.OVERLAY_PAGE_COMPONENT]: page.component,
-                [headers.OVERLAY_ROOT_URL]: this.rootUrl.value,
-                [headers.OVERLAY_FOCUSED]: overlay.isFocused() ? 'true' : 'false',
-                [headers.OVERLAY_REQUEST_COUNTER]: this.counter.value.toString(),
-                [headers.OVERLAY_REFOCUS]: overlay.hasState('open') && this.counter.value === 1 ? 'true' : 'false',
-
-            }
-
-            if (visit.only.length === 0) {
-                visit.only = ['__overlay_partial_reload_trigger']
-            } else {
-                visit.only = visit.only.map(item => {
-                    if (item.startsWith(`${ overlay.instanceId }:`)) {
-                        return item;
-                    }
-
-                    return `${ overlay.instanceId }:${ item }`;
-                });
-            }
-        } else {
-            this.clearRootUrl();
+        if (visit.only.length === 0) {
+            visit.only = ['__overlay_partial_reload_trigger']
         }
     }
 
