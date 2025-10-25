@@ -3,6 +3,7 @@
 import Button from "@/components/Button.vue";
 import { useOverlay } from "@jessegall/inertia-overlay";
 import { router } from "@inertiajs/vue3";
+import { watch } from "vue";
 
 const { createOverlay } = useOverlay();
 
@@ -29,6 +30,10 @@ function createDemoModal() {
 function goToDemoPage() {
     router.visit('/');
 }
+
+watch(() => instance.id, (id) => {
+    console.log(id);
+}, { deep: true });
 
 </script>
 
