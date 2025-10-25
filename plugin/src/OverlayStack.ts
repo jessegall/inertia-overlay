@@ -1,34 +1,38 @@
-import { shallowRef } from "vue";
+import { ref } from "vue";
 import { EventEmitter } from "./event.ts";
 import { ReadonlyOverlay } from "./OverlayFactory.ts";
+import { OverlayResolver } from "./OverlayPlugin.ts";
 
 export class OverlayStack {
 
     // ----------[ Events ]----------
 
-    public readonly onOverlayPushed = new EventEmitter<ReadonlyOverlay>();
+    public readonly onOverlayPushed = new EventEmitter<string>();
 
     // ----------[ Properties ]----------
 
-    public overlays = shallowRef<ReadonlyOverlay[]>([]);
+    public stack = ref<string[]>([]);
+
+    constructor(
+        private readonly overlayResolver: OverlayResolver,
+    ) {}
 
     // ----------[ Methods ]----------
 
-    public push(overlay: ReadonlyOverlay): void {
-        this.overlays.value = [...this.overlays.value, overlay];
-        this.onOverlayPushed.emit(overlay);
+    public push(overlayId: string): void {
+        this.stack.value = [...this.stack.value, overlayId];
+        this.onOverlayPushed.emit(overlayId);
     }
 
-    public remove(id: string): void {
-        this.overlays.value = this.overlays.value.filter(overlay => overlay.id !== id);
+    public remove(overlayId: string): void {
+        this.stack.value = this.stack.value.filter(id => id !== overlayId);
     }
 
     public peek(): ReadonlyOverlay | null {
         const size = this.size();
-        if (size === 0) {
-            return null;
-        }
-        return this.overlays.value[size - 1];
+        if (size === 0) return null;
+        const overlayId = this.stack.value[size - 1];
+        return this.overlayResolver(overlayId);
     }
 
     public peekId(): string | null {
@@ -37,19 +41,25 @@ export class OverlayStack {
     }
 
     public size(): number {
-        return this.overlays.value.length;
-    }
-
-    public findById(id: string): ReadonlyOverlay | null {
-        return this.overlays.value.find(overlay => overlay.id === id) || null;
-    }
-
-    public all(): ReadonlyOverlay[] {
-        return this.overlays.value;
+        return this.stack.value.length;
     }
 
     public clear(): void {
-        this.overlays.value = [];
+        this.stack.value = [];
+    }
+
+    // ----------[ Accessors ]----------
+
+    public get items(): ReadonlyOverlay[] {
+        return this.stack.value.map(id => this.overlayResolver(id));
+    }
+
+    // ----------[ Iterator ]----------
+
+    * [Symbol.iterator](): Iterator<ReadonlyOverlay> {
+        for (const item of this.items) {
+            yield item;
+        }
     }
 
 }

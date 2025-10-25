@@ -1,5 +1,5 @@
 import { inject } from "vue";
-import { OverlayPlugin } from "../OverlayPlugin.ts";
+import { OverlayHandle, OverlayPlugin } from "../OverlayPlugin.ts";
 import { OverlayProps } from "../Overlay.ts";
 import { CreateOverlayOptions } from "../OverlayFactory.ts";
 import { unscopeData } from "../helpers.ts";
@@ -13,11 +13,11 @@ export function useOverlay() {
 
     const plugin = inject<OverlayPlugin>('overlay.plugin');
 
-    function createOverlay(options: CreateOverlayOptions) {
+    function createOverlay(options: CreateOverlayOptions): OverlayHandle {
         return plugin.createOverlay(options);
     }
 
-    async function overlayAction(action: string, options: OverlayActionOptions = {}) {
+    async function overlayAction(action: string, options: OverlayActionOptions = {}): Promise<void> {
         const overlay = plugin.stack.peek();
 
         if (! overlay) {

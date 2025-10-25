@@ -94,6 +94,8 @@ export class Overlay {
     // ----------[ Api ]----------
 
     public async open(): Promise<void> {
+        this.assertNotDestroyed();
+
         if (! this.hasState('closed')) return;
 
         await this.waitForActiveRequests();
@@ -107,6 +109,8 @@ export class Overlay {
     }
 
     public async close(): Promise<void> {
+        this.assertNotDestroyed();
+
         if (! this.hasState('open')) return;
 
         await this.waitForActiveRequests();
@@ -131,10 +135,11 @@ export class Overlay {
         }
 
         this.setState('closed');
-        this.unsubscribe();
     }
 
     public destroy(): void {
+        if (this.isDestroyed()) return;
+
         this.setState('closed');
         this.setParentId(null);
         this.setIndex(-1);
@@ -143,52 +148,24 @@ export class Overlay {
         this.onFocused.clear();
         this.onBlurred.clear();
         this.destroyed.value = true;
+
         console.log(`Overlay instance "${ this.id }" destroyed.`);
     }
 
-    public setParentId(parentId: string | null): void {
-        this.parentId.value = parentId;
+    // ----------[ Internal ]----------
+
+    private assertNotDestroyed(): void {
+        if (this.isDestroyed()) {
+            throw new Error(`Cannot perform operation on destroyed overlay instance "${ this.id }".`);
+        }
     }
 
     public setState(state: OverlayState): void {
-        if (this.isDestroyed()) {
-            console.error('Cannot set state on destroyed overlay instance.', this.id);
-            return;
-        }
-
+        this.assertNotDestroyed();
+        if (this.state.value === state) return;
         this.state.value = state;
         this.onStatusChange.emit(state);
     }
-
-    public hasState(...states: OverlayState[]): boolean {
-        return states.includes(this.state.value);
-    }
-
-    public setIndex(index: number): void {
-        this.index.value = index;
-    }
-
-    public isFocused(): boolean {
-        return this.focused.value;
-    }
-
-    public isBlurred(): boolean {
-        return ! this.focused.value;
-    }
-
-    public scopedKey(key: string) {
-        if (key.startsWith(`${ this.instanceId }:`)) {
-            return key;
-        }
-
-        return `${ this.instanceId }:${ key }`;
-    }
-
-    public isDestroyed(): boolean {
-        return this.destroyed.value;
-    }
-
-    // ----------[ Internal ]----------
 
     private setConfig(config: OverlayConfig): void {
         this.config.value = config;
@@ -261,6 +238,42 @@ export class Overlay {
         } else {
             this.blur();
         }
+    }
+
+    // ----------[ Getters / Setters ]----------
+
+    public scopedKey(key: string) {
+        const prefix = `${ this.instanceId }:`;
+
+        if (key.startsWith(prefix)) {
+            return key;
+        }
+
+        return prefix + key;
+    }
+
+    public setParentId(parentId: string | null): void {
+        this.parentId.value = parentId;
+    }
+
+    public hasState(...states: OverlayState[]): boolean {
+        return states.includes(this.state.value);
+    }
+
+    public setIndex(index: number): void {
+        this.index.value = index;
+    }
+
+    public isFocused(): boolean {
+        return this.focused.value;
+    }
+
+    public isBlurred(): boolean {
+        return ! this.focused.value;
+    }
+
+    public isDestroyed(): boolean {
+        return this.destroyed.value;
     }
 
 }

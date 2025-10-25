@@ -4,9 +4,7 @@ import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
-import { ReadonlyOverlay } from "./OverlayFactory.ts";
-
-type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
+import { OverlayResolver } from "./OverlayPlugin.ts";
 
 export const headers = {
     OVERLAY: 'X-Inertia-Overlay',
@@ -133,12 +131,11 @@ export class OverlayRouter {
     public resolveOverlayId(visit: ActiveVisit | PendingVisit) {
         return visit.method === 'get'
             ? visit.url.searchParams.get("overlay")
-            : new URL(window.location.href).searchParams.get("overlay");
+            : this.resolveOverlayQueryParam();
     }
 
     public resolveOverlayQueryParam(): string | null {
-        const url = new URL(window.location.href);
-        return url.searchParams.get("overlay");
+        return this.currentUrl.searchParams.get("overlay");
     }
 
     // ----------[ Event Handlers ]----------
@@ -208,6 +205,12 @@ export class OverlayRouter {
         if (isOverlayPage(page)) {
             this.onOverlayPageLoad.emit(page);
         }
+    }
+
+    // ----------[ Accessors ]----------
+
+    public get currentUrl() {
+        return new URL(usePage().url, window.location.origin);
     }
 
 }

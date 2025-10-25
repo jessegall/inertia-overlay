@@ -1,10 +1,10 @@
 import { OverlayStack } from "./OverlayStack.ts";
-import { App, h, ref } from "vue";
+import { App, computed, ComputedRef, h, nextTick, ref } from "vue";
 import OverlayRoot from "./Components/OverlayRoot.vue";
 import { CreateOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
-import { ActiveVisit, Page } from "@inertiajs/core";
+import { OverlayState } from "./Overlay.ts";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -12,6 +12,13 @@ export interface OverlayPluginOptions<T = any> {
     resolve: OverlayComponentResolver<T>;
 }
 
+export interface OverlayHandle {
+    open: () => Promise<void>;
+    close: () => Promise<void>;
+    state: ComputedRef<OverlayState>;
+}
+
+export type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
 
 export class OverlayPlugin {
 
@@ -19,25 +26,24 @@ export class OverlayPlugin {
     public readonly router: OverlayRouter;
     public readonly factory: OverlayFactory;
 
-    private readonly currentPath = ref<string>();
-    private readonly overlayInstances = new Map<string, { path: string; instance: ReadonlyOverlay }>();
+    private readonly overlayInstances = new Map<string, ReadonlyOverlay>();
 
     constructor(
         public readonly options: OverlayPluginOptions
     ) {
-        this.stack = new OverlayStack();
-        this.router = new OverlayRouter((overlayId: string) => this.stack.findById(overlayId));
+        this.stack = new OverlayStack((overlayId: string) => this.resolveOverlay(overlayId));
+        this.router = new OverlayRouter((overlayId: string) => this.resolveOverlay(overlayId));
         this.factory = new OverlayFactory(this.options.resolve, this.router);
-
-        this.currentPath.value = window.location.pathname;
     }
 
     public install(app: App): void {
         this.registerBindings(app);
         this.injectOverlayRootComponent(app);
-        this.setupListeners();
         this.extendComponents();
-        this.handleInitialPageLoad();
+
+        nextTick(() => {
+            this.initialize();
+        })
     }
 
     // ----------[ Setup ]----------
@@ -59,16 +65,11 @@ export class OverlayPlugin {
         };
     }
 
-    private setupListeners(): void {
-        this.router.onFinishedRouteVisit.on(visit => this.handleFinishedRouteVisit(visit));
-        this.router.onNavigated.on((page) => this.handleNavigated(page));
-    }
-
     private extendComponents(): void {
         extendDeferredComponent(this.stack)
     }
 
-    private handleInitialPageLoad(): void {
+    private initialize(): void {
         const overlayId = this.router.resolveOverlayQueryParam();
         if (overlayId) {
             const overlay = this.createOverlay({ id: overlayId });
@@ -78,56 +79,65 @@ export class OverlayPlugin {
 
     // ----------[ Api ]----------
 
-    public createOverlay(options: CreateOverlayOptions): ReadonlyOverlay {
+    public createOverlay(options: CreateOverlayOptions): OverlayHandle {
+        const instanceId = ref<string>(null);
+
+        const hasInstance = () => {
+            return instanceId.value !== null && this.overlayInstances.has(instanceId.value);
+        }
+
+        // We create a fresh overlay instance on each open() to prevent memory leaks.
+        // While overlays can technically be reopened, destroying and recreating ensures
+        // event listeners, subscriptions, and state are properly cleaned up. Since overlays
+        // aren't children of page components, we can't rely on Vue's lifecycle hooks like
+        // onUnmounted to determine when cleanup should occur, making explicit destruction
+        // on each close the safer approach.
+
+        return {
+            open: async () => {
+                if (hasInstance()) return;
+                const instance = this.newOverlayInstance(options);
+                instanceId.value = instance.id;
+                await instance.open();
+            },
+            close: async () => {
+                if (! hasInstance()) return;
+                const instance = this.resolveOverlay(instanceId.value);
+                await instance.close();
+            },
+            state: computed(() => hasInstance() ? this.resolveOverlay(instanceId.value).state : "closed"),
+        };
+    }
+
+    public resolveOverlay(overlayId: string): ReadonlyOverlay | null {
+        return this.overlayInstances.get(overlayId) || null;
+    }
+
+    // ----------[ Internal ]----------
+
+    private newOverlayInstance(options: CreateOverlayOptions): ReadonlyOverlay {
         const overlay = this.factory.make(options);
+        this.overlayInstances.set(overlay.id, overlay);
 
-        overlay.onStatusChange.on((status) => this.handleOverlayStatusChange(overlay, status));
+        overlay.onStatusChange.on((status) => {
+            switch (status) {
 
-        this.overlayInstances.set(overlay.instanceId, {
-            path: this.currentPath.value,
-            instance: overlay,
+                case "opening":
+                    overlay.setParentId(this.stack.peekId());
+                    overlay.setIndex(this.stack.size());
+                    this.stack.push(overlay.id);
+                    break;
+
+                case "closed":
+                    this.stack.remove(overlay.id);
+                    this.overlayInstances.delete(overlay.id);
+                    overlay.destroy();
+                    break;
+
+            }
         });
 
         return overlay;
-    }
-
-    // ----------[ EventHandlers ]----------
-
-    private handleFinishedRouteVisit(page: ActiveVisit): void {
-        this.currentPath.value = page.url.pathname;
-    }
-
-    private handleNavigated(page: Page): void {
-        const previousPath = this.currentPath.value;
-        const newUrl = new URL(page.url, window.location.origin);
-
-        if (newUrl.pathname !== this.currentPath.value) {
-            for (const [instanceId, { path, instance }] of this.overlayInstances) {
-                if (path === previousPath) {
-                    instance.destroy();
-                    this.overlayInstances.delete(instanceId);
-                }
-            }
-
-            this.stack.clear();
-        }
-    }
-
-    private handleOverlayStatusChange(overlay: ReadonlyOverlay, status: string): void {
-        switch (status) {
-
-            case "opening":
-                overlay.setParentId(this.stack.peekId());
-                overlay.setIndex(this.stack.size());
-                this.stack.push(overlay);
-                break;
-
-            case "closed":
-                this.stack.remove(overlay.id);
-                overlay.setIndex(-1);
-                break;
-
-        }
     }
 
 }
