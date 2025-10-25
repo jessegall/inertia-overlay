@@ -4,8 +4,10 @@ namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use JesseGall\InertiaOverlay\Enums\OverlayVariant;
+use JesseGall\InertiaOverlay\Http\Controllers\OverlayController;
+use JesseGall\InertiaOverlay\Http\OverlayResponse;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
@@ -13,6 +15,9 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     public function register(): void
     {
         $this->registerRegistrar();
+
+        Route::middleware('web')
+            ->get('/overlay/{type}', OverlayController::class);
     }
 
     public function boot(): void
@@ -46,25 +51,20 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         });
 
         Inertia::macro('overlay',
-            macro: function (string $component, array $props = []) {
+            macro: function (string $component, array $props = [], OverlayConfig $config = new OverlayConfig()): OverlayResponse {
                 $request = app(Request::class);
 
-                if ($request->hasHeader(Header::INTERNAL_REQUEST)) {
+                if ($request->inertiaOverlay() && $request->header(Header::OVERLAY_URL) === $request->url()) {
                     $overlay = Overlay::fromRequest($request);
                 } else {
-                    $overlay = Overlay::new(RouteOverlayComponent::class, [
-                        'url' => $request->fullUrl(),
-                    ]);
+                    $overlay = Overlay::new();
                 }
 
                 return $overlay->render(
                     new RouteOverlayComponent(
                         $component,
-                        $request->fullUrl(),
                         $props,
-                        new OverlayConfig(
-                            variant: OverlayVariant::DRAWER
-                        )
+                        $config
                     )
                 );
             }

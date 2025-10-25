@@ -15,7 +15,7 @@ const props = defineProps<Props>();
 function createDemoModal() {
     const overlay = createOverlay({
         type: 'demo.modal',
-        args: {}
+        data: {}
     })
 
     overlay.open();
@@ -25,8 +25,8 @@ function goToDemoOtherPage() {
     router.visit('/demo-other-page');
 }
 
-function openDemoDrawer() {
-    router.visit('/overlay');
+function openOverlayByNavigation() {
+    router.visit('/navigation-demo');
 }
 
 </script>
@@ -40,7 +40,7 @@ function openDemoDrawer() {
             <Button @click="goToDemoOtherPage">
                 Go to Demo Other Page
             </Button>
-            <Button @click="openDemoDrawer">
+            <Button @click="openOverlayByNavigation">
                 Open overlay by navigating
             </Button>
         </div>

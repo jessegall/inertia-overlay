@@ -15,6 +15,11 @@ class DemoDrawerOverlay implements OverlayComponent
 
     private OverlaySize $size = OverlaySize::XL2;
 
+    public function name(): string
+    {
+        return 'DemoDrawer';
+    }
+
     public function config(Overlay $overlay): OverlayConfig
     {
         return new OverlayConfig(

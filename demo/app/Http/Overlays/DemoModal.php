@@ -19,6 +19,11 @@ class DemoModal implements OverlayComponent, AppliesMiddleware
         public mixed $someValue = null,
     ) {}
 
+    public function name(): string
+    {
+        return 'DemoModal';
+    }
+
     public function config(Overlay $overlay): OverlayConfig
     {
         return new OverlayConfig(
@@ -35,12 +40,12 @@ class DemoModal implements OverlayComponent, AppliesMiddleware
             'closureProp' => fn() => 'This is a prop from a closure',
             'lazyProp' => Inertia::optional(fn() => 'This is a prop from an lazy prop'),
             'someValue' => $this->someValue,
-            'deferredProp' => Inertia::defer(function () {
-                return [
-                    'message' => 'This is a deferred prop',
-                    'timestamp' => now()->toDateTimeString(),
-                ];
-            }),
+//            'deferredProp' => Inertia::defer(function () {
+//                return [
+//                    'message' => 'This is a deferred prop',
+//                    'timestamp' => now()->toDateTimeString(),
+//                ];
+//            }),
             'mergeProp' => Inertia::merge([
                 [
                     'id' => $id = random_int(0, 5),

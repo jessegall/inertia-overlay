@@ -46,6 +46,11 @@ class OverlayComponentDecorator implements OverlayComponent
 
     # ----------[ OverlayComponent ]----------
 
+    public function name(): string
+    {
+        return $this->component->name();
+    }
+
     public function config(Overlay $overlay): OverlayConfig
     {
         return $this->component->config($overlay);

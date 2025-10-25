@@ -1,10 +1,21 @@
 import { inject } from "vue";
 import { OverlayHandle, OverlayPlugin } from "../OverlayPlugin.ts";
-import { OverlayProps } from "../Overlay.ts";
-import { CreateOverlayOptions } from "../OverlayFactory.ts";
+import { OverlayData, OverlayProps } from "../Overlay.ts";
 import { unscopeData } from "../helpers.ts";
 
-interface OverlayActionOptions {
+type CreateOverlayOptions = {
+    data: OverlayData;
+}
+
+type CreateTypedOverlayOptions = CreateOverlayOptions & {
+    type: string;
+}
+
+type CreateUrlOverlayOptions = CreateOverlayOptions & {
+    url: string;
+}
+
+type OverlayActionOptions = {
     data?: Record<string, any>;
     onSuccess?: (data: OverlayProps) => void;
 }
@@ -13,8 +24,12 @@ export function useOverlay() {
 
     const plugin = inject<OverlayPlugin>('overlay.plugin');
 
-    function createOverlay(options: CreateOverlayOptions): OverlayHandle {
-        return plugin.createOverlay(options);
+    function createOverlay(options: CreateUrlOverlayOptions | CreateTypedOverlayOptions): OverlayHandle {
+        if ('type' in options) {
+            return plugin.createOverlayFromType(options.type, options.data);
+        }
+        
+        return plugin.createOverlay(options.url, options.data);
     }
 
     async function overlayAction(action: string, options: OverlayActionOptions = {}): Promise<void> {
@@ -28,7 +43,7 @@ export function useOverlay() {
         const page = await plugin.router.action(overlay.id, action, options.data);
 
         if (options.onSuccess) {
-            options.onSuccess(unscopeData(overlay.instanceId, page.props));
+            options.onSuccess(unscopeData(overlay.id, page.props));
         }
     }
 

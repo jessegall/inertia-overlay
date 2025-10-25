@@ -9,6 +9,7 @@ use Inertia\DeferProp;
 use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
 use Inertia\Support\Header as InertiaHeader;
+use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Overlay;
@@ -17,12 +18,17 @@ use JesseGall\InertiaOverlay\OverlayConfig;
 readonly class OverlayResponse implements Responsable
 {
 
+    private OverlayConfig $config;
+    private array $props;
+
     public function __construct(
         private Overlay $overlay,
-        private OverlayConfig $config,
-        private array $props = [],
+        private OverlayComponent $component,
     )
     {
+        $this->config = $this->component->config($this->overlay);
+        $this->props = $this->component->props($this->overlay);
+
         if ($this->overlay->hasState(OverlayState::OPENING) && $this->overlay->hasRequestCounter(1)) {
             $this->overlay->refresh();
         }
@@ -34,7 +40,7 @@ readonly class OverlayResponse implements Responsable
 
     private function scopeKey(string $key): string
     {
-        return "{$this->overlay->instanceId}:{$key}";
+        return "{$this->overlay->id}:{$key}";
     }
 
     private function resolveRefreshProps(Request $request, array $props): array
@@ -82,11 +88,14 @@ readonly class OverlayResponse implements Responsable
 
         $data['overlay'] = [
             'id' => $this->overlay->id,
+            'url' => $this->overlay->url,
+            'component' => $this->component->name(),
             'variant' => $this->config->variant,
             'size' => $this->config->size,
             'flags' => $this->config->flags,
             'props' => array_keys($this->props),
             'closeRequested' => $this->overlay->closeRequested(),
+            'data' => $this->overlay->data,
         ];
 
         return $response->setData($data);

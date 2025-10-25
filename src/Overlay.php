@@ -10,34 +10,33 @@ use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
 use JesseGall\InertiaOverlay\Http\OverlayResponse;
 
-readonly class Overlay
+class Overlay
 {
-
-    public OverlayInput $input;
-
+    
     public function __construct(
         public Request $request,
         public string $id,
-        public string $instanceId,
-        public string $type,
+        public string $url,
         public array $data = [],
-    )
-    {
-        $this->input = new OverlayInput($data);
-    }
+    ) {}
 
     public function render(OverlayComponent $component): OverlayResponse
     {
+        $component = new OverlayComponentDecorator($component);
+
+        if ($action = $this->getAction()) {
+            $component->run($this, $action);
+        }
+
         return new OverlayResponse(
             overlay: $this,
-            config: $component->config($this),
-            props: $component->props($this),
+            component: $component,
         );
     }
 
     public function reset(): void
     {
-        $this->remove('refresh');
+        $this->forget('refresh');
     }
 
     # ----------[ Request Headers ]----------
@@ -47,29 +46,14 @@ readonly class Overlay
         return $this->request->header(Header::OVERLAY_ACTION);
     }
 
-    public function getParentId(): string
+    public function getBaseUrl(): string
     {
-        return $this->request->header(Header::OVERLAY_PARENT_ID);
+        return $this->request->header(Header::OVERLAY_ROOT_URL, '/');
     }
 
-    public function getIndex(): int
-    {
-        return (int)$this->request->header(Header::OVERLAY_INDEX);
-    }
-
-    public function getRootUrl(): string
-    {
-        return $this->request->header(Header::OVERLAY_ROOT_URL);
-    }
-
-    public function getPageComponent(): string
+    public function getPageComponent(): string|null
     {
         return $this->request->header(Header::OVERLAY_PAGE_COMPONENT);
-    }
-
-    public function setPageComponent(string $component): void
-    {
-        $this->request->headers->set(Header::OVERLAY_PAGE_COMPONENT, $component);
     }
 
     public function getRequestCounter(): int
@@ -97,21 +81,6 @@ readonly class Overlay
         return $this->getState() === $state;
     }
 
-    public function isFocused(): bool
-    {
-        return filter_var($this->request->header(Header::OVERLAY_FOCUSED), FILTER_VALIDATE_BOOLEAN);
-    }
-
-    public function shouldForwardedToRoute(): bool
-    {
-        return $this->request->hasHeader(Header::INTERNAL_REQUEST);
-    }
-
-    public function isBlurred(): bool
-    {
-        return ! $this->isFocused();
-    }
-
     # ----------[ Response Headers ]----------
 
     public function close(): void
@@ -125,11 +94,6 @@ readonly class Overlay
     }
 
     # ----------[ Session ]----------
-
-    public function isRefreshRequested(): bool
-    {
-        return $this->get('refresh') !== null;
-    }
 
     public function isFullRefreshRequested(): bool
     {
@@ -162,7 +126,7 @@ readonly class Overlay
         return $this->get('append', []);
     }
 
-    public function get(string $key, mixed $default = null): mixed
+    public function get(string|null $key = null, mixed $default = null): mixed
     {
         return session()->get($this->sessionKey($key), $default);
     }
@@ -186,54 +150,40 @@ readonly class Overlay
         return session()->remember($this->sessionKey($key), $value);
     }
 
-    public function remove(string $key): void
+    public function forget(string $key): void
     {
-        session()->remove($this->sessionKey($key));
+        session()->forget($this->sessionKey($key));
     }
 
-    public function sessionKey(string $key): mixed
+    public function sessionKey(string|null $key = null): mixed
     {
-        return "overlay.{$this->instanceId}.{$key}";
+        if ($key === null) {
+            return "overlay.{$this->id}";
+        }
+
+        return "overlay.{$this->id}.{$key}";
     }
 
     # ----------[ Factory ]----------
 
-    public static function new(string|null $type, array $data = []): static
+    public static function new(): static
     {
-        $idSegments = [
-            app(OverlayComponentRegistrar::class)->resolveTypename($type),
-            base64_encode(rawurlencode(json_encode($data))),
-        ];
-
         return app(static::class,
             [
-                'id' => implode(':', $idSegments),
-                'instanceId' => Str::random(8),
-                'type' => $type,
-                'data' => $data,
+                'id' => Str::random(8),
+                'url' => url()->current(),
             ]
         );
     }
 
     public static function fromRequest(Request $request): static
     {
-        $segments = explode(':', $request->query('overlay', $request->header(Header::OVERLAY_ID)), 2);
-
-        $typename = $segments[0];
-        $encodedArguments = $segments[1] ?? '';
-        $decoded = base64_decode($encodedArguments);
-        $json = rawurldecode($decoded);
-        $arguments = json_decode($json, true) ?? [];
-
-        $type = app(OverlayComponentRegistrar::class)->resolveComponentClass($typename);
-
-        return app(static::class, [
-            'request' => $request,
-            'id' => $request->query('overlay', $request->header(Header::OVERLAY_ID)),
-            'instanceId' => $request->header(Header::OVERLAY_INSTANCE_ID),
-            'type' => $type,
-            'data' => $arguments,
-        ]);
+        return app(static::class,
+            [
+                'id' => $request->header(Header::OVERLAY_ID),
+                'url' => $request->header(Header::OVERLAY_URL),
+            ]
+        );
     }
 
 }

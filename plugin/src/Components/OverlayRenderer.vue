@@ -1,10 +1,11 @@
 <script setup lang="ts">
 
-import { h, ref, watch } from "vue";
+import { Component, defineAsyncComponent, inject, ref, shallowRef, watch } from "vue";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import { ReadonlyOverlay } from "../OverlayFactory.ts";
 import OverlayWrapper from "./OverlayWrapper.vue";
 import { OverlayState } from "../Overlay.ts";
+import { OverlayPlugin } from "../OverlayPlugin.ts";
 
 interface Props {
     overlay: ReadonlyOverlay
@@ -13,19 +14,15 @@ interface Props {
 // ----------[ Setup ]----------
 
 const props = defineProps<Props>();
+const plugin = inject<OverlayPlugin>("overlay.plugin");
 const overlay = props.overlay;
-
-const OverlayComponent = () => h(overlay.component, {
-    ...overlay.props,
-    onClose() {
-        overlay.close();
-    }
-});
 
 // ----------[ Data ]----------
 
 const shouldRenderComponent = ref(false);
 const shouldRenderBackdrop = ref(false);
+
+const component = shallowRef<Component>(null);
 
 // ----------[ Event Handlers ]----------
 
@@ -37,7 +34,10 @@ function handleState(state: OverlayState) {
             break;
 
         case 'open':
+            shouldRenderBackdrop.value = true;
             shouldRenderComponent.value = true;
+            console.log(overlay.config);
+            component.value = defineAsyncComponent(plugin.options.resolve(overlay.config.component))
             break;
 
         case 'closing':
@@ -69,7 +69,12 @@ watch(() => overlay.state, handleState, { immediate: true });
                 :variant="overlay.config.variant"
                 :size="overlay.config.size"
             >
-                <OverlayComponent :key="overlay.id"/>
+                <Component
+                    :is="component"
+                    :key="overlay.id"
+                    v-bind="overlay.props"
+                    @close="overlay.close"
+                />
             </OverlayWrapper>
 
         </template>

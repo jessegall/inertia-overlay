@@ -15,13 +15,13 @@ const props = defineProps<Props>();
 
 const instance = createOverlay({
     type: 'demo.modal',
-    args: {}
+    data: {}
 })
 
 function createDemoModal() {
     const overlay = createOverlay({
         type: 'demo.modal',
-        args: {}
+        data: {}
     })
 
     overlay.open();

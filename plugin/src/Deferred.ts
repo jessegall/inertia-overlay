@@ -21,7 +21,7 @@ export function extendDeferredComponent(stack: OverlayStack): void {
         if (! scopes.has(this) && isInOverlayContext(this)) {
             const overlay = stack.peek();
             if (overlay) {
-                scopes.set(this, overlay.instanceId);
+                scopes.set(this, overlay.id);
             }
         }
 

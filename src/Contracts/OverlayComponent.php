@@ -8,6 +8,8 @@ use JesseGall\InertiaOverlay\OverlayConfig;
 interface OverlayComponent
 {
 
+    public function name(): string;
+
     public function config(Overlay $overlay): OverlayConfig;
 
     public function props(Overlay $overlay): array;

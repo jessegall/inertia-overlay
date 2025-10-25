@@ -1,11 +1,12 @@
 import { OverlayStack } from "./OverlayStack.ts";
 import { App, computed, nextTick, reactive, shallowRef } from "vue";
-import { CreateOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
+import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
-import { OverlayState } from "./Overlay.ts";
-import { Page, PendingVisit } from "@inertiajs/core";
+import { OverlayData, OverlayOptions, OverlayState } from "./Overlay.ts";
+import { Page } from "@inertiajs/core";
 import { isOverlayPage } from "./helpers.ts";
+import { usePage } from "@inertiajs/vue3";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -19,6 +20,12 @@ export interface OverlayHandle {
     open: () => Promise<void>;
     close: () => Promise<void>;
 }
+
+export type CreateOverlayOptions = Omit<OverlayOptions, 'id'>;
+
+export type NewInstanceOptions = CreateOverlayOptions & {
+    id?: string;
+};
 
 export type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
 
@@ -66,16 +73,19 @@ export class OverlayPlugin {
     }
 
     private initialize(): void {
-        const overlayId = this.router.resolveOverlayQueryParam();
-        if (overlayId) {
-            const overlay = this.createOverlay({ id: overlayId });
-            overlay.open();
+        const page = usePage();
+        if (isOverlayPage(page)) {
+
         }
     }
 
     // ----------[ Api ]----------
 
-    public createOverlay(options: CreateOverlayOptions): OverlayHandle {
+    public createOverlayFromType(type: string, data: OverlayData = {}): OverlayHandle {
+        return this.createOverlay(`/overlay/${ type }`, data);
+    }
+
+    public createOverlay(url: string, data: OverlayData = {}): OverlayHandle {
         const instance = shallowRef<ReadonlyOverlay>(null);
 
         // We create a fresh overlay instance on each open() to prevent memory leaks.
@@ -90,7 +100,7 @@ export class OverlayPlugin {
             state: computed(() => instance.value?.state || 'closed'),
             open: async () => {
                 if (instance.value) return;
-                instance.value = this.newOverlayInstance(options, () => instance.value = null);
+                instance.value = this.newOverlayInstance({ url, data }, () => instance.value = null);
                 await instance.value.open();
             },
             close: async () => {
@@ -106,11 +116,12 @@ export class OverlayPlugin {
 
     // ----------[ Internal ]----------
 
-    private newOverlayInstance(options: CreateOverlayOptions, onClosed?: () => void): ReadonlyOverlay {
+    private newOverlayInstance(options: NewInstanceOptions, onClosed?: () => void): ReadonlyOverlay {
         const overlay = this.factory.make(options);
         this.overlayInstances.set(overlay.id, overlay);
 
         overlay.onStatusChange.on((status) => {
+
             switch (status) {
 
                 case "opening":
@@ -135,13 +146,16 @@ export class OverlayPlugin {
     // ----------[ Event Handlers ]----------
 
     private handleNavigated(page: Page): void {
-        console.log("Navigated to non-overlay page, setting root URL.");
-
         if (isOverlayPage(page)) {
             const overlayId = page.overlay.id;
             if (! this.overlayInstances.has(overlayId)) {
-                const overlay = this.createOverlay({ id: overlayId });
-                overlay.open()
+                const overlay = this.newOverlayInstance({
+                    id: overlayId,
+                    url: page.overlay.url,
+                    data: page.overlay.data,
+                });
+
+                overlay.open(page.overlay);
             }
         } else if (this.stack.size() === 0) {
             this.router.setRootUrl(this.router.currentUrl.href);

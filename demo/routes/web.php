@@ -14,7 +14,7 @@ Route::get('/demo-other-page', function () {
     return Inertia::render('DemoOtherPage');
 });
 
-Route::get('/overlay', function () {
+Route::get('/navigation-demo', function () {
     return Inertia::overlay('DemoDrawer', [
         'someInitialData' => 'This is some initial data passed when opening the overlay.',
         'array_data' => ['one', 'two', 'three'],

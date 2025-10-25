@@ -1,13 +1,12 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { Component, ref, ShallowRef } from "vue";
+import { ref } from "vue";
 import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { header, OverlayRouter } from "./OverlayRouter.ts";
-import { randomString } from "./helpers.ts";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | '80%' | 'full';
-export type OverlayArgs = Record<string, any>;
+export type OverlayData = Record<string, any>;
 export type OverlayProps = Record<string, any>;
 export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
 
@@ -23,14 +22,18 @@ export interface OverlayConfig {
     deferredProps: string[];
     actions: string[]
     closeRequested: boolean;
+    url: string;
+    data: OverlayData;
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
 
-export interface OverlayOptions {
+export type OverlayOptions = {
     id: string;
-    component: ShallowRef<Component>;
-}
+    url: string;
+    data: OverlayData;
+};
+
 
 const activeRequests = ref<number>(0);
 
@@ -47,10 +50,6 @@ export class Overlay {
 
     // ----------[ Properties ]----------
 
-    public readonly id: string;
-    public readonly instanceId: string;
-    public readonly component: ShallowRef<Component>
-
     public readonly parentId = ref<string | null>(null);
     public readonly index = ref<number>(-1);
     public readonly state = ref<OverlayState>('closed')
@@ -60,12 +59,8 @@ export class Overlay {
 
     constructor(
         private readonly router: OverlayRouter,
-        { id, component }: OverlayOptions
-    ) {
-        this.id = id;
-        this.instanceId = randomString();
-        this.component = component;
-    }
+        public readonly options: OverlayOptions,
+    ) {}
 
     // ----------[ Event Listeners ]----------
 
@@ -93,7 +88,7 @@ export class Overlay {
 
     // ----------[ Api ]----------
 
-    public async open(): Promise<void> {
+    public async open(config?: OverlayConfig): Promise<void> {
         this.assertNotDestroyed();
 
         if (! this.hasState('closed')) return;
@@ -103,7 +98,11 @@ export class Overlay {
         this.subscribe();
         this.setState('opening');
 
-        await this.router.open(this.id);
+        if (config) {
+            this.setConfig(config);
+        } else {
+            await this.router.open(this.id);
+        }
 
         this.setState('open');
     }
@@ -207,7 +206,7 @@ export class Overlay {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = this.router.resolveOverlayId(visit);
+        const overlayId = this.router.resolveOverlayIdFromVisit(visit);
 
         if (overlayId === this.id) {
             activeRequests.value += 1;
@@ -216,7 +215,7 @@ export class Overlay {
                 ...visit.headers,
                 [header.OVERLAY]: 'true',
                 [header.OVERLAY_ID]: this.id,
-                [header.OVERLAY_INSTANCE_ID]: this.instanceId,
+                [header.OVERLAY_URL]: this.url,
                 [header.OVERLAY_PARENT_ID]: this.parentId.value,
                 [header.OVERLAY_INDEX]: this.index.value.toString(),
                 [header.OVERLAY_STATE]: this.state.value,
@@ -229,7 +228,7 @@ export class Overlay {
     }
 
     private handleFinishedRouteVisit(visit: ActiveVisit): void {
-        const overlayId = this.router.resolveOverlayId(visit);
+        const overlayId = this.router.resolveOverlayIdFromVisit(visit);
 
         if (overlayId === this.id) {
             activeRequests.value -= 1;
@@ -256,7 +255,7 @@ export class Overlay {
     // ----------[ Getters / Setters ]----------
 
     public scopedKey(key: string) {
-        const prefix = `${ this.instanceId }:`;
+        const prefix = `${ this.id }:`;
 
         if (key.startsWith(prefix)) {
             return key;
@@ -288,5 +287,20 @@ export class Overlay {
     public isDestroyed(): boolean {
         return this.destroyed.value;
     }
+
+    // ----------[ Accessors ]----------
+
+    public get id() {
+        return this.options.id;
+    }
+
+    public get data() {
+        return this.options.data;
+    }
+
+    public get url(): string {
+        return this.options.url;
+    }
+
 
 }

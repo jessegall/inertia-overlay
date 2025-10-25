@@ -9,10 +9,14 @@ readonly class RouteOverlayComponent implements OverlayComponent
 
     public function __construct(
         public string $component,
-        public string $url,
         public array $props = [],
         public OverlayConfig $config = new OverlayConfig(),
     ) {}
+
+    public function name(): string
+    {
+        return $this->component;
+    }
 
     public function config(Overlay $overlay): OverlayConfig
     {

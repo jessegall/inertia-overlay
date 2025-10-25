@@ -13,12 +13,12 @@ class OverlayComponentFactory
         private OverlayComponentRegistrar $registrar,
     ) {}
 
-    public function make(string $component, array $argument = []): OverlayComponent
+    public function make(string $type, array $argument = []): OverlayComponent
     {
-        if (class_exists($component)) {
-            $class = $component;
+        if (class_exists($type)) {
+            $class = $type;
         } else {
-            $class = $this->registrar->resolveComponentClass($component);
+            $class = $this->registrar->resolveComponentClass($type);
         }
 
         $middleware = $this->resolveComponentMiddleware($class);
