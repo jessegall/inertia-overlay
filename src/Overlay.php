@@ -14,11 +14,17 @@ class Overlay
 
     private bool $isNew = false;
 
+    public readonly string $url;
+
     public function __construct(
-        public Request $request,
-        public string $id,
-        public string $url,
-    ) {}
+        public readonly Request $request,
+        public readonly string $id,
+        public array $props = [],
+        public string $type = 'parameterized',
+    )
+    {
+        $this->url = url()->current();
+    }
 
     public function render(OverlayComponent $component): OverlayResponse
     {
@@ -156,14 +162,30 @@ class Overlay
         return "overlay.{$this->id}.{$key}";
     }
 
+    # ----------[ Instance ]----------
+
+    public function getInstanceKey(): string
+    {
+        return implode(':', [
+            $this->id,
+            $this->encodeProps(),
+        ]);
+    }
+
+    private function encodeProps(): string
+    {
+        $json = json_encode($this->props);
+        return base64_encode($json === false ? '' : $json);
+    }
+
     # ----------[ Factory ]----------
 
-    public static function new(string|null $id = null): static
+    public static function new(array $props = []): static
     {
         $overlay = app(static::class,
             [
-                'id' => $id ?? Str::random(8),
-                'url' => url()->current(),
+                'id' => Str::random(8),
+                'props' => $props,
             ]
         );
 
@@ -172,18 +194,38 @@ class Overlay
         return $overlay;
     }
 
+    public static function fromInstance(string $instance): static
+    {
+        [$id, $props] = explode(':', $instance, 2);
+        $propsJson = base64_decode($props);
+        $props = json_decode($propsJson, true) ?? [];
+
+        return app(static::class,
+            [
+                'id' => $id,
+                'props' => $props,
+                'type' => 'parameterized'
+            ]
+        );
+    }
+
     public static function fromRequest(Request $request): static|null
     {
-        $id = $request->header('overlay') ?? $request->header(Header::OVERLAY_ID);
-
-        if ($id === null) {
+        if (! $request->hasHeader(Header::OVERLAY_ID)) {
             return null;
+        }
+
+        if ($request->has('props')) {
+            $props = $request->input('props');
+        } else {
+            $content = json_decode($request->getContent(), true) ?? [];
+            $props = $content['props'] ?? [];
         }
 
         return app(static::class,
             [
                 'id' => $request->header(Header::OVERLAY_ID),
-                'url' => $request->header(Header::OVERLAY_URL),
+                'props' => $props,
             ]
         );
     }

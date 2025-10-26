@@ -2,7 +2,6 @@ import { Overlay, OverlayOptions } from "./Overlay.ts";
 import { randomString, toReadonly } from "./helpers.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { Reactive } from "vue";
-import { OverlayComponentResolver } from "./OverlayPlugin.ts";
 
 export type ReadonlyOverlay = Readonly<Reactive<Overlay>>;
 export type MakeOverlayOptions = Omit<OverlayOptions, 'id'> & {
@@ -18,6 +17,8 @@ export class OverlayFactory {
     // ----------[ Api ]----------
 
     public make(options: MakeOverlayOptions): ReadonlyOverlay {
+        console.log(options);
+
         const overlay = new Overlay(this.router, {
             id: randomString(),
             ...options,

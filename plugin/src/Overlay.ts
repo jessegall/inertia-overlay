@@ -6,7 +6,6 @@ import { router } from "@inertiajs/vue3";
 
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | '80%' | 'full';
-export type OverlayArgs = Record<string, any>;
 export type OverlayProps = Record<string, any>;
 export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
 
@@ -23,17 +22,18 @@ export interface OverlayConfig {
     actions: string[]
     closeRequested: boolean;
     url: string;
-    args: OverlayArgs;
+    instance: string;
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
+export type OverlayType = 'routed' | 'parameterized' | 'hidden';
 
 export type OverlayOptions = {
     id: string;
     url: string;
-    args: OverlayArgs;
+    type: 'routed' | 'parameterized' | 'hidden';
+    props: OverlayProps;
 };
-
 
 const activeTransitions = ref<number>(0);
 
@@ -87,6 +87,7 @@ export class Overlay {
         if (! this.hasState('closed')) return;
 
         await this.transition(async () => {
+            this.focus();
             this.subscribe();
             this.setState('opening');
 
@@ -216,7 +217,7 @@ export class Overlay {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = this.router.resolveOverlayIdFromVisit(visit);
+        const overlayId = visit.headers[header.OVERLAY_ID];
         const wasBlurred = this.isBlurred();
         if (overlayId === this.id) {
             this.focus();
@@ -225,7 +226,7 @@ export class Overlay {
         if (this.isFocused()) {
             visit.headers[header.OVERLAY_ID] = this.id;
             visit.headers[header.OVERLAY_URL] = this.url;
-            visit.headers[header.OVERLAY_REFOCUS] = wasBlurred ? 'true' : 'false';
+            visit.headers[header.OVERLAY_REFOCUS] = this.hasState('open') && wasBlurred ? 'true' : 'false';
             visit.only = visit.only.map(item => this.scopedKey(item));
         }
     }
@@ -287,25 +288,32 @@ export class Overlay {
         return this.destroyed.value;
     }
 
+    private encodeArgs(): string {
+        if (! this.initialProps || Object.keys(this.initialProps).length === 0) return null;
+        const json = JSON.stringify(this.initialProps);
+        return btoa(String.fromCharCode(...new TextEncoder().encode(json)));
+    }
+
     // ----------[ Accessors ]----------
 
     public get id() {
         return this.options.id;
     }
 
-    public get args() {
-        return this.options.args;
+    public get initialProps() {
+        return this.options.props;
     }
 
     public get url(): string {
         return this.options.url;
     }
 
-    public get argsKey(): string | null {
-        if (! this.args) return null;
-        const json = JSON.stringify(this.args);
-        const encoded = new TextEncoder().encode(json)
-        return btoa(String.fromCharCode(...encoded));
+    public get type(): OverlayType {
+        return this.options.type;
+    }
+
+    public get instanceId(): string {
+        return this.config.value?.instance || null;
     }
 
 }

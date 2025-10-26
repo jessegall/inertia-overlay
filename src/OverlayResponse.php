@@ -126,6 +126,7 @@ readonly class OverlayResponse implements Responsable
         $data['overlay'] = [
             'id' => $this->overlay->id,
             'url' => $this->overlay->url,
+            'instance' => $this->overlay->getInstanceKey(),
             'component' => $this->component->name(),
             'variant' => $this->config->variant,
             'size' => $this->config->size,
@@ -133,7 +134,7 @@ readonly class OverlayResponse implements Responsable
             'props' => array_keys($this->props),
             'deferredProps' => $this->getDeferredPropKeys(),
             'closeRequested' => $this->overlay->closeRequested(),
-            'data' => [],
+            'type' => $this->overlay->type,
         ];
 
         return $response->setData($data);

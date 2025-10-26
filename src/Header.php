@@ -4,7 +4,7 @@ namespace JesseGall\InertiaOverlay;
 
 class Header
 {
-    public const string OVERLAY_REQUEST_COUNTER = 'X-Inertia-Overlay-Request-Counter';
+
     public const string OVERLAY_ROOT_URL = 'X-Inertia-Overlay-Root-Url';
     public const string OVERLAY_PAGE_COMPONENT = 'X-Inertia-Overlay-Page-Component';
 

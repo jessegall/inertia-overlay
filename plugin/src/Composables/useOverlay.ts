@@ -1,10 +1,10 @@
 import { inject } from "vue";
 import { OverlayHandle, OverlayPlugin } from "../OverlayPlugin.ts";
-import { OverlayArgs, OverlayProps } from "../Overlay.ts";
+import { OverlayProps } from "../Overlay.ts";
 import { unscopeData } from "../helpers.ts";
 
 type CreateOverlayOptions = {
-    args: OverlayArgs;
+    props: OverlayProps;
 }
 
 type CreateTypedOverlayOptions = CreateOverlayOptions & {
@@ -16,7 +16,7 @@ type CreateUrlOverlayOptions = CreateOverlayOptions & {
 }
 
 type OverlayActionOptions = {
-    args?: Record<string, any>;
+    data?: Record<string, any>;
     onSuccess?: (data: OverlayProps) => void;
 }
 
@@ -26,10 +26,10 @@ export function useOverlay() {
 
     function createOverlay(options: CreateUrlOverlayOptions | CreateTypedOverlayOptions): OverlayHandle {
         if ('type' in options) {
-            return plugin.createOverlayFromType(options.type, options.args);
+            return plugin.createOverlayFromComponent(options.type, options.props);
         }
-        
-        return plugin.createOverlay(options.url, options.args);
+
+        return plugin.createOverlay(options.url, options.props);
     }
 
     async function overlayAction(action: string, options: OverlayActionOptions = {}): Promise<void> {
@@ -40,7 +40,7 @@ export function useOverlay() {
             return;
         }
 
-        const page = await plugin.router.action(overlay.id, action, options.args);
+        const page = await plugin.router.action(overlay.id, action, options.data);
 
         if (options.onSuccess) {
             options.onSuccess(unscopeData(overlay.id, page.props));

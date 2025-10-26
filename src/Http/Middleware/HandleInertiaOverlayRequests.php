@@ -4,7 +4,7 @@ namespace JesseGall\InertiaOverlay\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use JesseGall\InertiaOverlay\Overlay;
+use JesseGall\InertiaOverlay\Header;
 use Symfony\Component\HttpFoundation\Response;
 
 readonly class HandleInertiaOverlayRequests
@@ -13,19 +13,40 @@ readonly class HandleInertiaOverlayRequests
     /** @param \Closure(\Illuminate\Http\Request): (Response) $next */
     public function handle(Request $request, Closure $next)
     {
-        if (! $request->isOverlayRequest()) {
-            return $next($request);
-        }
-
-        if (! $overlay = Overlay::fromRequest($request)) {
-            return $next($request);
-        }
-
-        if ($request->method() !== Request::METHOD_GET) {
-            $overlay->refresh();
-        }
+        $this->printDebugInformation($request);
 
         return $next($request);
+    }
+
+    private function printDebugInformation(Request $request): void
+    {
+        $debug = [
+            Header::OVERLAY_ID,
+            Header::OVERLAY_URL,
+            Header::OVERLAY_ACTION,
+            Header::OVERLAY_OPEN,
+            Header::OVERLAY_REFOCUS,
+            Header::OVERLAY_DEFERRED,
+        ];
+
+        ray(
+            collect($debug)
+                ->mapWithKeys(fn($header) => [$header => request()->headers->get($header)])
+                ->all()
+        );
+
+//        if ($overlay = Overlay::fromRequest($request)) {
+//            $data = [
+//                'overlayId' => $overlay->id,
+//                'overlayUrl' => $overlay->url,
+//                'action' => $overlay->getAction(),
+//                'isOpening' => $overlay->isOpening(),
+//                'isRefocusing' => $overlay->isRefocusing(),
+//                'isDeferred' => $overlay->isLoadingDeferred(),
+//            ];
+//
+//            ray($data);
+//        }
     }
 
 }

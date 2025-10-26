@@ -80,13 +80,12 @@ export class OverlayRouter {
             overlay.url,
             {
                 _method: 'GET',
+                props: overlay.initialProps,
             },
             {
                 headers: {
+                    [header.OVERLAY_ID]: overlay.id,
                     [header.OVERLAY_OPEN]: 'true',
-                },
-                onBefore(visit) {
-                    visit.url.searchParams.set('overlay', overlay.id);
                 },
                 onSuccess(page) {
                     if (isOverlayPage(page)) {
@@ -112,6 +111,7 @@ export class OverlayRouter {
             },
             {
                 headers: {
+                    [header.OVERLAY_ID]: overlay.id,
                     [header.OVERLAY_ACTION]: action,
                 },
                 onBefore(visit) {
@@ -150,32 +150,21 @@ export class OverlayRouter {
         this.rootUrl.value = _url.toString();
     }
 
-    public resolveOverlayIdFromVisit(visit: ActiveVisit | PendingVisit) {
-        return visit.url.searchParams.get("overlay") ?? visit.headers[header.OVERLAY_ID]
-    }
-
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
         const page = usePage();
         const overlayId = this.peekId();
 
+        visit.headers[header.INERTIA_OVERLAY] = overlayId ? 'true' : null;
         visit.headers[header.PAGE_COMPONENT] = page.component;
         visit.headers[header.ROOT_URL] = this.rootUrl.value;
 
-        console.log("PEEP", overlayId);
-
         if (overlayId) {
-            this.previousOverlayId.value = overlayId;
             const overlay = this.overlayResolver(overlayId);
+            this.previousOverlayId.value = overlayId;
 
-            visit.url.searchParams.set('overlay', overlay.id);
-
-            if (overlay.argsKey) {
-                visit.url.searchParams.set('args', overlay.argsKey);
-            }
-
-            if (visit.method === 'get') {
+            if (this.isOverlayReloadRequest(visit)) {
                 visit.method = 'post';
                 visit.data['_method'] = 'GET';
             }
@@ -183,6 +172,10 @@ export class OverlayRouter {
             visit.async = true;
             visit.preserveScroll = true;
             visit.preserveState = true;
+
+            if (overlay.type === 'hidden' || overlay.type === 'parameterized') {
+                visit.preserveUrl = true;
+            }
 
             if (visit.only.length === 0) {
                 visit.only = ['__overlay_partial_reload_trigger']
@@ -194,7 +187,21 @@ export class OverlayRouter {
         if (isOverlayPage(page)) {
             this.overlayConfig.value = page.overlay;
             this.onOverlayPageLoad.emit(page);
+
+            if (page.overlay.type === 'parameterized') {
+                const url = this.currentUrl;
+                url.searchParams.set('overlay', page.overlay.instance);
+                router.replace({ url: url.toString() });
+            }
         }
+    }
+
+    // ----------[ Helpers ]----------
+
+    public isOverlayReloadRequest(visit: PendingVisit): boolean {
+        return visit.headers[header.INERTIA_OVERLAY]
+            && visit.method === 'get'
+            && visit.only.length > 0
     }
 
     // ----------[ Accessors ]----------
