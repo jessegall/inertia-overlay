@@ -24,7 +24,10 @@ const { createOverlay } = useOverlay();
 
 function loadLazyProp() {
     router.reload({
-        only: ['lazyProp']
+        only: ['lazyProp'],
+        data: {
+            test: '123s'
+        }
     })
 }
 
@@ -60,9 +63,7 @@ function submit() {
             lazyProp: props.lazyProp,
         },
         {
-            onSuccess: () => {
-                emit('close');
-            }
+
         }
     );
 }

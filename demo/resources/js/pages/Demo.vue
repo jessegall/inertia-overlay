@@ -15,7 +15,10 @@ const props = defineProps<Props>();
 function createDemoModal() {
     const overlay = createOverlay({
         type: 'demo.modal',
-        data: {}
+        data: {
+            someInput: 'Hello from Demo Page',
+            test: ['one', 'two', 'three'],
+        }
     })
 
     overlay.open();

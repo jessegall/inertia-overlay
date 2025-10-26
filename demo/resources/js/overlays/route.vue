@@ -25,7 +25,7 @@ function loadLazyProp() {
 function openDemoModal() {
     const overlay = createOverlay({
         type: 'demo.modal',
-        args: {},
+        data: {},
     })
 
     overlay.open();
@@ -34,7 +34,7 @@ function openDemoModal() {
 function openDemoDrawer() {
     const overlay = createOverlay({
         type: 'demo.drawer',
-        args: {},
+        data: {},
     })
 
     overlay.open();

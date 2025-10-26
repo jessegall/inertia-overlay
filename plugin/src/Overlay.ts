@@ -220,6 +220,7 @@ export class Overlay {
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
         const overlayId = this.router.resolveOverlayIdFromVisit(visit);
+        const wasBlurred = this.isBlurred();
         if (overlayId === this.id) {
             this.focus();
         }
@@ -227,6 +228,7 @@ export class Overlay {
         if (this.isFocused()) {
             visit.headers[header.OVERLAY_ID] = this.id;
             visit.headers[header.OVERLAY_URL] = this.url;
+            visit.headers[header.OVERLAY_REFOCUS] = wasBlurred ? 'true' : 'false';
             visit.only = visit.only.map(item => this.scopedKey(item));
         }
     }

@@ -11,7 +11,7 @@ class OverlayController extends Controller
 
     public function __invoke(Request $request, string $type)
     {
-        return Inertia::overlay($type, $request->input());
+        return Inertia::overlay($type, $request->input('_overlay_data', []));
     }
 
 }

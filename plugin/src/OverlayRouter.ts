@@ -74,10 +74,10 @@ export class OverlayRouter {
     public async open(overlayId: string): Promise<OverlayPage> {
         const overlay = this.overlayResolver(overlayId);
 
-        return await new Promise((resolve, reject) => router.get(overlay.url,
+        return await new Promise((resolve, reject) => router.post(overlay.url,
             {
-                ...overlay.data,
-                overlay: overlayId,
+                _method: 'GET',
+                _props: overlay._overlay_data,
             },
             {
                 headers: {
@@ -152,24 +152,26 @@ export class OverlayRouter {
         const page = usePage();
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
+        visit.headers[header.ROOT_URL] = this.rootUrl.value;
 
         if (! overlayId) return;
 
         const overlay = this.overlayResolver(overlayId);
         visit.url.searchParams.set("overlay", overlayId);
-        visit.headers[header.OVERLAY_ID] = overlayId;
+
+        if (visit.method === 'get') {
+            visit.method = 'post';
+            visit.data._method = 'GET';
+        }
+
+        visit.data._overlay_data = overlay.data;
 
         visit.async = true;
         visit.preserveScroll = true;
         visit.preserveState = true;
 
-        if (this.previousOverlayId.value !== overlayId && overlay.isBlurred() && overlay.hasState('open')) {
-            visit.headers[header.OVERLAY_REFOCUS] = 'true';
-        }
-
         this.previousOverlayId.value = overlayId;
 
-        visit.headers[header.ROOT_URL] = this.rootUrl.value;
 
         if (visit.only.length === 0) {
             visit.only = ['__overlay_partial_reload_trigger']
