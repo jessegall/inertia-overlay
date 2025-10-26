@@ -12,7 +12,7 @@ class OverlayConfig implements Arrayable
 
     public function __construct(
         public OverlayVariant $variant = OverlayVariant::MODAL,
-        public OverlaySize $size = OverlaySize::XL3,
+        public OverlaySize $size = OverlaySize::XL2,
         public array $flags = [],
     ) {}
 
@@ -29,5 +29,5 @@ class OverlayConfig implements Arrayable
             'flags' => array_map(fn(OverlayFlag $flag) => $flag->value, $this->flags),
         ];
     }
-    
+
 }

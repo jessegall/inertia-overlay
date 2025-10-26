@@ -4,7 +4,7 @@ namespace JesseGall\InertiaOverlay;
 
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
-readonly class RouteOverlayComponent implements OverlayComponent
+readonly class AnonymouseOverlayComponent implements OverlayComponent
 {
 
     public function __construct(

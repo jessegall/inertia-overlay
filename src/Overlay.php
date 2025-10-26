@@ -8,11 +8,10 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
-use JesseGall\InertiaOverlay\Http\OverlayResponse;
 
 class Overlay
 {
-    
+
     public function __construct(
         public Request $request,
         public string $id,
@@ -28,10 +27,7 @@ class Overlay
             $component->run($this, $action);
         }
 
-        return new OverlayResponse(
-            overlay: $this,
-            component: $component,
-        );
+        return new OverlayResponse($this, $component);
     }
 
     public function reset(): void
@@ -166,11 +162,11 @@ class Overlay
 
     # ----------[ Factory ]----------
 
-    public static function new(): static
+    public static function new(string|null $id = null): static
     {
         return app(static::class,
             [
-                'id' => Str::random(8),
+                'id' => $id ?? Str::random(8),
                 'url' => url()->current(),
             ]
         );

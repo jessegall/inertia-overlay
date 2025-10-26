@@ -67,14 +67,6 @@ export class OverlayRouter {
     // ----------[ Api ]----------
 
     public async open(overlayId: string): Promise<OverlayPage> {
-        console.log(this.overlayConfig.value);
-        if (this.overlayConfig.value?.id === overlayId) {
-            console.log("Reusing existing overlay config for overlay ID:", overlayId);
-            const page = usePage();
-            page['overlay'] = this.overlayConfig.value;
-            return page as OverlayPage;
-        }
-
         const overlay = this.overlayResolver(overlayId);
 
         return await new Promise((resolve, reject) => router.get(overlay.url,
@@ -150,9 +142,7 @@ export class OverlayRouter {
     }
 
     public resolveOverlayIdFromVisit(visit: ActiveVisit | PendingVisit) {
-        return visit.url.searchParams.get("overlay")
-            ?? visit.data['overlay']
-            ?? visit.headers[header.OVERLAY_ID]
+        return visit.url.searchParams.get("overlay") ?? visit.headers[header.OVERLAY_ID]
     }
 
     private updatePageUrl(page: OverlayPage): void {
@@ -174,15 +164,13 @@ export class OverlayRouter {
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
         const page = usePage();
-        const overlayId = this.resolveOverlayIdFromVisit(visit) ?? visit.headers[header.OVERLAY_ID];
+        const overlayId = this.resolveOverlayIdFromVisit(visit);
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
 
         if (! overlayId) {
             return;
         }
-
-        const overlay = this.overlayResolver(overlayId);
 
         if (this.previousOverlayId.value !== overlayId) {
             this.counter.value = 0;
@@ -198,7 +186,6 @@ export class OverlayRouter {
             ...visit.headers,
             [header.OVERLAY_ROOT_URL]: this.rootUrl.value,
             [header.OVERLAY_REQUEST_COUNTER]: this.counter.value.toString(),
-            [header.OVERLAY_REFOCUS]: overlay.hasState('open') && this.counter.value === 1 ? 'true' : 'false',
         }
 
         if (visit.only.length === 0) {
@@ -208,7 +195,6 @@ export class OverlayRouter {
 
     private handleSuccessfulRouteVisit(page: Page): void {
         if (isOverlayPage(page)) {
-            this.updatePageUrl(page);
             this.overlayConfig.value = page.overlay;
             this.onOverlayPageLoad.emit(page);
         }

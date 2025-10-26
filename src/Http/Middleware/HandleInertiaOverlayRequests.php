@@ -13,7 +13,7 @@ readonly class HandleInertiaOverlayRequests
     /** @param \Closure(\Illuminate\Http\Request): (Response) $next */
     public function handle(Request $request, Closure $next)
     {
-        if (! $request->inertiaOverlay()) {
+        if (! $request->isOverlayRequest()) {
             return $next($request);
         }
 

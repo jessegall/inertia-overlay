@@ -7,27 +7,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\Http\Controllers\OverlayController;
-use JesseGall\InertiaOverlay\Http\OverlayResponse;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
 
     public function register(): void
     {
-        $this->registerRegistrar();
-
-        Route::middleware('web')
-            ->get('/overlay/{type}', OverlayController::class);
+        $this->registerOverlayRegistrar();
+        $this->registerOverlayRoutes();
+        $this->registerResponseMacros();
     }
 
-    public function boot(): void
+    private function registerOverlayRoutes(): void
     {
-        $this->bootMacros();
+        Route::middleware('web')->get('/overlay/{type}', OverlayController::class);
     }
 
-    # ----------[ Internal ]----------
-
-    private function registerRegistrar(): void
+    private function registerOverlayRegistrar(): void
     {
         $this->app->singleton(OverlayComponentRegistrar::class, function (Application $app) {
             $registrar = new OverlayComponentRegistrar();
@@ -42,33 +38,15 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         });
     }
 
-    private function bootMacros(): void
+    private function registerResponseMacros(): void
     {
-        Request::macro('inertiaOverlay', function (): bool {
-            /** @var Request $this */
-            return $this->inertia()
-                && $this->header(Header::OVERLAY);
+        Request::macro('isOverlayRequest', function (): bool {
+            return $this->inertia() && $this->header(Header::OVERLAY_ID);
         });
 
-        Inertia::macro('overlay',
-            macro: function (string $component, array $props = [], OverlayConfig $config = new OverlayConfig()): OverlayResponse {
-                $request = app(Request::class);
-
-                if ($request->inertiaOverlay() && $request->header(Header::OVERLAY_URL) === $request->url()) {
-                    $overlay = Overlay::fromRequest($request);
-                } else {
-                    $overlay = Overlay::new();
-                }
-
-                return $overlay->render(
-                    new RouteOverlayComponent(
-                        $component,
-                        $props,
-                        $config
-                    )
-                );
-            }
-        );
+        Inertia::macro('overlay', function ($component, $props = []) {
+            return InertiaOverlay::render($component, $props);
+        });
     }
 
 }

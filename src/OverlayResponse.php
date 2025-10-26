@@ -1,6 +1,6 @@
 <?php
 
-namespace JesseGall\InertiaOverlay\Http;
+namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
@@ -8,12 +8,11 @@ use Illuminate\Http\Request;
 use Inertia\DeferProp;
 use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
+use Inertia\Support\Header;
 use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayFlag;
 use JesseGall\InertiaOverlay\Enums\OverlayState;
-use JesseGall\InertiaOverlay\Overlay;
-use JesseGall\InertiaOverlay\OverlayConfig;
 
 readonly class OverlayResponse implements Responsable
 {
@@ -74,17 +73,11 @@ readonly class OverlayResponse implements Responsable
     {
         $data = $response->getData(true);
 
-        if ($this->overlay->hasRequestCounter(1)) {
-            $deferredProps = collect($this->props)
-                ->filter(fn($value) => $value instanceof DeferProp)
-                ->keys()
-                ->map(fn($value) => $this->scopeKey($value))
-                ->all();
-
-            if ($deferredProps) {
-                $data['deferredProps']['default'] = $deferredProps;
-            }
-        }
+        $deferredProps = collect($this->props)
+            ->filter(fn($value) => $value instanceof DeferProp)
+            ->keys()
+            ->map(fn($value) => $this->scopeKey($value))
+            ->all();
 
         $data['overlay'] = [
             'id' => $this->overlay->id,
@@ -94,6 +87,7 @@ readonly class OverlayResponse implements Responsable
             'size' => $this->config->size,
             'flags' => $this->config->flags,
             'props' => array_keys($this->props),
+            'deferredProps' => $deferredProps,
             'closeRequested' => $this->overlay->closeRequested(),
             'data' => $this->overlay->data,
         ];
@@ -105,6 +99,7 @@ readonly class OverlayResponse implements Responsable
     {
         $props = collect($this->props)
             ->merge($this->overlay->getAppendProps())
+            ->reject(fn($value) => ! $this->overlay->hasState(OverlayState::OPENING) && $value instanceof DeferProp)
             ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
             ->all();
 
@@ -117,6 +112,11 @@ readonly class OverlayResponse implements Responsable
         $this->overlay->reset();
 
         return $response;
+    }
+
+    public function isPartial(Request $request): bool
+    {
+        return $request->header(Header::PARTIAL_COMPONENT) === $this->component->name();
     }
 
 }

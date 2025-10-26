@@ -19,7 +19,7 @@ class OverlayComponentRegistrar
      */
     public function register(string $typename, string $type): void
     {
-        $this->assertIsOverlayType($type);
+        $this->assertIsOverlayComponentType($type);
 
         $this->overlays[$typename] = $type;
     }
@@ -32,24 +32,38 @@ class OverlayComponentRegistrar
      */
     public function resolveComponentClass(string $typename): string
     {
-        return $this->overlays[$typename] ?? throw new InvalidArgumentException("Overlay with id [$typename] not found");
+        return $this->overlays[$typename]
+            ?? throw new InvalidArgumentException("Overlay with id [$typename] not found");
     }
 
     /**
+     * Resolve the overlay typename by class
+     *
      * @param string $class
      * @return string
      */
     public function resolveTypename(string $class): string
     {
-        return array_search($class,
-            $this->overlays) ?? throw new InvalidArgumentException("Overlay with class [$class] not found");
+        return array_search($class, $this->overlays)
+            ?? throw new InvalidArgumentException("Overlay with class [$class] not found");
+    }
+
+    /**
+     * Check if an overlay type is registered
+     *
+     * @param string $typename
+     * @return bool
+     */
+    public function isRegistered(string $typename): bool
+    {
+        return isset($this->overlays[$typename]);
     }
 
     /**
      * @param string $type
      * @return void
      */
-    private function assertIsOverlayType(string $type): void
+    private function assertIsOverlayComponentType(string $type): void
     {
         if (! is_subclass_of($type, OverlayComponent::class)) {
             throw new InvalidArgumentException(

@@ -36,7 +36,6 @@ function handleState(state: OverlayState) {
         case 'open':
             shouldRenderBackdrop.value = true;
             shouldRenderComponent.value = true;
-            console.log(overlay.config);
             component.value = defineAsyncComponent(plugin.options.resolve(overlay.config.component))
             break;
 

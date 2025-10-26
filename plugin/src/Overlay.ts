@@ -1,7 +1,8 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
 import { ref } from "vue";
-import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
+import { Page, PendingVisit } from "@inertiajs/core";
 import { header, OverlayRouter } from "./OverlayRouter.ts";
+import { router } from "@inertiajs/vue3";
 
 export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
@@ -35,7 +36,7 @@ export type OverlayOptions = {
 };
 
 
-const activeRequests = ref<number>(0);
+const activeTransitions = ref<number>(0);
 
 export class Overlay {
 
@@ -70,11 +71,6 @@ export class Overlay {
             subscription: this.subscription,
         });
 
-        this.router.onFinishedRouteVisit.on({
-            handler: visit => this.handleFinishedRouteVisit(visit),
-            subscription: this.subscription,
-        });
-
         this.router.onOverlayPageLoad.on({
             handler: page => this.handleOverlayPageLoad(page),
             priority: () => this.index.value,
@@ -88,52 +84,50 @@ export class Overlay {
 
     // ----------[ Api ]----------
 
-    public async open(config?: OverlayConfig): Promise<void> {
+    public async open(page?: OverlayPage): Promise<void> {
         this.assertNotDestroyed();
-
         if (! this.hasState('closed')) return;
 
-        await this.waitForActiveRequests();
+        await this.transition(async () => {
+            this.subscribe();
+            this.setState('opening');
 
-        this.subscribe();
-        this.setState('opening');
+            if (page) {
+                this.handleOverlayPageLoad(page)
+            } else {
+                await this.router.open(this.id);
+            }
 
-        if (config) {
-            this.setConfig(config);
-        } else {
-            await this.router.open(this.id);
-        }
-
-        this.setState('open');
+            this.setState('open');
+        });
     }
 
     public async close(): Promise<void> {
         this.assertNotDestroyed();
-
         if (! this.hasState('open')) return;
 
-        await this.waitForActiveRequests();
+        await this.transition(async () => {
+            this.setState('closing');
 
-        this.setState('closing');
+            if (this.isFocused()) {
+                const start = Date.now();
+                const parentId = this.parentId.value;
 
-        if (this.isFocused()) {
-            const start = Date.now();
-            const parentId = this.parentId.value;
+                if (parentId) {
+                    await this.router.open(parentId);
+                } else {
+                    await this.router.navigateToRoot();
+                }
 
-            if (parentId) {
-                await this.router.open(parentId);
-            } else {
-                await this.router.navigateToRoot();
+                const elapsed = Date.now() - start;
+                const minDuration = 300;
+                if (elapsed < minDuration) {
+                    await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+                }
             }
 
-            const elapsed = Date.now() - start;
-            const minDuration = 300;
-            if (elapsed < minDuration) {
-                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
-            }
-        }
-
-        this.setState('closed');
+            this.setState('closed');
+        })
     }
 
     public destroy(): void {
@@ -147,8 +141,6 @@ export class Overlay {
         this.onFocused.clear();
         this.onBlurred.clear();
         this.destroyed.value = true;
-
-        console.log(`Overlay instance "${ this.id }" destroyed.`);
     }
 
     // ----------[ Internal ]----------
@@ -172,6 +164,7 @@ export class Overlay {
     private focus(): void {
         if (this.isFocused()) return;
         this.focused.value = true;
+        this.loadDeferredProps();
         this.onFocused.emit();
     }
 
@@ -179,6 +172,14 @@ export class Overlay {
         if (this.isBlurred()) return;
         this.focused.value = false;
         this.onBlurred.emit();
+    }
+
+    private loadDeferredProps(): void {
+        const deferredProps = this.config.value?.deferredProps || [];
+        if (deferredProps.length === 0) return;
+        router.reload({
+            only: deferredProps
+        })
     }
 
     private updateProps(page: OverlayPage): void {
@@ -197,23 +198,26 @@ export class Overlay {
         };
     }
 
-    private async waitForActiveRequests(): Promise<void> {
-        while (activeRequests.value > 0) {
+    private async transition(callback: () => Promise<void>): Promise<void> {
+        while (activeTransitions.value > 0) {
             await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        activeTransitions.value++;
+
+        try {
+            await callback();
+        } finally {
+            activeTransitions.value--;
         }
     }
 
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = this.router.resolveOverlayIdFromVisit(visit);
-
-        if (overlayId === this.id) {
-            activeRequests.value += 1;
-
+        if (this.isFocused() || this.hasState('opening')) {
             visit.headers = {
                 ...visit.headers,
-                [header.OVERLAY]: 'true',
                 [header.OVERLAY_ID]: this.id,
                 [header.OVERLAY_URL]: this.url,
                 [header.OVERLAY_PARENT_ID]: this.parentId.value,
@@ -224,14 +228,6 @@ export class Overlay {
             }
 
             visit.only = visit.only.map(item => this.scopedKey(item));
-        }
-    }
-
-    private handleFinishedRouteVisit(visit: ActiveVisit): void {
-        const overlayId = this.router.resolveOverlayIdFromVisit(visit);
-
-        if (overlayId === this.id) {
-            activeRequests.value -= 1;
         }
     }
 

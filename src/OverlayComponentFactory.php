@@ -2,8 +2,7 @@
 
 namespace JesseGall\InertiaOverlay;
 
-use Illuminate\Pipeline\Pipeline;
-use JesseGall\InertiaOverlay\Contracts\AppliesMiddleware;
+use Exception;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
 class OverlayComponentFactory
@@ -13,48 +12,31 @@ class OverlayComponentFactory
         private OverlayComponentRegistrar $registrar,
     ) {}
 
-    public function make(string $type, array $argument = []): OverlayComponent
+    public function make(string $type, array $props = []): OverlayComponent
     {
-        if (class_exists($type)) {
-            $class = $type;
-        } else {
-            $class = $this->registrar->resolveComponentClass($type);
+        if (! class_exists($type)) {
+            $type = $this->registrar->resolveComponentClass($type);
         }
 
-        $middleware = $this->resolveComponentMiddleware($class);
-
-        return app(Pipeline::class)
-            ->send(new OverlayInput($argument))
-            ->through($middleware)
-            ->then(fn(OverlayInput $arguments) => $this->newComponent($class, $arguments));
+        return $this->newComponent($type, $props);
     }
 
-    /**
-     * @param class-string<OverlayConfig> $class
-     */
-    private function resolveComponentMiddleware(string $class): array
+    public function tryMake(string $type, array $props = []): OverlayComponent|null
     {
-        if (is_subclass_of($class, AppliesMiddleware::class)) {
-            return $class::middleware();
+        try {
+            return $this->make($type, $props);
+        } catch (Exception) {
+            return null;
         }
-
-        return [];
     }
 
-    /**
-     * @param class-string<OverlayComponent> $class
-     * @param OverlayInput $arguments
-     * @return OverlayComponent
-     */
-    private function newComponent(string $class, OverlayInput $arguments): OverlayComponent
+    private function newComponent(string $class, array $props): OverlayComponent
     {
-        $arguments = $arguments->toArray();
-
         if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
-            return $class::from($arguments);
+            return $class::from($props);
         }
 
-        return app($class, $arguments);
+        return app($class, $props);
     }
 
 }

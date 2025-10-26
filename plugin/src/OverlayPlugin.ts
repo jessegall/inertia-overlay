@@ -66,6 +66,11 @@ export class OverlayPlugin {
 
     private registerListeners(app: App): void {
         this.router.onNavigated.on((event) => this.handleNavigated(event));
+
+        this.router.onOverlayPageLoad.on({
+            handler: (event) => this.onOverlayPageLoaded(event),
+            priority: -1,
+        });
     }
 
     private extendComponents(): void {
@@ -146,19 +151,19 @@ export class OverlayPlugin {
     // ----------[ Event Handlers ]----------
 
     private handleNavigated(page: Page): void {
-        if (isOverlayPage(page)) {
-            const overlayId = page.overlay.id;
-            if (! this.overlayInstances.has(overlayId)) {
-                const overlay = this.newOverlayInstance({
-                    id: overlayId,
-                    url: page.overlay.url,
-                    data: page.overlay.data,
-                });
-
-                overlay.open(page.overlay);
-            }
-        } else if (this.stack.size() === 0) {
+        if (! isOverlayPage(page) && this.stack.size() === 0) {
             this.router.setRootUrl(this.router.currentUrl.href);
+        }
+    }
+
+    private onOverlayPageLoaded(page: OverlayPage): void {
+        if (! this.overlayInstances.has(page.overlay.id)) {
+            const overlay = this.newOverlayInstance({
+                id: page.overlay.id,
+                url: page.overlay.url,
+            });
+
+            overlay.open(page);
         }
     }
 

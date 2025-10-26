@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Overlays\DemoModal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,10 +16,7 @@ Route::get('/demo-other-page', function () {
 });
 
 Route::get('/navigation-demo', function () {
-    return Inertia::overlay('DemoDrawer', [
-        'someInitialData' => 'This is some initial data passed when opening the overlay.',
-        'array_data' => ['one', 'two', 'three'],
-    ]);
+    return Inertia::overlay(DemoModal::class);
 });
 
 Route::get('/redirect', function () {
