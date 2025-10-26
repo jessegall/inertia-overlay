@@ -6,11 +6,13 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use JesseGall\InertiaOverlay\Enums\OverlayState;
 
 class Overlay
 {
+
+    private bool $isNew = false;
 
     public function __construct(
         public Request $request,
@@ -52,14 +54,9 @@ class Overlay
         return $this->request->header(Header::OVERLAY_PAGE_COMPONENT);
     }
 
-    public function getRequestCounter(): int
+    public function isOpening(): bool
     {
-        return (int)$this->request->header(Header::OVERLAY_REQUEST_COUNTER);
-    }
-
-    public function hasRequestCounter(int $counter): bool
-    {
-        return $this->getRequestCounter() === $counter;
+        return $this->isNew || filter_var($this->request->header(Header::OVERLAY_OPEN), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function isRefocusing(): bool
@@ -67,14 +64,9 @@ class Overlay
         return filter_var($this->request->header(Header::OVERLAY_REFOCUS), FILTER_VALIDATE_BOOLEAN);
     }
 
-    public function getState(): OverlayState
+    public function isLoadingDeferred(): bool
     {
-        return OverlayState::from($this->request->header(Header::OVERLAY_STATE, 'closed'));
-    }
-
-    public function hasState(OverlayState $state): bool
-    {
-        return $this->getState() === $state;
+        return filter_var($this->request->header(Header::OVERLAY_DEFERRED), FILTER_VALIDATE_BOOLEAN);
     }
 
     # ----------[ Response Headers ]----------
@@ -99,6 +91,11 @@ class Overlay
     public function getRefreshProps(): array|bool
     {
         return $this->get('refresh', false);
+    }
+
+    public function getPartialProps(): array
+    {
+        return explode(',', $this->request->header(InertiaHeader::PARTIAL_ONLY, ''));
     }
 
     public function refresh(array|string|null $data = null): void
@@ -164,12 +161,16 @@ class Overlay
 
     public static function new(string|null $id = null): static
     {
-        return app(static::class,
+        $overlay = app(static::class,
             [
                 'id' => $id ?? Str::random(8),
                 'url' => url()->current(),
             ]
         );
+
+        $overlay->isNew = true;
+
+        return $overlay;
     }
 
     public static function fromRequest(Request $request): static

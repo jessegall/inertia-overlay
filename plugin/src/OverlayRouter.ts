@@ -7,18 +7,24 @@ import { ref } from "vue";
 import { OverlayResolver } from "./OverlayPlugin.ts";
 
 export const header = {
-    OVERLAY: 'X-Inertia-Overlay',
-    OVERLAY_ROOT_URL: 'X-Inertia-Overlay-Root-Url',
+
+    // -----[ General ]-----
+
     PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
+    ROOT_URL: 'X-Inertia-Overlay-Root-Url',
+
+    // -----[ Identification ]-----
+
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
-    OVERLAY_PARENT_ID: 'X-Inertia-Overlay-Parent-Id',
     OVERLAY_URL: 'X-Inertia-Overlay-Url',
-    OVERLAY_INDEX: 'X-Inertia-Overlay-Index',
-    OVERLAY_STATE: 'X-Inertia-Overlay-State',
-    OVERLAY_FOCUSED: 'X-Inertia-Overlay-Focused',
     OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
-    OVERLAY_REQUEST_COUNTER: 'X-Inertia-Overlay-Request-Counter',
+
+    // -----[ Lifecycle ]-----
+
+    OVERLAY_OPEN: 'X-Inertia-Overlay-Open',
     OVERLAY_REFOCUS: 'X-Inertia-Overlay-Refocus',
+    OVERLAY_DEFERRED: 'X-Inertia-Overlay-Deferred',
+
 }
 
 export class OverlayRouter {
@@ -37,7 +43,6 @@ export class OverlayRouter {
 
     private readonly previousOverlayId = ref<string | null>(null);
     private readonly rootUrl = ref<string | null>(null)
-    private readonly counter = ref<number>(0);
 
     constructor(
         private readonly overlayResolver: OverlayResolver,
@@ -75,11 +80,8 @@ export class OverlayRouter {
                 overlay: overlayId,
             },
             {
-                async: true,
-                preserveState: true,
-                preserveScroll: true,
                 headers: {
-                    [header.OVERLAY_ID]: overlayId,
+                    [header.OVERLAY_OPEN]: 'true',
                 },
                 onSuccess(page) {
                     if (isOverlayPage(page)) {
@@ -103,9 +105,7 @@ export class OverlayRouter {
                 _method: 'GET',
             },
             {
-                async: true,
                 headers: {
-                    [header.OVERLAY_ID]: overlayId,
                     [header.OVERLAY_ACTION]: action,
                 },
                 onSuccess(page) {
@@ -157,27 +157,23 @@ export class OverlayRouter {
 
         const overlay = this.overlayResolver(overlayId);
         visit.url.searchParams.set("overlay", overlayId);
+        visit.headers[header.OVERLAY_ID] = overlayId;
 
-        if (this.previousOverlayId.value !== overlayId) {
-            this.counter.value = 0;
+        visit.async = true;
+        visit.preserveScroll = true;
+        visit.preserveState = true;
 
-            if (overlay.hasState('open')) {
-                headers[header.OVERLAY_REFOCUS] = 'true';
-            }
+        if (this.previousOverlayId.value !== overlayId && overlay.isBlurred() && overlay.hasState('open')) {
+            visit.headers[header.OVERLAY_REFOCUS] = 'true';
         }
 
         this.previousOverlayId.value = overlayId;
-        this.counter.value += 1;
 
-        visit.headers[header.OVERLAY_ROOT_URL] = this.rootUrl.value;
-        visit.headers[header.OVERLAY_REQUEST_COUNTER] = this.counter.value.toString();
+        visit.headers[header.ROOT_URL] = this.rootUrl.value;
 
         if (visit.only.length === 0) {
             visit.only = ['__overlay_partial_reload_trigger']
         }
-
-        visit.preserveScroll = true;
-        visit.preserveState = true;
     }
 
     private handleSuccessfulRouteVisit(page: Page): void {

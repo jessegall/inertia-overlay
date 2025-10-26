@@ -1,5 +1,5 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { nextTick, ref } from "vue";
+import { ref } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { header, OverlayRouter } from "./OverlayRouter.ts";
 import { router } from "@inertiajs/vue3";
@@ -37,6 +37,7 @@ export type OverlayOptions = {
 
 
 const activeTransitions = ref<number>(0);
+const target = ref<string>(null);
 
 export class Overlay {
 
@@ -73,7 +74,6 @@ export class Overlay {
 
         this.router.onOverlayPageLoad.on({
             handler: page => this.handleOverlayPageLoad(page),
-            priority: () => this.index.value,
             subscription: this.subscription,
         });
     }
@@ -88,19 +88,18 @@ export class Overlay {
         this.assertNotDestroyed();
         if (! this.hasState('closed')) return;
 
-        console.log('Opening overlay', this.id);
         await this.transition(async () => {
+            this.focus();
             this.subscribe();
             this.setState('opening');
 
             if (page) {
-                console.log('Opening overlay with existing page', page);
                 this.handleOverlayPageLoad(page)
             } else {
                 await this.router.open(this.id);
             }
 
-            nextTick(() => this.setState('open'));
+            this.setState('open');
         });
     }
 
@@ -166,7 +165,6 @@ export class Overlay {
     private focus(): void {
         if (this.isFocused()) return;
         this.focused.value = true;
-        this.loadDeferredProps();
         this.onFocused.emit();
     }
 
@@ -179,8 +177,12 @@ export class Overlay {
     private loadDeferredProps(): void {
         const deferredProps = this.config.value?.deferredProps || [];
         if (deferredProps.length === 0) return;
+
         router.reload({
-            only: deferredProps
+            only: deferredProps,
+            headers: {
+                [header.OVERLAY_DEFERRED]: 'true',
+            }
         })
     }
 
@@ -217,17 +219,14 @@ export class Overlay {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        if (this.isFocused() || this.hasState('opening')) {
-            visit.headers = {
-                ...visit.headers,
-                [header.OVERLAY_ID]: this.id,
-                [header.OVERLAY_URL]: this.url,
-                [header.OVERLAY_PARENT_ID]: this.parentId.value,
-                [header.OVERLAY_INDEX]: this.index.value.toString(),
-                [header.OVERLAY_STATE]: this.state.value,
-                [header.OVERLAY_FOCUSED]: this.isFocused() ? 'true' : 'false',
-            }
+        const overlayId = this.router.resolveOverlayIdFromVisit(visit);
+        if (overlayId === this.id) {
+            this.focus();
+        }
 
+        if (this.isFocused()) {
+            visit.headers[header.OVERLAY_ID] = this.id;
+            visit.headers[header.OVERLAY_URL] = this.url;
             visit.only = visit.only.map(item => this.scopedKey(item));
         }
     }
@@ -235,15 +234,19 @@ export class Overlay {
     private handleOverlayPageLoad(page: OverlayPage): void {
         if (page.overlay.id === this.id) {
             const config = page.overlay;
+            const firstLoad = this.config.value === null;
 
             this.setConfig(config);
             this.updateProps(page);
 
+            if (firstLoad) {
+                this.loadDeferredProps()
+            }
+
             if (config.closeRequested) {
                 this.close();
-            } else {
-                this.focus();
             }
+
         } else {
             this.blur();
         }
@@ -298,6 +301,5 @@ export class Overlay {
     public get url(): string {
         return this.options.url;
     }
-
 
 }

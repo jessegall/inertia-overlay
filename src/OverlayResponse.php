@@ -8,11 +8,9 @@ use Illuminate\Http\Request;
 use Inertia\DeferProp;
 use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
-use Inertia\Support\Header;
 use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Enums\OverlayFlag;
-use JesseGall\InertiaOverlay\Enums\OverlayState;
 
 readonly class OverlayResponse implements Responsable
 {
@@ -27,14 +25,6 @@ readonly class OverlayResponse implements Responsable
     {
         $this->config = $this->component->config($this->overlay);
         $this->props = $this->component->props($this->overlay);
-
-        if ($this->overlay->hasState(OverlayState::OPENING) && $this->overlay->hasRequestCounter(1)) {
-            $this->overlay->refresh();
-        }
-
-        if ($this->overlay->isRefocusing() && $this->overlay->hasRequestCounter(1) && ! $this->config->hasFlag(OverlayFlag::SKIP_HYDRATION_ON_REFOCUS)) {
-            $this->overlay->refresh();
-        }
     }
 
     private function scopeKey(string $key): string
@@ -42,42 +32,94 @@ readonly class OverlayResponse implements Responsable
         return "{$this->overlay->id}:{$key}";
     }
 
-    private function resolveRefreshProps(Request $request, array $props): array
+    private function unscopeKey(string $scopedKey): string
     {
-        $propsToRefresh = $this->overlay->getRefreshProps();
+        return str_replace("{$this->overlay->id}:", '', $scopedKey);
+    }
 
-        if ($propsToRefresh === true) {
-            $propsToRefresh = array_keys($props);
-        } else {
-            $propsToRefresh = collect($propsToRefresh)
-                ->map(fn($key) => $this->scopeKey($key))
+    private function getRefreshPropKeys(): array
+    {
+        $keys = $this->overlay->getRefreshProps();
+
+        if ($keys === true) {
+            return array_keys($this->props);
+        }
+
+        return array_values($keys ?: []);
+    }
+
+    private function getDeferredPropKeys(): array
+    {
+        return collect($this->props)
+            ->filter(fn($value) => $value instanceof DeferProp)
+            ->keys()
+            ->all();
+    }
+
+    private function getLazyPropKeys(): array
+    {
+        return collect($this->props)
+            ->filter(fn($value) => $value instanceof IgnoreFirstLoad)
+            ->keys()
+            ->all();
+    }
+
+    private function getPartialPropKeys(): array
+    {
+        return collect($this->overlay->getPartialProps())
+            ->map(fn($value) => $this->unscopeKey($value))
+            ->all();
+    }
+
+    private function resolvePropKeys(Request $request): array
+    {
+        $keys = array_keys($this->props);
+
+        if ($this->overlay->isOpening()) {
+            return collect($keys)
+                ->reject(fn($key) => in_array($key, $this->getLazyPropKeys()))
                 ->all();
         }
 
-        foreach ($propsToRefresh as $index => $prop) {
-            $value = $props[$prop] ?? null;
-
-            if ($value === null || $value instanceof IgnoreFirstLoad) {
-                unset($propsToRefresh[$index]);
-            }
+        if ($this->overlay->isLoadingDeferred()) {
+            return collect($keys)
+                ->filter(fn($key) => in_array($key, $this->getDeferredPropKeys()))
+                ->all();
         }
 
-        return str($request->header(InertiaHeader::PARTIAL_ONLY, ''))
-            ->explode(',')
-            ->merge($propsToRefresh)
-            ->unique()
+        if ($this->overlay->isRefocusing()) {
+            if ($this->config->hasFlag(OverlayFlag::SKIP_REFRESH_ON_REFOCUS)) {
+                return [];
+            }
+
+            return collect($keys)
+                ->reject(fn($key) => in_array($key, $this->getLazyPropKeys()))
+                ->all();
+        }
+
+        return [
+            ...$this->getRefreshPropKeys(),
+            ...$this->getPartialPropKeys(),
+        ];
+    }
+
+    private function resolveProps(Request $request): array
+    {
+        $keys = collect($this->resolvePropKeys($request))
+            ->map(fn($key) => $this->unscopeKey($key))
+            ->values()
+            ->all();
+
+        return collect($this->props)
+            ->only($keys)
+            ->merge($this->overlay->getAppendProps())
+            ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
             ->all();
     }
 
     private function addOverlayDataToResponse(JsonResponse $response): JsonResponse
     {
         $data = $response->getData(true);
-
-        $deferredProps = collect($this->props)
-            ->filter(fn($value) => $value instanceof DeferProp)
-            ->keys()
-            ->map(fn($value) => $this->scopeKey($value))
-            ->all();
 
         $data['overlay'] = [
             'id' => $this->overlay->id,
@@ -87,7 +129,7 @@ readonly class OverlayResponse implements Responsable
             'size' => $this->config->size,
             'flags' => $this->config->flags,
             'props' => array_keys($this->props),
-            'deferredProps' => $deferredProps,
+            'deferredProps' => $this->getDeferredPropKeys(),
             'closeRequested' => $this->overlay->closeRequested(),
             'data' => $this->overlay->data,
         ];
@@ -97,26 +139,18 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        $props = collect($this->props)
-            ->merge($this->overlay->getAppendProps())
-            ->reject(fn($value) => ! $this->overlay->hasState(OverlayState::OPENING) && $value instanceof DeferProp)
-            ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
-            ->all();
+        $props = $this->resolveProps($request);
+        $pageComponent = $this->overlay->getPageComponent();
 
-        $refreshProps = $this->resolveRefreshProps($request, $props);
-        $request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', $refreshProps));
+        $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
+        $request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', array_keys($props)));
 
-        $response = Inertia::render($this->overlay->getPageComponent(), $props)->toResponse($request);
+        $response = Inertia::render($pageComponent, $props)->toResponse($request);
         $response = $this->addOverlayDataToResponse($response);
 
         $this->overlay->reset();
 
         return $response;
-    }
-
-    public function isPartial(Request $request): bool
-    {
-        return $request->header(Header::PARTIAL_COMPONENT) === $this->component->name();
     }
 
 }

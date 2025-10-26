@@ -16,6 +16,7 @@ Route::get('/demo-other-page', function () {
 });
 
 Route::get('/navigation-demo', function () {
+    sleep(1);
     return Inertia::overlay(DemoModal::class);
 });
 

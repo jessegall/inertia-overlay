@@ -16,7 +16,7 @@ class OverlayResponseFactory
     {
         $request = request();
 
-        if ($request->header(Header::OVERLAY_URL) === $request->url()) {
+        if ($request->header(Header::OVERLAY_ID)) {
             $overlay = Overlay::fromRequest($request);
         } else {
             $overlay = Overlay::new($request->query('overlay'));
