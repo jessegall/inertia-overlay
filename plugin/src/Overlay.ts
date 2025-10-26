@@ -1,5 +1,5 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
 import { header, OverlayRouter } from "./OverlayRouter.ts";
 import { router } from "@inertiajs/vue3";
@@ -88,17 +88,19 @@ export class Overlay {
         this.assertNotDestroyed();
         if (! this.hasState('closed')) return;
 
+        console.log('Opening overlay', this.id);
         await this.transition(async () => {
             this.subscribe();
             this.setState('opening');
 
             if (page) {
+                console.log('Opening overlay with existing page', page);
                 this.handleOverlayPageLoad(page)
             } else {
                 await this.router.open(this.id);
             }
 
-            this.setState('open');
+            nextTick(() => this.setState('open'));
         });
     }
 
@@ -224,7 +226,6 @@ export class Overlay {
                 [header.OVERLAY_INDEX]: this.index.value.toString(),
                 [header.OVERLAY_STATE]: this.state.value,
                 [header.OVERLAY_FOCUSED]: this.isFocused() ? 'true' : 'false',
-                [header.OVERLAY_REFOCUS]: this.hasState('open') && this.isBlurred() ? 'true' : 'false',
             }
 
             visit.only = visit.only.map(item => this.scopedKey(item));

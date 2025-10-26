@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Exception;
+use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
 class OverlayComponentFactory
@@ -25,7 +26,7 @@ class OverlayComponentFactory
     {
         try {
             return $this->make($type, $props);
-        } catch (Exception) {
+        } catch (InvalidArgumentException) {
             return null;
         }
     }

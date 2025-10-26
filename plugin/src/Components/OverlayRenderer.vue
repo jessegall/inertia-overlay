@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { Component, defineAsyncComponent, inject, ref, shallowRef, watch } from "vue";
+import { Component, defineAsyncComponent, inject, nextTick, ref, shallowRef, watch } from "vue";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import { ReadonlyOverlay } from "../OverlayFactory.ts";
 import OverlayWrapper from "./OverlayWrapper.vue";
@@ -27,6 +27,7 @@ const component = shallowRef<Component>(null);
 // ----------[ Event Handlers ]----------
 
 function handleState(state: OverlayState) {
+
     switch (state) {
 
         case 'opening':
@@ -49,7 +50,7 @@ function handleState(state: OverlayState) {
 
 // ----------[ Watchers ]----------
 
-watch(() => overlay.state, handleState, { immediate: true });
+watch(() => overlay.state, (state) => nextTick(() => handleState(state)), { immediate: true });
 
 </script>
 

@@ -145,52 +145,39 @@ export class OverlayRouter {
         return visit.url.searchParams.get("overlay") ?? visit.headers[header.OVERLAY_ID]
     }
 
-    private updatePageUrl(page: OverlayPage): void {
-        const url = new URL(usePage().url, window.location.origin);
-        const overlayId = page.overlay.id;
-
-        if (overlayId) {
-            url.searchParams.set('overlay', overlayId);
-        } else {
-            url.searchParams.delete('overlay');
-        }
-
-        router.replace({
-            url: url.toString(),
-        })
-    }
-
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const page = usePage();
         const overlayId = this.resolveOverlayIdFromVisit(visit);
+        const page = usePage();
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
 
-        if (! overlayId) {
-            return;
-        }
+        if (! overlayId) return;
+
+        const overlay = this.overlayResolver(overlayId);
+        visit.url.searchParams.set("overlay", overlayId);
 
         if (this.previousOverlayId.value !== overlayId) {
             this.counter.value = 0;
+
+            if (overlay.hasState('open')) {
+                headers[header.OVERLAY_REFOCUS] = 'true';
+            }
         }
 
         this.previousOverlayId.value = overlayId;
         this.counter.value += 1;
 
-        visit.preserveScroll = true;
-        visit.preserveState = true;
-
-        visit.headers = {
-            ...visit.headers,
-            [header.OVERLAY_ROOT_URL]: this.rootUrl.value,
-            [header.OVERLAY_REQUEST_COUNTER]: this.counter.value.toString(),
-        }
+        visit.headers[header.OVERLAY_ROOT_URL] = this.rootUrl.value;
+        visit.headers[header.OVERLAY_REQUEST_COUNTER] = this.counter.value.toString();
 
         if (visit.only.length === 0) {
             visit.only = ['__overlay_partial_reload_trigger']
         }
+
+        visit.preserveScroll = true;
+        visit.preserveState = true;
     }
 
     private handleSuccessfulRouteVisit(page: Page): void {
