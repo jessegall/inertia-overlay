@@ -2,6 +2,7 @@ import { randomString } from "./helpers.ts";
 
 export interface Listener<T = any> {
     handler: (payload: T) => void;
+    filter?: (payload: T) => boolean;
     priority?: number | (() => number);
     subscription?: EventSubscription;
 }
@@ -40,12 +41,15 @@ export class EventEmitter<T = any> {
     }
 
     public emit(payload: T) {
-        const callbacks = Array.from(this.listeners.values())
-            .sort((a, b) => this.resolvePriority(b) - this.resolvePriority(a))
-            .map(l => l.handler);
+        const listeners = Array.from(this.listeners.values())
+            .sort((a, b) => this.resolvePriority(b) - this.resolvePriority(a));
 
-        for (const callback of callbacks) {
-            callback(payload);
+        for (const listener of listeners) {
+            if (listener.filter && ! listener.filter(payload)) {
+                continue;
+            }
+
+            listener.handler(payload);
         }
     }
 

@@ -5,6 +5,7 @@ namespace JesseGall\InertiaOverlay\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use JesseGall\InertiaOverlay\Header;
+use JesseGall\InertiaOverlay\Overlay;
 use Symfony\Component\HttpFoundation\Response;
 
 readonly class HandleInertiaOverlayRequests
@@ -13,7 +14,15 @@ readonly class HandleInertiaOverlayRequests
     /** @param \Closure(\Illuminate\Http\Request): (Response) $next */
     public function handle(Request $request, Closure $next)
     {
-        $this->printDebugInformation($request);
+        if ($request->hasHeader(Header::INERTIA_OVERLAY)) {
+            $overlay = Overlay::fromRequest($request);
+
+            if ($request->method() !== 'GET') {
+                $overlay->refresh();
+            }
+
+            $this->printDebugInformation($request);
+        }
 
         return $next($request);
     }
@@ -21,10 +30,9 @@ readonly class HandleInertiaOverlayRequests
     private function printDebugInformation(Request $request): void
     {
         $debug = [
+            Header::INERTIA_OVERLAY,
             Header::OVERLAY_ID,
-            Header::OVERLAY_URL,
             Header::OVERLAY_ACTION,
-            Header::OVERLAY_OPEN,
             Header::OVERLAY_REFOCUS,
             Header::OVERLAY_DEFERRED,
         ];

@@ -14,8 +14,8 @@ const props = defineProps<Props>();
 
 function createDemoModal() {
     const overlay = createOverlay({
-        type: 'demo.modal',
-        data: {
+        component: 'demo.modal',
+        props: {
             someInput: 'Hello from Demo Page',
             test: ['one', 'two', 'three'],
         }

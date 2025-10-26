@@ -14,14 +14,14 @@ interface Props {
 const props = defineProps<Props>();
 
 const instance = createOverlay({
-    type: 'demo.modal',
-    data: {}
+    component: 'demo.modal',
+    props: {}
 })
 
 function createDemoModal() {
     const overlay = createOverlay({
-        type: 'demo.modal',
-        data: {}
+        component: 'demo.modal',
+        props: {}
     })
 
     overlay.open();

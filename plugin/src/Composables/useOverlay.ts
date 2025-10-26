@@ -7,8 +7,8 @@ type CreateOverlayOptions = {
     props: OverlayProps;
 }
 
-type CreateTypedOverlayOptions = CreateOverlayOptions & {
-    type: string;
+type CreateComponentOverlayOptions = CreateOverlayOptions & {
+    component: string;
 }
 
 type CreateUrlOverlayOptions = CreateOverlayOptions & {
@@ -24,9 +24,9 @@ export function useOverlay() {
 
     const plugin = inject<OverlayPlugin>('overlay.plugin');
 
-    function createOverlay(options: CreateUrlOverlayOptions | CreateTypedOverlayOptions): OverlayHandle {
-        if ('type' in options) {
-            return plugin.createOverlayFromComponent(options.type, options.props);
+    function createOverlay(options: CreateUrlOverlayOptions | CreateComponentOverlayOptions): OverlayHandle {
+        if ('component' in options) {
+            return plugin.createOverlayFromComponent(options.component, options.props);
         }
 
         return plugin.createOverlay(options.url, options.props);

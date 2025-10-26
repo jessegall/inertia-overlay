@@ -40,11 +40,8 @@ export class OverlayPlugin {
     constructor(
         public readonly options: OverlayPluginOptions
     ) {
-        this.stack = new OverlayStack((overlayId: string) => this.resolveOverlay(overlayId));
-        this.router = new OverlayRouter(
-            (overlayId: string) => this.resolveOverlay(overlayId),
-            () => this.stack.peekId(),
-        );
+        this.stack = new OverlayStack(this.resolveOverlay.bind(this));
+        this.router = new OverlayRouter(this.resolveOverlay.bind(this), this.resolveFocusedOverlayId.bind(this));
         this.factory = new OverlayFactory(this.router);
     }
 
@@ -122,6 +119,10 @@ export class OverlayPlugin {
         return this.overlayInstances.get(overlayId) || null;
     }
 
+    public resolveFocusedOverlayId(): string | null {
+        return this.stack.items.find(i => i.isFocused())?.id || null;
+    }
+
     // ----------[ Internal ]----------
 
     private newOverlayInstance(options: NewInstanceOptions, onClosed?: () => void): ReadonlyOverlay {
@@ -129,9 +130,6 @@ export class OverlayPlugin {
         this.overlayInstances.set(overlay.id, overlay);
 
         overlay.onStatusChange.on((status) => {
-
-            console.log(overlay.id, status);
-
             switch (status) {
 
                 case "opening":
@@ -150,6 +148,12 @@ export class OverlayPlugin {
             }
         });
 
+        overlay.onFocused.on(() => {
+            this.stack.items
+                .filter(other => other.id !== overlay.id)
+                .forEach(other => other.blur());
+        })
+
         return overlay;
     }
 
@@ -157,7 +161,7 @@ export class OverlayPlugin {
 
     private handleNavigated(page: Page): void {
         if (! isOverlayPage(page) && this.stack.size() === 0) {
-            this.router.setRootUrl(this.router.currentUrl.href);
+            this.router.setRootUrl(this.router.url.href);
         }
     }
 

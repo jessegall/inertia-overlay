@@ -25,7 +25,7 @@ const { createOverlay } = useOverlay();
 function loadLazyProp() {
     router.reload({
         only: ['lazyProp'],
-        data: {
+        props: {
             test: '123s'
         }
     })
@@ -39,8 +39,8 @@ function reloadMergeProp() {
 
 function openDemoModal() {
     const overlay = createOverlay({
-        type: 'demo.modal',
-        data: {
+        component: 'demo.modal',
+        props: {
             'userId': 123213123,
         },
     })
@@ -50,8 +50,8 @@ function openDemoModal() {
 
 function openDemoDrawer() {
     const overlay = createOverlay({
-        type: 'demo.drawer',
-        data: {},
+        component: 'demo.drawer',
+        props: {},
     })
 
     overlay.open();

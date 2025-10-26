@@ -24,7 +24,7 @@ function loadLazyProp() {
 
 function openDemoModal() {
     const overlay = createOverlay({
-        type: 'demo.modal',
+        component: 'demo.modal',
         args: {},
     })
 
@@ -33,7 +33,7 @@ function openDemoModal() {
 
 function openDemoDrawer() {
     const overlay = createOverlay({
-        type: 'demo.drawer',
+        component: 'demo.drawer',
         args: {},
     })
 
@@ -73,7 +73,7 @@ function submitError() {
 
 function testAction() {
     overlayAction('test', {
-        data: {
+        props: {
             example: 123,
         }
     });

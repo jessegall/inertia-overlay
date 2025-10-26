@@ -17,12 +17,11 @@ export const header = {
     // -----[ Identification ]-----
 
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
-    OVERLAY_URL: 'X-Inertia-Overlay-Url',
     OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
 
     // -----[ Lifecycle ]-----
 
-    OVERLAY_OPEN: 'X-Inertia-Overlay-Open',
+    OVERLAY_OPENING: 'X-Inertia-Overlay-Opening',
     OVERLAY_REFOCUS: 'X-Inertia-Overlay-Refocus',
     OVERLAY_DEFERRED: 'X-Inertia-Overlay-Deferred',
 
@@ -47,7 +46,7 @@ export class OverlayRouter {
 
     constructor(
         private readonly overlayResolver: OverlayResolver,
-        private readonly peekId: () => string | null,
+        private readonly focusedId: () => string | null,
     ) {
         this.setupEvents();
         this.setupListeners();
@@ -75,17 +74,18 @@ export class OverlayRouter {
 
     public async open(overlayId: string): Promise<OverlayPage> {
         const overlay = this.overlayResolver(overlayId);
+        overlay.focus();
 
-        return await new Promise((resolve, reject) => router.post(
-            overlay.url,
+        return await new Promise((resolve, reject) => router.post(overlay.url,
             {
-                _method: 'GET',
                 props: overlay.initialProps,
             },
             {
                 headers: {
+                    [header.INERTIA_OVERLAY]: 'true',
                     [header.OVERLAY_ID]: overlay.id,
-                    [header.OVERLAY_OPEN]: 'true',
+                    [header.OVERLAY_OPENING]: overlay.hasState('opening') ? 'true' : 'false',
+                    [header.OVERLAY_REFOCUS]: overlay.hasState('open') ? 'true' : 'false',
                 },
                 onSuccess(page) {
                     if (isOverlayPage(page)) {
@@ -107,15 +107,39 @@ export class OverlayRouter {
         return await new Promise((resolve, reject) => router.post(overlay.url,
             {
                 ...data,
-                _method: 'GET',
             },
             {
                 headers: {
+                    [header.INERTIA_OVERLAY]: 'true',
                     [header.OVERLAY_ID]: overlay.id,
                     [header.OVERLAY_ACTION]: action,
                 },
                 onBefore(visit) {
                     visit.url.searchParams.set('overlay', overlay.id);
+                },
+                onSuccess(page) {
+                    resolve(page);
+                },
+                onError(error) {
+                    reject(error);
+                }
+            }
+        ));
+    }
+
+    public async loadDeferredProps(overlayId: string, deferredProps: string[]): Promise<Page> {
+        const overlay = this.overlayResolver(overlayId);
+
+        return await new Promise((resolve, reject) => router.post(overlay.url,
+            {
+                props: overlay.initialProps,
+            },
+            {
+                only: deferredProps,
+                headers: {
+                    [header.INERTIA_OVERLAY]: 'true',
+                    [header.OVERLAY_ID]: overlay.id,
+                    [header.OVERLAY_DEFERRED]: 'true',
                 },
                 onSuccess(page) {
                     resolve(page);
@@ -133,11 +157,14 @@ export class OverlayRouter {
             return;
         }
 
-        return await new Promise(resolve => router.visit(this.rootUrl.value,
+        const rootUrl = new URL(this.rootUrl.value);
+
+        return await new Promise(resolve => router.visit(rootUrl.href,
             {
                 preserveState: true,
                 preserveScroll: true,
-                onSuccess(page) {
+                onSuccess: (page) => {
+                    this.url = rootUrl;
                     resolve(page);
                 }
             }
@@ -154,19 +181,26 @@ export class OverlayRouter {
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
         const page = usePage();
-        const overlayId = this.peekId();
+        const overlayId = this.focusedId();
 
-        visit.headers[header.INERTIA_OVERLAY] = overlayId ? 'true' : null;
         visit.headers[header.PAGE_COMPONENT] = page.component;
         visit.headers[header.ROOT_URL] = this.rootUrl.value;
 
         if (overlayId) {
             const overlay = this.overlayResolver(overlayId);
-            this.previousOverlayId.value = overlayId;
+
+            visit.headers[header.INERTIA_OVERLAY] = 'true';
+
+            if (! visit.headers[header.OVERLAY_ID]) {
+                visit.headers[header.OVERLAY_ID] = overlay.id;
+            }
+
+            if (this.previousOverlayId.value !== overlay.id && overlay.hasState('open')) {
+                visit.headers[header.OVERLAY_REFOCUS] = 'true';
+            }
 
             if (this.isOverlayReloadRequest(visit)) {
-                visit.method = 'post';
-                visit.data['_method'] = 'GET';
+                visit.url.pathname = overlay.url;
             }
 
             visit.async = true;
@@ -180,6 +214,8 @@ export class OverlayRouter {
             if (visit.only.length === 0) {
                 visit.only = ['__overlay_partial_reload_trigger']
             }
+
+            this.previousOverlayId.value = overlayId;
         }
     }
 
@@ -187,12 +223,6 @@ export class OverlayRouter {
         if (isOverlayPage(page)) {
             this.overlayConfig.value = page.overlay;
             this.onOverlayPageLoad.emit(page);
-
-            if (page.overlay.type === 'parameterized') {
-                const url = this.currentUrl;
-                url.searchParams.set('overlay', page.overlay.instance);
-                router.replace({ url: url.toString() });
-            }
         }
     }
 
@@ -204,10 +234,20 @@ export class OverlayRouter {
             && visit.only.length > 0
     }
 
+    public setSearchParam(key: string, value: string): void {
+        const url = this.url;
+        url.searchParams.set(key, value);
+        this.url = url;
+    }
+
     // ----------[ Accessors ]----------
 
-    public get currentUrl() {
+    public get url() {
         return new URL(usePage().url, window.location.origin);
+    }
+
+    public set url(url: URL) {
+        router.replace({ url: url.toString() });
     }
 
 }

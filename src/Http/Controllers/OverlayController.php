@@ -18,9 +18,9 @@ class OverlayController extends Controller
             $overlay = Overlay::fromInstance($instance);
         } else {
             $overlay = Overlay::fromRequest($request);
-        };
+        }
 
-        return InertiaOverlay::renderUsing($component, $overlay);
+        return InertiaOverlay::renderUsing($component, $overlay, $request->input());
     }
 
 }

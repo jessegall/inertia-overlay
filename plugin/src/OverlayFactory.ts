@@ -17,8 +17,6 @@ export class OverlayFactory {
     // ----------[ Api ]----------
 
     public make(options: MakeOverlayOptions): ReadonlyOverlay {
-        console.log(options);
-
         const overlay = new Overlay(this.router, {
             id: randomString(),
             ...options,

@@ -25,9 +25,12 @@ readonly class OverlayResponseFactory
         return $overlay->render($component);
     }
 
-    public function renderUsing(string $component, Overlay $overlay): OverlayResponse|RedirectResponse
+    public function renderUsing(string $component, Overlay $overlay, array $props = []): OverlayResponse|RedirectResponse
     {
-        $component = $this->makeComponent($component, $overlay->props);
+        $component = $this->makeComponent($component, [
+            ...$overlay->props,
+            ...$props,
+        ]);
 
         return $overlay->render($component);
     }

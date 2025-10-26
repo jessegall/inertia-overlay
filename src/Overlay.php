@@ -61,7 +61,7 @@ class Overlay
 
     public function isOpening(): bool
     {
-        return $this->isNew || filter_var($this->request->header(Header::OVERLAY_OPEN), FILTER_VALIDATE_BOOLEAN);
+        return $this->isNew || filter_var($this->request->header(Header::OVERLAY_OPENING), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function isRefocusing(): bool
@@ -215,12 +215,7 @@ class Overlay
             return null;
         }
 
-        if ($request->has('props')) {
-            $props = $request->input('props');
-        } else {
-            $content = json_decode($request->getContent(), true) ?? [];
-            $props = $content['props'] ?? [];
-        }
+        $props = $request->input('props', []);
 
         return app(static::class,
             [
