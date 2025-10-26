@@ -5,26 +5,18 @@ namespace JesseGall\InertiaOverlay;
 use Illuminate\Http\RedirectResponse;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
-class OverlayResponseFactory
+readonly class OverlayResponseFactory
 {
 
     public function __construct(
-        private readonly OverlayComponentFactory $componentFactory,
+        private OverlayComponentFactory $componentFactory,
     ) {}
 
     public function render(OverlayComponent|string $component, array $props = []): OverlayResponse|RedirectResponse
     {
         $request = request();
 
-        if ($request->header(Header::OVERLAY_ID)) {
-            $overlay = Overlay::fromRequest($request);
-        } else {
-            $overlay = Overlay::new($request->query('overlay'));
-        }
-
-        if (! $request->inertia()) {
-            return redirect($overlay->getBaseUrl());
-        }
+        $overlay = Overlay::fromRequest($request) ?? Overlay::new($request->query('overlay'));
 
         if (is_string($component)) {
             $component = $this->makeComponent($component, $props);

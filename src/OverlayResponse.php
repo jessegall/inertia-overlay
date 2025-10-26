@@ -110,6 +110,8 @@ readonly class OverlayResponse implements Responsable
             ->values()
             ->all();
 
+        ray($keys);
+
         return collect($this->props)
             ->only($keys)
             ->merge($this->overlay->getAppendProps())
@@ -131,7 +133,7 @@ readonly class OverlayResponse implements Responsable
             'props' => array_keys($this->props),
             'deferredProps' => $this->getDeferredPropKeys(),
             'closeRequested' => $this->overlay->closeRequested(),
-            'data' => $this->overlay->data,
+            'data' => [],
         ];
 
         return $response->setData($data);

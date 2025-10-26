@@ -17,7 +17,9 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
-        $overlay = Overlay::fromRequest($request);
+        if (! $overlay = Overlay::fromRequest($request)) {
+            return $next($request);
+        }
 
         if ($request->method() !== Request::METHOD_GET) {
             $overlay->refresh();

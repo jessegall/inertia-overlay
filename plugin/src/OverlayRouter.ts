@@ -10,6 +10,7 @@ export const header = {
 
     // -----[ General ]-----
 
+    INERTIA_OVERLAY: 'X-Inertia-Overlay',
     PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
     ROOT_URL: 'X-Inertia-Overlay-Root-Url',
 
@@ -46,6 +47,7 @@ export class OverlayRouter {
 
     constructor(
         private readonly overlayResolver: OverlayResolver,
+        private readonly peekId: () => string | null,
     ) {
         this.setupEvents();
         this.setupListeners();
@@ -74,14 +76,17 @@ export class OverlayRouter {
     public async open(overlayId: string): Promise<OverlayPage> {
         const overlay = this.overlayResolver(overlayId);
 
-        return await new Promise((resolve, reject) => router.post(overlay.url,
+        return await new Promise((resolve, reject) => router.post(
+            overlay.url,
             {
                 _method: 'GET',
-                _props: overlay._overlay_data,
             },
             {
                 headers: {
                     [header.OVERLAY_OPEN]: 'true',
+                },
+                onBefore(visit) {
+                    visit.url.searchParams.set('overlay', overlay.id);
                 },
                 onSuccess(page) {
                     if (isOverlayPage(page)) {
@@ -98,15 +103,19 @@ export class OverlayRouter {
     }
 
     public async action(overlayId: string, action: string, data: Record<string, any> = {}): Promise<Page> {
-        return await new Promise((resolve, reject) => router.post(window.location.href,
+        const overlay = this.overlayResolver(overlayId);
+
+        return await new Promise((resolve, reject) => router.post(overlay.url,
             {
                 ...data,
-                overlay: overlayId,
                 _method: 'GET',
             },
             {
                 headers: {
                     [header.OVERLAY_ACTION]: action,
+                },
+                onBefore(visit) {
+                    visit.url.searchParams.set('overlay', overlay.id);
                 },
                 onSuccess(page) {
                     resolve(page);
@@ -148,33 +157,36 @@ export class OverlayRouter {
     // ----------[ Event Handlers ]----------
 
     private handleBeforeRouteVisit(visit: PendingVisit): void {
-        const overlayId = this.resolveOverlayIdFromVisit(visit);
         const page = usePage();
+        const overlayId = this.peekId();
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
         visit.headers[header.ROOT_URL] = this.rootUrl.value;
 
-        if (! overlayId) return;
+        console.log("PEEP", overlayId);
 
-        const overlay = this.overlayResolver(overlayId);
-        visit.url.searchParams.set("overlay", overlayId);
+        if (overlayId) {
+            this.previousOverlayId.value = overlayId;
+            const overlay = this.overlayResolver(overlayId);
 
-        if (visit.method === 'get') {
-            visit.method = 'post';
-            visit.data._method = 'GET';
-        }
+            visit.url.searchParams.set('overlay', overlay.id);
 
-        visit.data._overlay_data = overlay.data;
+            if (overlay.argsKey) {
+                visit.url.searchParams.set('args', overlay.argsKey);
+            }
 
-        visit.async = true;
-        visit.preserveScroll = true;
-        visit.preserveState = true;
+            if (visit.method === 'get') {
+                visit.method = 'post';
+                visit.data['_method'] = 'GET';
+            }
 
-        this.previousOverlayId.value = overlayId;
+            visit.async = true;
+            visit.preserveScroll = true;
+            visit.preserveState = true;
 
-
-        if (visit.only.length === 0) {
-            visit.only = ['__overlay_partial_reload_trigger']
+            if (visit.only.length === 0) {
+                visit.only = ['__overlay_partial_reload_trigger']
+            }
         }
     }
 

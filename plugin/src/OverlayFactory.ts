@@ -12,7 +12,6 @@ export type MakeOverlayOptions = Omit<OverlayOptions, 'id'> & {
 export class OverlayFactory {
 
     constructor(
-        private readonly componentResolver: OverlayComponentResolver,
         private readonly router: OverlayRouter,
     ) {}
 

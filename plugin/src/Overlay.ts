@@ -4,10 +4,9 @@ import { Page, PendingVisit } from "@inertiajs/core";
 import { header, OverlayRouter } from "./OverlayRouter.ts";
 import { router } from "@inertiajs/vue3";
 
-export type OverlayType = string;
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | '80%' | 'full';
-export type OverlayData = Record<string, any>;
+export type OverlayArgs = Record<string, any>;
 export type OverlayProps = Record<string, any>;
 export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
 
@@ -24,7 +23,7 @@ export interface OverlayConfig {
     actions: string[]
     closeRequested: boolean;
     url: string;
-    data: OverlayData;
+    args: OverlayArgs;
 }
 
 export type OverlayPage = Page & { overlay: OverlayConfig };
@@ -32,12 +31,11 @@ export type OverlayPage = Page & { overlay: OverlayConfig };
 export type OverlayOptions = {
     id: string;
     url: string;
-    data: OverlayData;
+    args: OverlayArgs;
 };
 
 
 const activeTransitions = ref<number>(0);
-const target = ref<string>(null);
 
 export class Overlay {
 
@@ -89,7 +87,6 @@ export class Overlay {
         if (! this.hasState('closed')) return;
 
         await this.transition(async () => {
-            this.focus();
             this.subscribe();
             this.setState('opening');
 
@@ -296,12 +293,19 @@ export class Overlay {
         return this.options.id;
     }
 
-    public get data() {
-        return this.options.data;
+    public get args() {
+        return this.options.args;
     }
 
     public get url(): string {
         return this.options.url;
+    }
+
+    public get argsKey(): string | null {
+        if (! this.args) return null;
+        const json = JSON.stringify(this.args);
+        const encoded = new TextEncoder().encode(json)
+        return btoa(String.fromCharCode(...encoded));
     }
 
 }

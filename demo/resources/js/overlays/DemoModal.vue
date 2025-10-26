@@ -40,7 +40,9 @@ function reloadMergeProp() {
 function openDemoModal() {
     const overlay = createOverlay({
         type: 'demo.modal',
-        data: {},
+        data: {
+            'userId': 123213123,
+        },
     })
 
     overlay.open();

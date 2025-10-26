@@ -18,7 +18,6 @@ class Overlay
         public Request $request,
         public string $id,
         public string $url,
-        public array $data = [],
     ) {}
 
     public function render(OverlayComponent $component): OverlayResponse
@@ -173,8 +172,14 @@ class Overlay
         return $overlay;
     }
 
-    public static function fromRequest(Request $request): static
+    public static function fromRequest(Request $request): static|null
     {
+        $id = $request->header('overlay') ?? $request->header(Header::OVERLAY_ID);
+
+        if ($id === null) {
+            return null;
+        }
+
         return app(static::class,
             [
                 'id' => $request->header(Header::OVERLAY_ID),
