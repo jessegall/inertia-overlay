@@ -132,11 +132,6 @@ class Overlay
         return filter_var($this->request->header(Header::OVERLAY_REFOCUS), FILTER_VALIDATE_BOOLEAN);
     }
 
-    public function isDeferredLoading(): bool
-    {
-        return filter_var($this->request->header(Header::OVERLAY_DEFERRED), FILTER_VALIDATE_BOOLEAN);
-    }
-
     # ----------[ Response Headers ]----------
 
     public function close(): void

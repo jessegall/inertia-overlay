@@ -21,7 +21,11 @@ readonly class OverlayResponse implements Responsable
     )
     {
         $this->config = $this->component->config($this->overlay);
-        $this->props = $this->component->props($this->overlay);
+
+        $this->props = [
+            ...$this->overlay->getProps(),
+            ...$this->component->props($this->overlay),
+        ];
     }
 
     public function toResponse($request): JsonResponse
@@ -82,6 +86,5 @@ readonly class OverlayResponse implements Responsable
 
         return is_subclass_of($target, $class);
     }
-
 
 }

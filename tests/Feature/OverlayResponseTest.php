@@ -66,7 +66,7 @@ class OverlayResponseTest extends TestCase
         $this->assertArrayNotHasKey($overlay->scopedKey('deferredProp'), $props);
     }
 
-    public function test_GivenComponentImplementsSkipReloadOnRefocus_WhenRefocusingOverlay_NoPropsAreIncluded()
+    public function test_GivenComponentImplementsSkipReloadOnRefocus_WhenRefocusingOverlay_OnlyAlwaysPropsAreIncluded()
     {
         $overlay = new MockOverlay(MockOverlayLifecycle::REFOCUSING);
 
@@ -91,11 +91,11 @@ class OverlayResponseTest extends TestCase
         $this->assertArrayHasKey($overlay->scopedKey('alwaysProp'), $props);
     }
 
-    public function test_WhenPartialLoadingOverlay_OnlyPartialPropsAreIncluded()
+    public function test_WhenPartialReloadingOverlay_OnlyPartialAndAlwaysPropsAreIncluded()
     {
         $overlay = new MockOverlay(MockOverlayLifecycle::ACTIVE);
 
-        $overlay->setPartialPropKeys(
+        $overlay->setPartialProps(
             [
                 'closureProp',
                 'lazyProp',
@@ -115,13 +115,84 @@ class OverlayResponseTest extends TestCase
 
         $props = $response->toResponse($overlay->request)->getData(true)['props'];
 
+        $this->assertCount(3, $props);
         $this->assertArrayHasKey($overlay->scopedKey('closureProp'), $props);
         $this->assertArrayHasKey($overlay->scopedKey('lazyProp'), $props);
         $this->assertArrayHasKey($overlay->scopedKey('alwaysProp'), $props);
+    }
 
-        $this->assertArrayNotHasKey($overlay->scopedKey('prop'), $props);
-        $this->assertArrayNotHasKey($overlay->scopedKey('deferredProp'), $props);
-        $this->assertArrayNotHasKey($overlay->scopedKey('mergeProp'), $props);
+    public function test_GivenRefreshingProps_WhenPartialReloadingOverlay_OnlyPartialRefreshedAndAlwaysPropsAreIncluded()
+    {
+        $overlay = new MockOverlay(MockOverlayLifecycle::ACTIVE);
+
+        $overlay->setPartialProps(
+            [
+                'prop',
+            ]
+        );
+
+        $overlay->refreshProps(['closureProp', 'lazyProp']);
+
+        $response = $overlay->render(new MockOverlayComponent(
+            [
+                'prop' => 'value',
+                'closureProp' => fn() => 'value',
+                'lazyProp' => Inertia::optional(fn() => 'value'),
+                'deferredProp' => Inertia::defer(fn() => 'value'),
+                'alwaysProp' => Inertia::always(fn() => 'value'),
+            ]
+        ));
+
+        $props = $response->toResponse($overlay->request)->getData(true)['props'];
+
+        $this->assertCount(4, $props);
+        $this->assertArrayHasKey($overlay->scopedKey('prop'), $props);
+        $this->assertArrayHasKey($overlay->scopedKey('closureProp'), $props);
+        $this->assertArrayHasKey($overlay->scopedKey('lazyProp'), $props);
+        $this->assertArrayHasKey($overlay->scopedKey('alwaysProp'), $props);
+    }
+
+    public function test_GivenPropsAreAppended_WhenReloadingOverlay_AllAppendedPropsAreIncluded()
+    {
+        $overlay = new MockOverlay(MockOverlayLifecycle::ACTIVE);
+
+        $overlay->setPartialProps(
+            [
+                'prop',
+            ]
+        );
+
+        $overlay->appendProps(
+            [
+                'appendedProp' => 'value',
+                'closureAppendedProp' => fn() => 'value',
+                'lazyAppendedProp' => Inertia::optional(fn() => 'value'),
+            ]
+        );
+
+        $response = $overlay->render(new MockOverlayComponent(
+            [
+                'prop' => 'value',
+                'closureProp' => fn() => 'value',
+                'lazyProp' => Inertia::optional(fn() => 'value'),
+                'deferredProp' => Inertia::defer(fn() => 'value'),
+                'alwaysProp' => Inertia::always(fn() => 'value'),
+            ]
+        ));
+
+        $props = $response->toResponse($overlay->request)->getData(true)['props'];
+
+        $this->assertCount(5, $props);
+
+        $this->assertArrayHasKey($overlay->scopedKey('prop'), $props);
+        $this->assertArrayHasKey($overlay->scopedKey('alwaysProp'), $props);
+        $this->assertArrayHasKey($overlay->scopedKey('appendedProp'), $props);
+        $this->assertArrayHasKey($overlay->scopedKey('closureAppendedProp'), $props);
+        $this->assertArrayHasKey($overlay->scopedKey('lazyAppendedProp'), $props);
+
+        $this->assertEquals('value', $props[$overlay->scopedKey('appendedProp')]);
+        $this->assertEquals('value', $props[$overlay->scopedKey('closureAppendedProp')]);
+        $this->assertEquals('value', $props[$overlay->scopedKey('lazyAppendedProp')]);
     }
 
 

@@ -16,6 +16,5 @@ class Header
 
     public const string OVERLAY_OPENING = 'X-Inertia-Overlay-Opening';
     public const string OVERLAY_REFOCUS = 'X-Inertia-Overlay-Refocus';
-    public const string OVERLAY_DEFERRED = 'X-Inertia-Overlay-Deferred';
 
 }

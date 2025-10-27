@@ -42,7 +42,6 @@ readonly class HandleInertiaOverlayRequests
             Header::OVERLAY_ID,
             Header::OVERLAY_ACTION,
             Header::OVERLAY_REFOCUS,
-            Header::OVERLAY_DEFERRED,
         ];
 
         ray(

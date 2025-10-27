@@ -24,7 +24,6 @@ export const header = {
 
     OVERLAY_OPENING: 'X-Inertia-Overlay-Opening',
     OVERLAY_REFOCUS: 'X-Inertia-Overlay-Refocus',
-    OVERLAY_DEFERRED: 'X-Inertia-Overlay-Deferred',
 
 }
 

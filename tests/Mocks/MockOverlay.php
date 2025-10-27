@@ -36,7 +36,7 @@ class MockOverlay extends Overlay
         return 'Dashboard';
     }
 
-    public function setPartialPropKeys(array $keys): void
+    public function setPartialProps(array $keys): void
     {
         $this->request->headers->set(
             Header::PARTIAL_ONLY,
