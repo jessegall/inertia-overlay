@@ -142,21 +142,18 @@ export class Overlay {
 
     public focus(): void {
         if (this.isFocused()) return;
-        console.log(`Overlay instance "${ this.id }" focused.`);
         this.focused.value = true;
         this.onFocused.emit(this.id);
     }
 
     public blur(): void {
         if (this.isBlurred()) return;
-        console.log(`Overlay instance "${ this.id }" blurred.`);
         this.focused.value = false;
         this.onBlurred.emit(this.id);
     }
 
     public destroy(): void {
         if (this.isDestroyed()) return;
-        console.log("Destroying overlay instance:", this.id);
         this.setState('closed');
         this.unsubscribe();
         this.onStatusChange.clear();
@@ -279,7 +276,8 @@ export class Overlay {
     }
 
     public get url(): string {
-        return this.options.url;
+        const url = new URL(this.options.url, window.location.href);
+        return url.pathname + url.search;
     }
 
 }

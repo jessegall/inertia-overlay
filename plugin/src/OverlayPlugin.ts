@@ -3,7 +3,7 @@ import { App, computed, nextTick, reactive, shallowRef } from "vue";
 import { MakeOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
-import { OverlayConfig, OverlayOptions, OverlayPage, OverlayProps, OverlayState } from "./Overlay.ts";
+import { OverlayConfig, OverlayPage, OverlayProps, OverlayState } from "./Overlay.ts";
 import { Page } from "@inertiajs/core";
 import { isOverlayPage } from "./helpers.ts";
 import { usePage } from "@inertiajs/vue3";
@@ -161,8 +161,14 @@ export class OverlayPlugin {
 
     private onOverlayPageLoaded(page: OverlayPage): void {
         if (! this.overlayInstances.has(page.overlay.id)) {
-            const overlay = this.newOverlayInstance(page.overlay);
+            const overlay = this.newOverlayInstance({
+                id: page.overlay.id,
+                url: page.url,
+                props: page.props,
+                config: page.overlay.config,
+            });
             overlay.open(page);
+            overlay.focus();
         }
     }
 

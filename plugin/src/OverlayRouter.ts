@@ -2,7 +2,7 @@ import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
 import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage, OverlayResponse } from "./Overlay.ts";
-import { isOverlayPage } from "./helpers.ts";
+import { clone, isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
 import { OverlayResolver } from "./OverlayPlugin.ts";
 
@@ -12,7 +12,6 @@ export const header = {
 
     INERTIA_OVERLAY: 'X-Inertia-Overlay',
     PAGE_COMPONENT: 'X-Inertia-Overlay-Page-Component',
-    ROOT_URL: 'X-Inertia-Overlay-Root-Url',
 
     // -----[ Identification ]-----
 
@@ -34,6 +33,7 @@ export class OverlayRouter {
     // ----------[ Events ]----------
 
     public readonly onBeforeRouteVisit = new EventEmitter<PendingVisit>();
+    public readonly onBeforeRouteUpdate = new EventEmitter<Page>();
     public readonly onSuccessfulRouteVisit = new EventEmitter<Page>();
     public readonly onFinishedRouteVisit = new EventEmitter<ActiveVisit>();
     public readonly onOverlayPageLoad = new EventEmitter<OverlayPage>();
@@ -56,6 +56,7 @@ export class OverlayRouter {
 
     private setupEvents(): void {
         router.on('before', event => this.onBeforeRouteVisit.emit(event.detail.visit));
+        router.on('beforeUpdate', event => this.onBeforeRouteUpdate.emit(event.detail.page));
         router.on('success', event => this.onSuccessfulRouteVisit.emit(event.detail.page));
         router.on('finish', event => this.onFinishedRouteVisit.emit(event.detail.visit));
         router.on('navigate', event => this.onNavigated.emit(event.detail.page));
@@ -67,7 +68,17 @@ export class OverlayRouter {
             priority: -1
         });
 
-        this.onSuccessfulRouteVisit.on(page => this.handleSuccessfulRouteVisit(page));
+        this.onBeforeRouteUpdate.on({
+            handler: page => this.handleBeforeRouteUpdate(page as OverlayPage),
+            filter: page => isOverlayPage(page),
+            priority: -1
+        });
+
+        this.onSuccessfulRouteVisit.on({
+            handler: page => this.handleSuccessfulRouteVisit(page as OverlayPage),
+            filter: page => isOverlayPage(page),
+            priority: -1
+        });
     }
 
     // ----------[ Api ]----------
@@ -78,9 +89,11 @@ export class OverlayRouter {
 
         return await new Promise((resolve, reject) => router.post(overlay.url,
             {
+                _method: 'GET',
                 _props: overlay.initialProps,
             },
             {
+                preserveUrl: true,
                 headers: {
                     [header.INERTIA_OVERLAY]: 'true',
                     [header.OVERLAY_ID]: overlay.id,
@@ -110,6 +123,7 @@ export class OverlayRouter {
                 _props: overlay.initialProps,
             },
             {
+                preserveUrl: true,
                 headers: {
                     [header.INERTIA_OVERLAY]: 'true',
                     [header.OVERLAY_ID]: overlay.id,
@@ -158,7 +172,6 @@ export class OverlayRouter {
         const overlayId = this.focusedId();
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
-        visit.headers[header.ROOT_URL] = this.rootUrl.value;
 
         if (overlayId) {
             const overlay = this.overlayResolver(overlayId);
@@ -187,10 +200,6 @@ export class OverlayRouter {
 
             if (displayUrl === false) {
                 visit.preserveUrl = true;
-
-                if (! visit.data['_props']) {
-                    visit.data['_props'] = overlay.initialProps;
-                }
             }
 
             if (visit.only.length === 0) {
@@ -201,14 +210,30 @@ export class OverlayRouter {
         }
     }
 
-    private handleSuccessfulRouteVisit(page: Page): void {
-        if (isOverlayPage(page)) {
-            this.overlayConfig.value = page.overlay;
-            this.onOverlayPageLoad.emit(page);
+    private handleBeforeRouteUpdate(page: OverlayPage): void {
+        if (! this.focusedId()) {
 
-            if (typeof page.overlay.config.displayUrl === 'string') {
-                // this.url = page.overlay.config.displayUrl;
+            // Preserve page props when receiving an overlay outside the "overlay context"
+            // Frontend initiated overlays use partial requests so Inertia handles prop merging,
+            // But overlays opened via backend will trigger a full page update.
+            // In this case we need to manually merge the previous props into the new page.
+
+            const previousPageProps = clone(usePage().props);
+
+            for (const key in previousPageProps) {
+                if (! page.props.hasOwnProperty(key)) {
+                    page.props[key] = previousPageProps[key];
+                }
             }
+        }
+    }
+
+    private handleSuccessfulRouteVisit(page: OverlayPage): void {
+        this.overlayConfig.value = page.overlay;
+        this.onOverlayPageLoad.emit(page);
+
+        if (typeof page.overlay.config.displayUrl === 'string') {
+            // this.url = page.overlay.config.displayUrl;
         }
     }
 

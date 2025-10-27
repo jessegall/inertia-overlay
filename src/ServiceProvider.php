@@ -20,7 +20,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 
     private function registerOverlayRoutes(): void
     {
-        Route::middleware('web')->any('/overlay/{type}/{instance?}', OverlayController::class);
+        Route::middleware('web')->any('/overlay/{type}', OverlayController::class);
     }
 
     private function registerOverlayRegistrar(): void

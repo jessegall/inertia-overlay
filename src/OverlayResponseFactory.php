@@ -16,7 +16,15 @@ readonly class OverlayResponseFactory
     {
         $request = request();
 
-        $overlay = Overlay::fromRequest($request) ?? Overlay::new($request->query('overlay'));
+        if ($request->hasHeader(Header::INERTIA_OVERLAY)) {
+            $overlay = Overlay::fromRequest($request);
+        } else {
+            $overlay = Overlay::new($props);
+        }
+
+        if ($overlay->getPageComponent() === null) {
+            return redirect('/');
+        }
 
         if (is_string($component)) {
             $component = $this->makeComponent($component, $props);

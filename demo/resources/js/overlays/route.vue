@@ -61,7 +61,6 @@ function submitError() {
             prop: props.prop,
             closureProp: props.closureProp,
             lazyProp: props.lazyProp,
-            list: props.list,
         },
         {
             onSuccess: () => {

@@ -8,6 +8,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
+use RuntimeException;
 
 class Overlay
 {
@@ -89,11 +90,6 @@ class Overlay
     public function getUrl(): string
     {
         return $this->request->header(Header::OVERLAY_URL, $this->request->url());
-    }
-
-    public function getBaseUrl(): string
-    {
-        return $this->request->header(Header::OVERLAY_ROOT_URL, '/');
     }
 
     public function getPageComponent(): string|null
