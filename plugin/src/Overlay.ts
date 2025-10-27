@@ -141,12 +141,6 @@ export class Overlay {
         })
     }
 
-    private loadDeferredProps(): void {
-        const deferredProps = this.config.value?.deferredProps || [];
-        if (deferredProps.length === 0) return;
-        this.router.loadDeferredProps(this.id, deferredProps);
-    }
-
     public focus(): void {
         if (this.isFocused()) return;
         console.log(`Overlay instance "${ this.id }" focused.`);
@@ -225,21 +219,12 @@ export class Overlay {
 
     private handlePageLoad(page: OverlayPage): void {
         const config = page.overlay;
-        const firstLoad = this.config.value === null;
 
         this.setConfig(config);
         this.updateProps(page);
 
-        if (firstLoad) {
-            this.loadDeferredProps()
-        }
-
         if (config.closeRequested) {
             this.close();
-        }
-
-        if (page.overlay.type === 'parameterized') {
-            this.router.setSearchParam('overlay', this.instanceId);
         }
     }
 

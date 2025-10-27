@@ -4,10 +4,9 @@ namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
-use Inertia\AlwaysProp;
-use Inertia\DeferProp;
-use Inertia\IgnoreFirstLoad;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
+use Inertia\Support\Header;
 use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Contracts\SkipReloadOnRefocus;
@@ -27,83 +26,35 @@ readonly class OverlayResponse implements Responsable
         $this->props = $this->component->props($this->overlay);
     }
 
-    private function getDeferredPropKeys(): array
+    public function toResponse($request): JsonResponse
     {
-        return collect($this->props)
-            ->filter(fn($value) => $value instanceof DeferProp)
-            ->keys()
-            ->all();
-    }
-
-    private function resolveAlwaysPropKeys(): array
-    {
-        return collect($this->props)
-            ->filter(fn($value) => $value instanceof AlwaysProp)
-            ->keys()
-            ->all();
-    }
-
-    private function getLazyPropKeys(): array
-    {
-        return collect($this->props)
-            ->filter(fn($value) => $value instanceof IgnoreFirstLoad)
-            ->keys()
-            ->all();
-    }
-
-    private function resolvePartialPropKeys(): array
-    {
-        return collect($this->overlay->getPartialPropKeys())
-            ->map(fn($value) => $this->overlay->unscopedKey($value))
-            ->all();
-    }
-
-    private function resolveLifecyclePropKeys(): array
-    {
-        $keys = array_keys($this->props);
+        $props = $this->props;
+        $pageComponent = $this->overlay->getPageComponent();
 
         if ($this->overlay->isOpening()) {
-            return collect($keys)
-                ->reject(fn($key) => in_array($key, $this->getLazyPropKeys()))
-                ->all();
-        }
+            $request->headers->remove(Header::PARTIAL_COMPONENT);
+            $request->headers->remove(Header::PARTIAL_ONLY);
+        } else {
+            $request->headers->set(Header::PARTIAL_COMPONENT, $pageComponent);
 
-        if ($this->overlay->isDeferredLoading()) {
-            return collect($keys)
-                ->filter(fn($key) => in_array($key, $this->getDeferredPropKeys()))
-                ->all();
-        }
+            $partial = array_merge(
+                $this->overlay->getPartialProps(),
+                $this->overlay->getRefreshProps()
+            );
 
-        if ($this->overlay->isRefocusing()) {
-            if ($this->instanceOf(SkipReloadOnRefocus::class)) {
-                return [];
+            if ($this->overlay->isRefocusing() && $this->instanceOf(SkipReloadOnRefocus::class)) {
+                $partial = ['__dummy__'];
             }
 
-            return collect($keys)
-                ->reject(fn($key) => in_array($key, $this->getLazyPropKeys()))
-                ->all();
+            $request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', $partial));
         }
 
-        return [];
+        $response = Inertia::render($pageComponent, $props)->toResponse($request);
+
+        return $this->transformResponse($response);
     }
 
-    private function resolveProps(): array
-    {
-        $keys = collect()
-            ->merge($this->resolveAlwaysPropKeys())
-            ->merge($this->resolvePartialPropKeys())
-            ->merge($this->resolveLifecyclePropKeys())
-            ->unique()
-            ->values()
-            ->all();
-
-        return collect($this->props)
-            ->only($keys)
-            ->mapWithKeys(fn($value, $key) => [$this->overlay->scopedKey($key) => $value])
-            ->all();
-    }
-
-    private function addOverlayDataToResponse(JsonResponse $response): JsonResponse
+    private function transformResponse(JsonResponse $response): JsonResponse
     {
         $data = $response->getData(true);
 
@@ -114,29 +65,20 @@ readonly class OverlayResponse implements Responsable
             'variant' => $this->config->variant,
             'size' => $this->config->size,
             'props' => array_keys($this->props),
-            'deferredProps' => $this->getDeferredPropKeys(),
             'closeRequested' => $this->overlay->closeRequested(),
             'type' => 'hidden',
         ];
 
+        $data['props'] = collect($data['props'])
+            ->reject(fn($_, $key) => $key === '__dummy__')
+            ->pipe($this->scopeProps(...));
+
+        if (isset($data['deferredProps'])) {
+            $data['deferredProps'] = $this->scopeProps($data['deferredProps']);
+        }
+
         return $response->setData($data);
     }
-
-    public function toResponse($request): JsonResponse
-    {
-        $props = $this->resolveProps();
-        $pageComponent = $this->overlay->getPageComponent();
-
-        $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
-        $request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', array_keys($props)));
-
-        $response = Inertia::render($pageComponent, $props)->toResponse($request);
-        $response = $this->addOverlayDataToResponse($response);
-
-        return $response;
-    }
-
-    # ----------[ Helpers ]----------
 
     private function instanceOf(string $class): bool
     {
@@ -145,6 +87,13 @@ readonly class OverlayResponse implements Responsable
             $this->component;
 
         return is_subclass_of($target, $class);
+    }
+
+    private function scopeProps(Collection|array $props): array
+    {
+        return collect($props)
+            ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopedKey($key) => $prop])
+            ->all();
     }
 
 

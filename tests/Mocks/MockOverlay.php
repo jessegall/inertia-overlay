@@ -26,11 +26,6 @@ class MockOverlay extends Overlay
         return $this->state === MockOverlayLifecycle::OPENING;
     }
 
-    public function isDeferredLoading(): bool
-    {
-        return $this->state === MockOverlayLifecycle::DEFERRED_LOADING;
-    }
-
     public function isRefocusing(): bool
     {
         return $this->state === MockOverlayLifecycle::REFOCUSING;
@@ -41,12 +36,19 @@ class MockOverlay extends Overlay
         return 'Dashboard';
     }
 
+    public function setPartialPropKeys(array $keys): void
+    {
+        $this->request->headers->set(
+            Header::PARTIAL_ONLY,
+            implode(',', array_map(fn($key) => $this->scopedKey($key), $keys))
+        );
+    }
+
 }
 
 enum MockOverlayLifecycle
 {
     case OPENING;
     case REFOCUSING;
-    case DEFERRED_LOADING;
     case ACTIVE;
 }

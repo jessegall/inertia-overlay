@@ -101,19 +101,25 @@ class Overlay
         return $this->request->header(Header::OVERLAY_PAGE_COMPONENT);
     }
 
-    public function getPartialPropKeys(): array
+    public function getRefreshProps(): array
     {
-        $keys = explode(',', $this->request->header(InertiaHeader::PARTIAL_ONLY, ''));
-
         $refresh = $this->get('refresh', []);
 
         if ($refresh === true) {
-            $keys = array_keys($this->props);
+            return array_keys($this->props);
         } else if (is_array($refresh)) {
-            $keys = array_merge($keys, $refresh);
+            return $refresh;
         }
+    }
 
-        return array_values(array_unique($keys));
+    public function getPartialProps(): array
+    {
+        return collect()
+            ->merge(explode(',', $this->request->header(InertiaHeader::PARTIAL_ONLY, '')))
+            ->map($this->unscopedKey(...))
+            ->reject(fn($key) => $key === '__inertia-overlay__')
+            ->values()
+            ->all();
     }
 
     public function isOpening(): bool

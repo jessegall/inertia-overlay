@@ -126,30 +126,6 @@ export class OverlayRouter {
         ));
     }
 
-    public async loadDeferredProps(overlayId: string, deferredProps: string[]): Promise<Page> {
-        const overlay = this.overlayResolver(overlayId);
-
-        return await new Promise((resolve, reject) => router.post(overlay.url,
-            {
-                _props: overlay.initialProps,
-            },
-            {
-                only: deferredProps,
-                headers: {
-                    [header.INERTIA_OVERLAY]: 'true',
-                    [header.OVERLAY_ID]: overlay.id,
-                    [header.OVERLAY_DEFERRED]: 'true',
-                },
-                onSuccess(page) {
-                    resolve(page);
-                },
-                onError(error) {
-                    reject(error);
-                }
-            }
-        ));
-    }
-
     public async navigateToRoot(): Promise<Page> {
         if (! this.rootUrl.value) {
             console.error('No root URL stored for overlay request.');
@@ -208,7 +184,7 @@ export class OverlayRouter {
             visit.preserveScroll = true;
             visit.preserveState = true;
 
-            if (overlay.type === 'hidden' || overlay.type === 'parameterized') {
+            if (overlay.type === 'hidden') {
                 visit.preserveUrl = true;
 
                 if (! visit.data['_props']) {
@@ -217,7 +193,7 @@ export class OverlayRouter {
             }
 
             if (visit.only.length === 0) {
-                visit.only = ['__overlay_partial_reload_trigger']
+                visit.only = ['__inertia-overlay__']
             }
 
             this.previousOverlayId.value = overlayId;
