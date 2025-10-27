@@ -1,8 +1,7 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
 import { ref } from "vue";
 import { Page, PendingVisit } from "@inertiajs/core";
-import { header, OverlayRouter } from "./OverlayRouter.ts";
-import { router } from "@inertiajs/vue3";
+import { OverlayRouter } from "./OverlayRouter.ts";
 
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | '80%' | 'full';
@@ -90,6 +89,10 @@ export class Overlay {
         if (this.isDestroyed()) {
             throw new Error(`Cannot perform operation on destroyed overlay instance "${ this.id }".`);
         }
+    }
+
+    private isInitialized(): boolean {
+        return this.config.value !== null;
     }
 
     public async open(page?: OverlayPage): Promise<void> {
@@ -184,6 +187,7 @@ export class Overlay {
     }
 
     // ----------[ Internal ]----------
+
 
     public setState(state: OverlayState): void {
         if (this.state.value === state) return;

@@ -14,22 +14,16 @@ class Overlay
 
     private bool $isNew = false;
 
-    public readonly string $url;
-
     public function __construct(
         public readonly Request $request,
         public readonly string $id,
+        public readonly string $type = 'hidden',
         public array $props = [],
-        public string $type = 'parameterized',
-    )
-    {
-        $this->url = url()->current();
-    }
+    ) {}
 
     public function render(OverlayComponent $component): OverlayResponse
     {
-        $this->flash('render.component', get_class($component));
-        $this->flash('render.props', $this->props);
+        $this->flash('props', $this->props);
 
         $component = new OverlayComponentDecorator($component);
 
@@ -45,6 +39,16 @@ class Overlay
         $this->forget('refresh');
     }
 
+    public function restoreProps(): void
+    {
+        $this->props = $this->get('_props', []);
+    }
+
+    public function flashProps(): void
+    {
+        $this->flash('_props', $this->props);
+    }
+
     # ----------[ Request Headers ]----------
 
     public function getAction(): string|null
@@ -54,7 +58,7 @@ class Overlay
 
     public function getUrl(): string
     {
-        return $this->request->header(Header::OVERLAY_URL, $this->url);
+        return $this->request->header(Header::OVERLAY_URL, $this->request->url());
     }
 
     public function getBaseUrl(): string
@@ -147,6 +151,16 @@ class Overlay
         return session()->get($this->sessionKey($key), $default);
     }
 
+    public function has(string $key): bool
+    {
+        return session()->has($this->sessionKey($key));
+    }
+
+    public function pull(string $key, mixed $default = null): mixed
+    {
+        return session()->pull($this->sessionKey($key), $default);
+    }
+
     public function flash(string $key, mixed $value): void
     {
         session()->flash($this->sessionKey($key), $value);
@@ -229,18 +243,23 @@ class Overlay
 
     public static function fromRequest(Request $request): static|null
     {
-        if (! $request->hasHeader(Header::OVERLAY_ID)) {
+        if (! $id = $request->header(Header::OVERLAY_ID)) {
             return null;
         }
 
-        $props = $request->input('props', []);
+        $overlay = app(static::class, [
+            'id' => $id
+        ]);
 
-        return app(static::class,
-            [
-                'id' => $request->header(Header::OVERLAY_ID),
-                'props' => $props,
-            ]
-        );
+        if ($props = $request->get('_props')) {
+            $overlay->props = $props;
+        } else {
+            $overlay->restoreProps();
+        }
+
+        $overlay->flashProps();
+
+        return $overlay;
     }
 
 }

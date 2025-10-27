@@ -87,7 +87,7 @@ export class OverlayPlugin {
     // ----------[ Api ]----------
 
     public createOverlayFromComponent(component: string, props: OverlayProps = {}): OverlayHandle {
-        return this.createOverlay(`/overlay/${ component }`, props, 'parameterized');
+        return this.createOverlay(`/overlay/${ component }`, props, 'hidden');
     }
 
     public createOverlay(url: string, props: OverlayProps = {}, type: OverlayType = 'routed'): OverlayHandle {

@@ -97,8 +97,6 @@ readonly class OverlayResponse implements Responsable
                 ->all();
         }
 
-        ray("here");
-
         return [
             ...$this->getRefreshPropKeys(),
             ...$this->getPartialPropKeys(),
@@ -111,8 +109,6 @@ readonly class OverlayResponse implements Responsable
             ->map(fn($key) => $this->unscopeKey($key))
             ->values()
             ->all();
-
-        ray('then here', $keys);
 
         return collect($this->props)
             ->only($keys)
@@ -127,7 +123,7 @@ readonly class OverlayResponse implements Responsable
 
         $data['overlay'] = [
             'id' => $this->overlay->id,
-            'url' => $this->overlay->url,
+            'url' => $this->overlay->getUrl(),
             'instance' => $this->overlay->getInstanceKey(),
             'component' => $this->component->name(),
             'variant' => $this->config->variant,
@@ -144,11 +140,8 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        ray($request);
         $props = $this->resolveProps($request);
         $pageComponent = $this->overlay->getPageComponent();
-
-        ray('finalu here', $props);
 
         $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
         $request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', array_keys($props)));

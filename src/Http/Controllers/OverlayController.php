@@ -12,15 +12,9 @@ class OverlayController extends Controller
 
     public function __invoke(Request $request, string $component)
     {
-        $instance = $request->query('overlay');
+        $overlay = Overlay::fromRequest($request);
 
-        if ($instance) {
-            $overlay = Overlay::fromInstance($instance);
-        } else {
-            $overlay = Overlay::fromRequest($request);
-        }
-
-        return InertiaOverlay::renderUsing($component, $overlay, $request->input());
+        return InertiaOverlay::renderUsing($component, $overlay, $request->except('_props'));
     }
 
 }

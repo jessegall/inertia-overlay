@@ -79,7 +79,7 @@ export class OverlayRouter {
 
         return await new Promise((resolve, reject) => router.post(overlay.url,
             {
-                props: overlay.initialProps,
+                _props: overlay.initialProps,
             },
             {
                 headers: {
@@ -108,15 +108,13 @@ export class OverlayRouter {
         return await new Promise((resolve, reject) => router.post(overlay.url,
             {
                 ...data,
+                _props: overlay.initialProps,
             },
             {
                 headers: {
                     [header.INERTIA_OVERLAY]: 'true',
                     [header.OVERLAY_ID]: overlay.id,
                     [header.OVERLAY_ACTION]: action,
-                },
-                onBefore(visit) {
-                    visit.url.searchParams.set('overlay', overlay.id);
                 },
                 onSuccess(page) {
                     resolve(page);
@@ -133,7 +131,7 @@ export class OverlayRouter {
 
         return await new Promise((resolve, reject) => router.post(overlay.url,
             {
-                props: overlay.initialProps,
+                _props: overlay.initialProps,
             },
             {
                 only: deferredProps,
@@ -212,6 +210,10 @@ export class OverlayRouter {
 
             if (overlay.type === 'hidden' || overlay.type === 'parameterized') {
                 visit.preserveUrl = true;
+
+                if (! visit.data['_props']) {
+                    visit.data['_props'] = overlay.initialProps;
+                }
             }
 
             if (visit.only.length === 0) {
