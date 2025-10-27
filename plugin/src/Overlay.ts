@@ -11,27 +11,27 @@ export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
 export type OverlayFlag = 'skip_hydration_on_refocus' | 'use_shared_props'
 
 export interface OverlayConfig {
-    id: string,
-    component: string;
     variant: OverlayVariant;
     size: OverlaySize;
-    flags: OverlayFlag[];
-    props: string[];
-    deferredProps: string[];
-    actions: string[]
-    closeRequested: boolean;
-    url: string;
-    instance: string;
+    displayUrl: boolean | string;
 }
 
-export type OverlayPage = Page & { overlay: OverlayConfig };
-export type OverlayType = 'routed' | 'parameterized' | 'hidden';
+export interface OverlayResponse {
+    id: string,
+    url: string;
+    component: string;
+    props: string[];
+    config: OverlayConfig;
+    closeRequested: boolean;
+}
+
+export type OverlayPage = Page & { overlay: OverlayResponse };
 
 export type OverlayOptions = {
     id: string;
     url: string;
-    type: 'routed' | 'parameterized' | 'hidden';
     props: OverlayProps;
+    config?: Partial<OverlayConfig>;
 };
 
 const activeTransitions = ref<number>(0);
@@ -54,14 +54,13 @@ export class Overlay {
     public readonly state = ref<OverlayState>('closed')
     public readonly focused = ref<boolean>(false);
     public readonly props = ref<OverlayProps | null>(null);
+    public readonly component = ref<string | null>(null);
     public readonly config = ref<OverlayConfig | null>(null);
 
     constructor(
         private readonly router: OverlayRouter,
         public readonly options: OverlayOptions,
-    ) {
-
-    }
+    ) {}
 
     // ----------[ Event Listeners ]----------
 
@@ -182,15 +181,21 @@ export class Overlay {
 
     // ----------[ Internal ]----------
 
-
-    public setState(state: OverlayState): void {
+    private setState(state: OverlayState): void {
         if (this.state.value === state) return;
         this.state.value = state;
         this.onStatusChange.emit(state);
     }
 
+    private setComponent(component: string): void {
+        this.component.value = component;
+    }
+
     private setConfig(config: OverlayConfig): void {
-        this.config.value = config;
+        this.config.value = {
+            ...config,
+            ...this.options.config,
+        }
     }
 
     private updateProps(page: OverlayPage): void {
@@ -218,12 +223,11 @@ export class Overlay {
     }
 
     private handlePageLoad(page: OverlayPage): void {
-        const config = page.overlay;
-
-        this.setConfig(config);
+        this.setComponent(page.overlay.component);
+        this.setConfig(page.overlay.config);
         this.updateProps(page);
 
-        if (config.closeRequested) {
+        if (page.overlay.closeRequested) {
             this.close();
         }
     }
@@ -276,14 +280,6 @@ export class Overlay {
 
     public get url(): string {
         return this.options.url;
-    }
-
-    public get type(): OverlayType {
-        return this.options.type;
-    }
-
-    public get instanceId(): string {
-        return this.config.value?.instance || null;
     }
 
 }

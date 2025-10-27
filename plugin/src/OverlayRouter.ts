@@ -1,7 +1,7 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
 import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
-import { OverlayConfig, OverlayPage } from "./Overlay.ts";
+import { OverlayPage, OverlayResponse } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
 import { OverlayResolver } from "./OverlayPlugin.ts";
@@ -30,7 +30,7 @@ export const header = {
 
 export class OverlayRouter {
 
-    public readonly overlayConfig = ref<OverlayConfig>(null);
+    public readonly overlayConfig = ref<OverlayResponse>(null);
 
     // ----------[ Events ]----------
 
@@ -184,7 +184,9 @@ export class OverlayRouter {
             visit.preserveScroll = true;
             visit.preserveState = true;
 
-            if (overlay.type === 'hidden') {
+            const displayUrl = overlay.config?.displayUrl ?? overlay.options.config?.displayUrl;
+
+            if (displayUrl === false) {
                 visit.preserveUrl = true;
 
                 if (! visit.data['_props']) {
@@ -204,6 +206,10 @@ export class OverlayRouter {
         if (isOverlayPage(page)) {
             this.overlayConfig.value = page.overlay;
             this.onOverlayPageLoad.emit(page);
+
+            if (typeof page.overlay.config.displayUrl === 'string') {
+                // this.url = page.overlay.config.displayUrl;
+            }
         }
     }
 
@@ -223,11 +229,14 @@ export class OverlayRouter {
 
     // ----------[ Accessors ]----------
 
-    public get url() {
+    public get url(): URL {
         return new URL(usePage().url, window.location.origin);
     }
 
-    public set url(url: URL) {
+    public set url(url: URL | string) {
+        if (typeof url === 'string') {
+            url = new URL(url, window.location.origin);
+        }
         router.replace({ url: url.toString() });
     }
 

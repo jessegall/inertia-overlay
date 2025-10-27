@@ -12,6 +12,7 @@ class OverlayConfig implements Arrayable
     public function __construct(
         public OverlayVariant $variant = OverlayVariant::MODAL,
         public OverlaySize $size = OverlaySize::XL2,
+        public bool|string $displayUrl = true,
     ) {}
 
     public function toArray(): array
@@ -19,6 +20,7 @@ class OverlayConfig implements Arrayable
         return [
             'variant' => $this->variant->value,
             'size' => $this->size->value,
+            'displayUrl' => $this->displayUrl,
         ];
     }
 

@@ -1,9 +1,9 @@
 import { OverlayStack } from "./OverlayStack.ts";
 import { App, computed, nextTick, reactive, shallowRef } from "vue";
-import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
+import { MakeOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
-import { OverlayOptions, OverlayPage, OverlayProps, OverlayState, OverlayType } from "./Overlay.ts";
+import { OverlayConfig, OverlayOptions, OverlayPage, OverlayProps, OverlayState } from "./Overlay.ts";
 import { Page } from "@inertiajs/core";
 import { isOverlayPage } from "./helpers.ts";
 import { usePage } from "@inertiajs/vue3";
@@ -20,12 +20,6 @@ export interface OverlayHandle {
     open: () => Promise<void>;
     close: () => Promise<void>;
 }
-
-export type CreateOverlayOptions = Omit<OverlayOptions, 'id'>;
-
-export type NewInstanceOptions = CreateOverlayOptions & {
-    id?: string;
-};
 
 export type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
 
@@ -87,10 +81,10 @@ export class OverlayPlugin {
     // ----------[ Api ]----------
 
     public createOverlayFromComponent(component: string, props: OverlayProps = {}): OverlayHandle {
-        return this.createOverlay(`/overlay/${ component }`, props, 'hidden');
+        return this.createOverlay(`/overlay/${ component }`, props, { displayUrl: false });
     }
 
-    public createOverlay(url: string, props: OverlayProps = {}, type: OverlayType = 'routed'): OverlayHandle {
+    public createOverlay(url: string, props: OverlayProps = {}, config?: Partial<OverlayConfig>): OverlayHandle {
         const instance = shallowRef<ReadonlyOverlay>(null);
 
         // We create a fresh overlay instance on each open() to prevent memory leaks.
@@ -105,7 +99,7 @@ export class OverlayPlugin {
             state: computed(() => instance.value?.state || 'closed'),
             open: async () => {
                 if (instance.value) return;
-                instance.value = this.newOverlayInstance({ url, props, type }, () => instance.value = null);
+                instance.value = this.newOverlayInstance({ url, props, config }, () => instance.value = null);
                 await instance.value.open();
             },
             close: async () => {
@@ -125,7 +119,7 @@ export class OverlayPlugin {
 
     // ----------[ Internal ]----------
 
-    private newOverlayInstance(options: NewInstanceOptions, onClosed?: () => void): ReadonlyOverlay {
+    private newOverlayInstance(options: MakeOverlayOptions, onClosed?: () => void): ReadonlyOverlay {
         const overlay = this.factory.make(options);
         this.overlayInstances.set(overlay.id, overlay);
 
