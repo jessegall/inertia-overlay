@@ -28,7 +28,7 @@ export const header = {
 
 export class OverlayRouter {
 
-    public readonly overlayConfig = ref<OverlayResponse>(null);
+    public readonly overlayPage = ref<OverlayResponse>(null);
 
     // ----------[ Events ]----------
 
@@ -64,18 +64,21 @@ export class OverlayRouter {
 
     private setupListeners(): void {
         this.onBeforeRouteVisit.on({
-            handler: visit => this.handleBeforeRouteVisit(visit),
+            handler: visit => this.prepareRouteVisit(visit),
             priority: -1
         });
 
         this.onBeforeRouteUpdate.on({
-            handler: page => this.handleBeforeRouteUpdate(page as OverlayPage),
+            handler: page => this.preservePageProps(page as OverlayPage),
             filter: page => isOverlayPage(page),
             priority: -1
         });
 
         this.onSuccessfulRouteVisit.on({
-            handler: page => this.handleSuccessfulRouteVisit(page as OverlayPage),
+            handler: page => {
+                this.setOverlayPage(page as OverlayPage);
+                this.onOverlayPageLoad.emit(page as OverlayPage);
+            },
             filter: page => isOverlayPage(page),
             priority: -1
         });
@@ -165,9 +168,9 @@ export class OverlayRouter {
         this.rootUrl.value = _url.toString();
     }
 
-    // ----------[ Event Handlers ]----------
+    // ----------[ Internal ]----------
 
-    private handleBeforeRouteVisit(visit: PendingVisit): void {
+    private prepareRouteVisit(visit: PendingVisit): void {
         const page = usePage();
         const overlayId = this.focusedId();
 
@@ -203,14 +206,14 @@ export class OverlayRouter {
             }
 
             if (visit.only.length === 0) {
-                visit.only = ['__inertia-overlay__']
+                visit.only = ['__inertia-overlay__'];
             }
 
             this.previousOverlayId.value = overlayId;
         }
     }
 
-    private handleBeforeRouteUpdate(page: OverlayPage): void {
+    private preservePageProps(page: OverlayPage): void {
         if (! this.focusedId()) {
 
             // Preserve page props when receiving an overlay outside the "overlay context"
@@ -218,23 +221,17 @@ export class OverlayRouter {
             // But overlays opened via backend will trigger a full page update.
             // In this case we need to manually merge the previous props into the new page.
 
-            const previousPageProps = clone(usePage().props);
-
+            const previousPageProps = usePage().props;
             for (const key in previousPageProps) {
                 if (! page.props.hasOwnProperty(key)) {
-                    page.props[key] = previousPageProps[key];
+                    page.props[key] = clone(previousPageProps[key]);
                 }
             }
         }
     }
 
-    private handleSuccessfulRouteVisit(page: OverlayPage): void {
-        this.overlayConfig.value = page.overlay;
-        this.onOverlayPageLoad.emit(page);
-
-        if (typeof page.overlay.config.displayUrl === 'string') {
-            // this.url = page.overlay.config.displayUrl;
-        }
+    private setOverlayPage(page: OverlayPage): void {
+        this.overlayPage.value = page.overlay;
     }
 
     // ----------[ Helpers ]----------
