@@ -4,13 +4,13 @@ namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Inertia\AlwaysProp;
 use Inertia\DeferProp;
 use Inertia\IgnoreFirstLoad;
 use Inertia\Inertia;
 use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use JesseGall\InertiaOverlay\Enums\OverlayFlag;
+use JesseGall\InertiaOverlay\Contracts\SkipReloadOnRefocus;
 
 readonly class OverlayResponse implements Responsable
 {
@@ -27,31 +27,18 @@ readonly class OverlayResponse implements Responsable
         $this->props = $this->component->props($this->overlay);
     }
 
-    private function scopeKey(string $key): string
-    {
-        return "{$this->overlay->id}:{$key}";
-    }
-
-    private function unscopeKey(string $scopedKey): string
-    {
-        return str_replace("{$this->overlay->id}:", '', $scopedKey);
-    }
-
-    private function getRefreshPropKeys(): array
-    {
-        $keys = $this->overlay->getRefreshProps();
-
-        if ($keys === true) {
-            return array_keys($this->props);
-        }
-
-        return array_values($keys ?: []);
-    }
-
     private function getDeferredPropKeys(): array
     {
         return collect($this->props)
             ->filter(fn($value) => $value instanceof DeferProp)
+            ->keys()
+            ->all();
+    }
+
+    private function resolveAlwaysPropKeys(): array
+    {
+        return collect($this->props)
+            ->filter(fn($value) => $value instanceof AlwaysProp)
             ->keys()
             ->all();
     }
@@ -64,14 +51,14 @@ readonly class OverlayResponse implements Responsable
             ->all();
     }
 
-    private function getPartialPropKeys(): array
+    private function resolvePartialPropKeys(): array
     {
-        return collect($this->overlay->getPartialProps())
-            ->map(fn($value) => $this->unscopeKey($value))
+        return collect($this->overlay->getPartialPropKeys())
+            ->map(fn($value) => $this->overlay->unscopedKey($value))
             ->all();
     }
 
-    private function resolvePropKeys(Request $request): array
+    private function resolveLifecyclePropKeys(): array
     {
         $keys = array_keys($this->props);
 
@@ -81,14 +68,14 @@ readonly class OverlayResponse implements Responsable
                 ->all();
         }
 
-        if ($this->overlay->isLoadingDeferred()) {
+        if ($this->overlay->isDeferredLoading()) {
             return collect($keys)
                 ->filter(fn($key) => in_array($key, $this->getDeferredPropKeys()))
                 ->all();
         }
 
         if ($this->overlay->isRefocusing()) {
-            if ($this->config->hasFlag(OverlayFlag::SKIP_REFRESH_ON_REFOCUS)) {
+            if ($this->instanceOf(SkipReloadOnRefocus::class)) {
                 return [];
             }
 
@@ -97,23 +84,22 @@ readonly class OverlayResponse implements Responsable
                 ->all();
         }
 
-        return [
-            ...$this->getRefreshPropKeys(),
-            ...$this->getPartialPropKeys(),
-        ];
+        return [];
     }
 
-    private function resolveProps(Request $request): array
+    private function resolveProps(): array
     {
-        $keys = collect($this->resolvePropKeys($request))
-            ->map(fn($key) => $this->unscopeKey($key))
+        $keys = collect()
+            ->merge($this->resolveAlwaysPropKeys())
+            ->merge($this->resolvePartialPropKeys())
+            ->merge($this->resolveLifecyclePropKeys())
+            ->unique()
             ->values()
             ->all();
 
         return collect($this->props)
             ->only($keys)
-            ->merge($this->overlay->getAppendProps())
-            ->mapWithKeys(fn($value, $key) => [$this->scopeKey($key) => $value])
+            ->mapWithKeys(fn($value, $key) => [$this->overlay->scopedKey($key) => $value])
             ->all();
     }
 
@@ -124,15 +110,13 @@ readonly class OverlayResponse implements Responsable
         $data['overlay'] = [
             'id' => $this->overlay->id,
             'url' => $this->overlay->getUrl(),
-            'instance' => $this->overlay->getInstanceKey(),
             'component' => $this->component->name(),
             'variant' => $this->config->variant,
             'size' => $this->config->size,
-            'flags' => $this->config->flags,
             'props' => array_keys($this->props),
             'deferredProps' => $this->getDeferredPropKeys(),
             'closeRequested' => $this->overlay->closeRequested(),
-            'type' => $this->overlay->type,
+            'type' => 'hidden',
         ];
 
         return $response->setData($data);
@@ -140,7 +124,7 @@ readonly class OverlayResponse implements Responsable
 
     public function toResponse($request): JsonResponse
     {
-        $props = $this->resolveProps($request);
+        $props = $this->resolveProps();
         $pageComponent = $this->overlay->getPageComponent();
 
         $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
@@ -151,5 +135,17 @@ readonly class OverlayResponse implements Responsable
 
         return $response;
     }
+
+    # ----------[ Helpers ]----------
+
+    private function instanceOf(string $class): bool
+    {
+        $target = $this->component instanceof OverlayComponentDecorator ?
+            $this->component->getWrappedComponent() :
+            $this->component;
+
+        return is_subclass_of($target, $class);
+    }
+
 
 }

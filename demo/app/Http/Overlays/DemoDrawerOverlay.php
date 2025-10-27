@@ -43,7 +43,7 @@ class DemoDrawerOverlay implements OverlayComponent
     {
         $random = rand(1111, 9999);
         $overlay->put('message', "Message from action testAction(): {$random}");
-        $overlay->refresh('message');
+        $overlay->refreshProps('message');
     }
 
     #[OverlayAction('resize')]
@@ -51,7 +51,7 @@ class DemoDrawerOverlay implements OverlayComponent
     {
         $overlay->put('size', OverlaySize::cases()[array_rand(OverlaySize::cases())]);
 
-        $overlay->append([
+        $overlay->appendProps([
             'someData' => 'This is some data added after resizing the overlay',
             'anotherData' => 'This is another data added after resizing the overlay',
             'randomNumber' => rand(1000, 9999),

@@ -17,14 +17,11 @@ class Overlay
     public function __construct(
         public readonly Request $request,
         public readonly string $id,
-        public readonly string $type = 'hidden',
-        public array $props = [],
+        private array $props = [],
     ) {}
 
     public function render(OverlayComponent $component): OverlayResponse
     {
-        $this->flash('props', $this->props);
-
         $component = new OverlayComponentDecorator($component);
 
         if ($action = $this->getAction()) {
@@ -34,22 +31,55 @@ class Overlay
         return new OverlayResponse($this, $component);
     }
 
-    public function reset(): void
+    public function scopedKey(string $key): string
     {
-        $this->forget('refresh');
+        return "{$this->id}:{$key}";
     }
 
-    public function restoreProps(): void
+    public function unscopedKey(string $scopedKey): string
     {
-        $this->props = $this->get('_props', []);
+        return str_replace("{$this->id}:", '', $scopedKey);
     }
 
-    public function flashProps(): void
+    # ----------[ Props ]----------
+
+    public function getProps(): array
     {
-        $this->flash('_props', $this->props);
+        return $this->props;
     }
 
-    # ----------[ Request Headers ]----------
+    public function setProps(array $props): void
+    {
+        $this->props = $props;
+        $this->flashProps();
+    }
+
+    public function mergeProps(array $props): void
+    {
+        $this->setProps(array_merge($this->props, $props));
+    }
+
+    public function appendProps(array $props): void
+    {
+        $this->mergeProps($props);
+        $this->refreshProps(array_keys($props));
+    }
+
+    public function refreshProps(array|string|null $keys = null): void
+    {
+        if ($this->get('refresh') === true) {
+            return;
+        }
+
+        if ($keys === null) {
+            $this->flash('refresh', true);
+        } else {
+            $current = $this->get('refresh', []);
+            $this->flash('refresh', array_merge($current, Arr::wrap($keys)));
+        }
+    }
+
+    # ----------[ Getters ]----------
 
     public function getAction(): string|null
     {
@@ -71,6 +101,21 @@ class Overlay
         return $this->request->header(Header::OVERLAY_PAGE_COMPONENT);
     }
 
+    public function getPartialPropKeys(): array
+    {
+        $keys = explode(',', $this->request->header(InertiaHeader::PARTIAL_ONLY, ''));
+
+        $refresh = $this->get('refresh', []);
+
+        if ($refresh === true) {
+            $keys = array_keys($this->props);
+        } else if (is_array($refresh)) {
+            $keys = array_merge($keys, $refresh);
+        }
+
+        return array_values(array_unique($keys));
+    }
+
     public function isOpening(): bool
     {
         return $this->isNew || filter_var($this->request->header(Header::OVERLAY_OPENING), FILTER_VALIDATE_BOOLEAN);
@@ -81,7 +126,7 @@ class Overlay
         return filter_var($this->request->header(Header::OVERLAY_REFOCUS), FILTER_VALIDATE_BOOLEAN);
     }
 
-    public function isLoadingDeferred(): bool
+    public function isDeferredLoading(): bool
     {
         return filter_var($this->request->header(Header::OVERLAY_DEFERRED), FILTER_VALIDATE_BOOLEAN);
     }
@@ -100,50 +145,19 @@ class Overlay
 
     # ----------[ Session ]----------
 
-    public function getPreviousRenderComponent(): string|null
+    public function reset(): void
     {
-        return $this->get('render.component');
+        $this->forget('refresh');
     }
 
-    public function getPreviousRenderProps(): array
+    public function restoreProps(): void
     {
-        return $this->get('render.props', []);
+        $this->props = $this->get('_props', []);
     }
 
-    public function isFullRefreshRequested(): bool
+    public function flashProps(): void
     {
-        return $this->get('refresh') === true;
-    }
-
-    public function getRefreshProps(): array|bool
-    {
-        return $this->get('refresh', false);
-    }
-
-    public function getPartialProps(): array
-    {
-        return explode(',', $this->request->header(InertiaHeader::PARTIAL_ONLY, ''));
-    }
-
-    public function refresh(array|string|null $data = null): void
-    {
-        if ($data === null) {
-            $this->flash('refresh', true);
-        } elseif (! $this->isFullRefreshRequested()) {
-            $current = $this->get('refresh', []);
-            $this->flash('refresh', array_merge($current, Arr::wrap($data)));
-        }
-    }
-
-    public function append(array $data): void
-    {
-        $this->flash('append', $data);
-        $this->refresh(array_keys($data));
-    }
-
-    public function getAppendProps(): array
-    {
-        return $this->get('append', []);
+        $this->flash('_props', $this->props);
     }
 
     public function get(string|null $key = null, mixed $default = null): mixed
@@ -194,22 +208,6 @@ class Overlay
         return "overlay.{$this->id}.{$key}";
     }
 
-    # ----------[ Instance ]----------
-
-    public function getInstanceKey(): string
-    {
-        return implode(':', [
-            $this->id,
-            $this->encodeProps(),
-        ]);
-    }
-
-    private function encodeProps(): string
-    {
-        $json = json_encode($this->props);
-        return base64_encode($json === false ? '' : $json);
-    }
-
     # ----------[ Factory ]----------
 
     public static function new(array $props = []): static
@@ -224,21 +222,6 @@ class Overlay
         $overlay->isNew = true;
 
         return $overlay;
-    }
-
-    public static function fromInstance(string $instance): static
-    {
-        [$id, $props] = explode(':', $instance, 2);
-        $propsJson = base64_decode($props);
-        $props = json_decode($propsJson, true) ?? [];
-
-        return app(static::class,
-            [
-                'id' => $id,
-                'props' => $props,
-                'type' => 'parameterized'
-            ]
-        );
     }
 
     public static function fromRequest(Request $request): static|null

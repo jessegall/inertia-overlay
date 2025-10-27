@@ -25,7 +25,7 @@ class OverlayComponentDecorator implements OverlayComponent
     private array $actions;
 
     public function __construct(
-        public readonly OverlayComponent $component,
+        private readonly OverlayComponent $component,
     )
     {
         $this->actions = $this->resolveActions($component);
@@ -42,6 +42,11 @@ class OverlayComponentDecorator implements OverlayComponent
         return app()->call($callback, [
             'overlay' => $overlay,
         ]);
+    }
+
+    public function getWrappedComponent(): OverlayComponent
+    {
+        return $this->component;
     }
 
     # ----------[ OverlayComponent ]----------
