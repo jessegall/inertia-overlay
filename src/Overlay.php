@@ -28,6 +28,9 @@ class Overlay
 
     public function render(OverlayComponent $component): OverlayResponse
     {
+        $this->flash('render.component', get_class($component));
+        $this->flash('render.props', $this->props);
+
         $component = new OverlayComponentDecorator($component);
 
         if ($action = $this->getAction()) {
@@ -47,6 +50,11 @@ class Overlay
     public function getAction(): string|null
     {
         return $this->request->header(Header::OVERLAY_ACTION);
+    }
+
+    public function getUrl(): string
+    {
+        return $this->request->header(Header::OVERLAY_URL, $this->url);
     }
 
     public function getBaseUrl(): string
@@ -87,6 +95,16 @@ class Overlay
     }
 
     # ----------[ Session ]----------
+
+    public function getPreviousRenderComponent(): string|null
+    {
+        return $this->get('render.component');
+    }
+
+    public function getPreviousRenderProps(): array
+    {
+        return $this->get('render.props', []);
+    }
 
     public function isFullRefreshRequested(): bool
     {

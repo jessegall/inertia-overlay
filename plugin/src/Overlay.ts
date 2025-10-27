@@ -60,7 +60,9 @@ export class Overlay {
     constructor(
         private readonly router: OverlayRouter,
         public readonly options: OverlayOptions,
-    ) {}
+    ) {
+
+    }
 
     // ----------[ Event Listeners ]----------
 

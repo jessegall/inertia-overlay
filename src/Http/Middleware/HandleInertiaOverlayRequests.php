@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay\Http\Middleware;
 
 use Closure;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use JesseGall\InertiaOverlay\Header;
 use JesseGall\InertiaOverlay\Overlay;
@@ -16,12 +17,27 @@ readonly class HandleInertiaOverlayRequests
     {
         if ($request->hasHeader(Header::INERTIA_OVERLAY)) {
             $overlay = Overlay::fromRequest($request);
+            $this->printDebugInformation($request);
 
-            if ($request->method() !== 'GET') {
-                $overlay->refresh();
+            $response = $next($request);
+            
+            if ($response instanceof RedirectResponse) {
+                $redirectUrl = strtok($response->getTargetUrl(), '?');
+                $requestUrl = strtok($request->url(), '?');
+
+                if ($redirectUrl === $requestUrl) {
+                    $originalQuery = parse_url($response->getTargetUrl(), PHP_URL_QUERY);
+                    $newUrl = $overlay->getUrl();
+
+                    if ($originalQuery) {
+                        $newUrl .= (parse_url($newUrl, PHP_URL_QUERY) ? '&' : '?') . $originalQuery;
+                    }
+
+                    $response->setTargetUrl($newUrl);
+                }
             }
 
-            $this->printDebugInformation($request);
+            return $response;
         }
 
         return $next($request);

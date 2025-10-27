@@ -17,6 +17,7 @@ export const header = {
     // -----[ Identification ]-----
 
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
+    OVERLAY_URL: 'X-Inertia-Overlay-Url',
     OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
 
     // -----[ Lifecycle ]-----
@@ -194,6 +195,8 @@ export class OverlayRouter {
             if (! visit.headers[header.OVERLAY_ID]) {
                 visit.headers[header.OVERLAY_ID] = overlay.id;
             }
+
+            visit.headers[header.OVERLAY_URL] = overlay.url;
 
             if (this.previousOverlayId.value !== overlay.id && overlay.hasState('open')) {
                 visit.headers[header.OVERLAY_REFOCUS] = 'true';
