@@ -29,7 +29,6 @@ class DemoModal implements OverlayComponent, AppliesMiddleware
         return new OverlayConfig(
             variant: OverlayVariant::MODAL,
             size: $overlay->remember('size', OverlaySize::cases()[array_rand(OverlaySize::cases())]),
-            flags: []
         );
     }
 

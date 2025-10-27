@@ -167,6 +167,7 @@ export class OverlayPlugin {
                 props: page.props,
                 config: page.overlay.config,
             });
+
             overlay.open(page);
             overlay.focus();
         }

@@ -2,7 +2,7 @@ import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
 import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage, OverlayResponse } from "./Overlay.ts";
-import { clone, isOverlayPage } from "./helpers.ts";
+import { deepToRaw, isOverlayPage } from "./helpers.ts";
 import { ref } from "vue";
 import { OverlayResolver } from "./OverlayPlugin.ts";
 
@@ -150,6 +150,8 @@ export class OverlayRouter {
 
         const rootUrl = new URL(this.rootUrl.value);
 
+        console.log('Navigating to root URL:', rootUrl.href);
+
         return await new Promise(resolve => router.visit(rootUrl.href,
             {
                 preserveState: true,
@@ -221,10 +223,10 @@ export class OverlayRouter {
             // But overlays opened via backend will trigger a full page update.
             // In this case we need to manually merge the previous props into the new page.
 
-            const previousPageProps = usePage().props;
+            const previousPageProps = deepToRaw(usePage().props);
             for (const key in previousPageProps) {
                 if (! page.props.hasOwnProperty(key)) {
-                    page.props[key] = clone(previousPageProps[key]);
+                    page.props[key] = previousPageProps[key];
                 }
             }
         }

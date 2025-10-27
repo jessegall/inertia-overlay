@@ -1,6 +1,6 @@
 import { Page } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
-import { Reactive, reactive, shallowReadonly } from 'vue';
+import { Reactive, reactive, shallowReadonly, toRaw } from 'vue';
 
 export function clone(value: any): any {
     if (value === null || value === undefined) {
@@ -48,4 +48,21 @@ export function unscopeData(instanceId: string, props: Record<string, any>): Rec
     }
 
     return unscoped;
+}
+
+export function deepToRaw(obj: any): any {
+    const raw = toRaw(obj)
+
+    if (Array.isArray(raw)) {
+        return raw.map(deepToRaw)
+    }
+
+    if (raw !== null && typeof raw === 'object') {
+        return Object.keys(raw).reduce((acc, key) => {
+            acc[key] = deepToRaw(raw[key])
+            return acc
+        }, {})
+    }
+
+    return raw
 }
