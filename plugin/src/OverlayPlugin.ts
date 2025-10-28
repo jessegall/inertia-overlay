@@ -1,9 +1,9 @@
 import { OverlayStack } from "./OverlayStack.ts";
 import { App, computed, nextTick, reactive, shallowRef } from "vue";
-import { MakeOverlayOptions, OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
+import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
-import { OverlayConfig, OverlayPage, OverlayProps, OverlayState } from "./Overlay.ts";
+import { OverlayPage, OverlayProps, OverlayState } from "./Overlay.ts";
 import { Page } from "@inertiajs/core";
 import { isOverlayPage } from "./helpers.ts";
 import { usePage } from "@inertiajs/vue3";
@@ -74,18 +74,29 @@ export class OverlayPlugin {
     private initialize(): void {
         const page = usePage();
         if (isOverlayPage(page)) {
-
+            const handle = this.createOverlayFromPage(page);
+            handle.open();
         }
     }
 
     // ----------[ Api ]----------
 
-    public createOverlayFromComponent(component: string, props: OverlayProps = {}): OverlayHandle {
-        return this.createOverlay(`/overlay/${ component }`, props, { displayUrl: false });
+    public createOverlayFromUrl(url: string, props: OverlayProps = {}): OverlayHandle {
+        return this.createOverlay(() => this.factory.make({
+            url: url,
+            props: props,
+        }));
     }
 
-    public createOverlay(url: string, props: OverlayProps = {}, config?: Partial<OverlayConfig>): OverlayHandle {
-        const instance = shallowRef<ReadonlyOverlay>(null);
+    public createOverlayFromComponent(component: string, props: OverlayProps = {}): OverlayHandle {
+        return this.createOverlayFromUrl(`/overlay/${ component }`, props);
+    }
+
+    public createOverlayFromPage(page: OverlayPage): OverlayHandle {
+        return this.createOverlay(() => this.factory.makeFromPage(page));
+    }
+
+    public createOverlay(create: () => ReadonlyOverlay): OverlayHandle {
 
         // We create a fresh overlay instance on each open() to prevent memory leaks.
         // While overlays can technically be reopened, destroying and recreating ensures
@@ -94,12 +105,15 @@ export class OverlayPlugin {
         // onUnmounted to determine when cleanup should occur, making explicit destruction
         // on each close the safer approach.
 
+        const instance = shallowRef<ReadonlyOverlay>(null);
+
         return reactive({
             id: computed(() => instance.value?.id),
             state: computed(() => instance.value?.state || 'closed'),
             open: async () => {
                 if (instance.value) return;
-                instance.value = this.newOverlayInstance({ url, props, config }, () => instance.value = null);
+                const overlay = create();
+                instance.value = this.registerInstance(overlay, () => instance.value = null);
                 await instance.value.open();
             },
             close: async () => {
@@ -119,8 +133,8 @@ export class OverlayPlugin {
 
     // ----------[ Internal ]----------
 
-    private newOverlayInstance(options: MakeOverlayOptions, onClosed?: () => void): ReadonlyOverlay {
-        const overlay = this.factory.make(options);
+    private registerInstance(overlay: ReadonlyOverlay, onClosed?: () => void): ReadonlyOverlay {
+
         this.overlayInstances.set(overlay.id, overlay);
 
         overlay.onStatusChange.on((status) => {
@@ -161,25 +175,8 @@ export class OverlayPlugin {
 
     private onOverlayPageLoaded(page: OverlayPage): void {
         if (! this.overlayInstances.has(page.overlay.id)) {
-            const overlayId = page.overlay.id;
-            const props: Record<string, any> = {};
-
-            for (const [key, value] of Object.entries(page.props)) {
-                if (key.startsWith(overlayId)) {
-                    const [, _key] = key.split(':');
-                    props[_key] = value
-                }
-            }
-
-            const overlay = this.newOverlayInstance({
-                id: page.overlay.id,
-                url: page.url,
-                props: props,
-                config: page.overlay.config,
-            });
-
-            overlay.openFromPage(page);
-            overlay.focus();
+            const handle = this.createOverlayFromPage(page);
+            handle.open();
         }
     }
 

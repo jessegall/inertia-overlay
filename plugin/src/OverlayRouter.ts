@@ -71,7 +71,7 @@ export class OverlayRouter {
 
         this.onBeforeRouteUpdate.on({
             handler: page => {
-                this.preservePageProps(page);
+                this.preservePageDetails(page);
             },
             filter: isOverlayPage,
             priority: -1
@@ -160,9 +160,6 @@ export class OverlayRouter {
             {
                 preserveState: true,
                 preserveScroll: true,
-                onBefore(visit: Visit) {
-
-                },
                 onSuccess: (page) => {
                     this.url = rootUrl;
                     resolve(page);
@@ -208,7 +205,7 @@ export class OverlayRouter {
         }
     }
 
-    private preservePageProps(page: OverlayPage): void {
+    private preservePageDetails(page: OverlayPage): void {
         if (! this.focusedId()) {
 
             page.url = this.rootUrl.value;

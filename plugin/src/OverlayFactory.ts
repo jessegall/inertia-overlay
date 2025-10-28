@@ -1,4 +1,4 @@
-import { Overlay, OverlayConfig, OverlayOptions } from "./Overlay.ts";
+import { Overlay, OverlayConfig, OverlayOptions, OverlayPage } from "./Overlay.ts";
 import { randomString, toReadonly } from "./helpers.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { Reactive } from "vue";
@@ -24,6 +24,23 @@ export class OverlayFactory {
         });
 
         return toReadonly(overlay);
+    }
+
+    public makeFromPage(page: OverlayPage): ReadonlyOverlay {
+        const overlayId = page.overlay.id;
+        const props: Record<string, any> = {};
+
+        for (const [key, value] of Object.entries(page.props)) {
+            if (key.startsWith(overlayId)) {
+                const [, _key] = key.split(':');
+                props[_key] = value
+            }
+        }
+
+        return this.make({
+            ...page.overlay,
+            props: props,
+        });
     }
 
 }
