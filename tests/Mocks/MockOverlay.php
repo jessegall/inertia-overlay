@@ -8,27 +8,17 @@ use JesseGall\InertiaOverlay\Overlay;
 class MockOverlay extends Overlay
 {
 
-    public function __construct(
-        public MockOverlayLifecycle $state,
-    )
+    public static function make(): static
     {
         $request = request();
         $request->headers->set(Header::INERTIA, 'true');
 
-        parent::__construct(
-            request: $request,
-            id: 'mock-overlay',
-        );
-    }
-
-    public function isOpening(): bool
-    {
-        return $this->state === MockOverlayLifecycle::OPENING;
-    }
-
-    public function isRefocusing(): bool
-    {
-        return $this->state === MockOverlayLifecycle::REFOCUSING;
+        return app(static::class, [
+            'request' => $request,
+            'component' => 'Dashboard',
+            'id' => 'mock-overlay-id',
+            'url' => url()->current(),
+        ]);
     }
 
     public function getPageComponent(): string
@@ -42,6 +32,16 @@ class MockOverlay extends Overlay
             Header::PARTIAL_ONLY,
             implode(',', array_map(fn($key) => $this->scopePropKey($key), $keys))
         );
+    }
+
+    public function setIsOpening(bool $value): void
+    {
+        $this->isOpening = $value;
+    }
+
+    public function setIsRefocusing(bool $value): void
+    {
+        $this->isRefocusing = $value;
     }
 
 }

@@ -12,7 +12,11 @@ class OverlayController extends Controller
 
     public function __invoke(Request $request, string $component)
     {
-        return Inertia::overlay($component);
+        if (base64_encode(base64_decode($component, true)) === $component) {
+            $component = base64_decode($component);
+        }
+
+        return Inertia::overlay($component, $request->only($request->get('_props')));
     }
 
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\Contracts\SkipReloadOnRefocus;
+use JesseGall\InertiaOverlay\OverlayResponse;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use Orchestra\Testbench\TestCase;
 use Tests\Mocks\MockOverlay;
@@ -16,9 +17,10 @@ class OverlayResponseTest extends TestCase
 
     public function test_WhenOpeningOverlay_AllNonLazyPropsAreIncluded()
     {
-        $overlay = new MockOverlay(MockOverlayLifecycle::OPENING);
+        $overlay = MockOverlay::make();
+        $overlay->setIsOpening(true);
 
-        $response = $overlay->render(new MockOverlayComponent(
+        $response = new OverlayResponse($overlay, new MockOverlayComponent(
             [
                 'prop' => 'value',
                 'closureProp' => fn() => 'value',
@@ -42,9 +44,10 @@ class OverlayResponseTest extends TestCase
 
     public function test_WhenRefocusingOverlay_AllNonLazyPropsAreIncluded()
     {
-        $overlay = new MockOverlay(MockOverlayLifecycle::OPENING);
+        $overlay = MockOverlay::make();
+        $overlay->setIsOpening(true);
 
-        $response = $overlay->render(new MockOverlayComponent(
+        $response = new OverlayResponse($overlay, new MockOverlayComponent(
             [
                 'prop' => 'value',
                 'closureProp' => fn() => 'value',
@@ -68,7 +71,8 @@ class OverlayResponseTest extends TestCase
 
     public function test_GivenComponentImplementsSkipReloadOnRefocus_WhenRefocusingOverlay_OnlyAlwaysPropsAreIncluded()
     {
-        $overlay = new MockOverlay(MockOverlayLifecycle::REFOCUSING);
+        $overlay = MockOverlay::make();
+        $overlay->setIsRefocusing(true);
 
         $component = new class(
             [
@@ -83,7 +87,7 @@ class OverlayResponseTest extends TestCase
 
         };
 
-        $response = $overlay->render($component);
+        $response = new OverlayResponse($overlay, $component);
 
         $props = $response->toResponse($overlay->request)->getData(true)['props'];
 
@@ -93,7 +97,7 @@ class OverlayResponseTest extends TestCase
 
     public function test_WhenPartialReloadingOverlay_OnlyPartialAndAlwaysPropsAreIncluded()
     {
-        $overlay = new MockOverlay(MockOverlayLifecycle::ACTIVE);
+        $overlay = MockOverlay::make();
 
         $overlay->setPartialProps(
             [
@@ -102,7 +106,7 @@ class OverlayResponseTest extends TestCase
             ]
         );
 
-        $response = $overlay->render(new MockOverlayComponent(
+        $response = new OverlayResponse($overlay, new MockOverlayComponent(
             [
                 'prop' => 'value',
                 'closureProp' => fn() => 'value',
@@ -123,7 +127,7 @@ class OverlayResponseTest extends TestCase
 
     public function test_GivenRefreshingProps_WhenPartialReloadingOverlay_OnlyPartialRefreshedAndAlwaysPropsAreIncluded()
     {
-        $overlay = new MockOverlay(MockOverlayLifecycle::ACTIVE);
+        $overlay = MockOverlay::make();
 
         $overlay->setPartialProps(
             [
@@ -133,7 +137,7 @@ class OverlayResponseTest extends TestCase
 
         $overlay->refreshProps(['closureProp', 'lazyProp']);
 
-        $response = $overlay->render(new MockOverlayComponent(
+        $response = new OverlayResponse($overlay, new MockOverlayComponent(
             [
                 'prop' => 'value',
                 'closureProp' => fn() => 'value',
@@ -154,7 +158,7 @@ class OverlayResponseTest extends TestCase
 
     public function test_GivenPropsAreAppended_WhenReloadingOverlay_AllAppendedPropsAreIncluded()
     {
-        $overlay = new MockOverlay(MockOverlayLifecycle::ACTIVE);
+        $overlay = MockOverlay::make();
 
         $overlay->setPartialProps(
             [
@@ -170,7 +174,7 @@ class OverlayResponseTest extends TestCase
             ]
         );
 
-        $response = $overlay->render(new MockOverlayComponent(
+        $response = new OverlayResponse($overlay, new MockOverlayComponent(
             [
                 'prop' => 'value',
                 'closureProp' => fn() => 'value',

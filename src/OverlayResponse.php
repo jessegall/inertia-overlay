@@ -4,16 +4,15 @@ namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Support\Header;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use JesseGall\InertiaOverlay\Contracts\SkipReloadOnRefocus;
 
 readonly class OverlayResponse implements Responsable
 {
 
     private OverlayConfig $config;
-    private array $props;
 
     public function __construct(
         private Overlay $overlay,
@@ -21,19 +20,15 @@ readonly class OverlayResponse implements Responsable
     )
     {
         $this->config = $this->component->config($this->overlay);
-
-        $this->props = [
-            ...$this->overlay->getProps(),
-            ...$this->component->props($this->overlay),
-        ];
     }
 
-    public function toResponse($request): JsonResponse
+    public function toResponse($request)
     {
-        $props = collect($this->props)
-            ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopePropKey($key) => $prop])
-            ->all();
+        if ($request->method() !== 'GET') {
+            return OverlayResponseFactory::redirect($this->overlay->getComponent(), $this->overlay->getProps());
+        }
 
+        $props = $this->resolveProperties();
         $pageComponent = $this->overlay->getPageComponent();
 
         if ($this->overlay->isOpening()) {
@@ -41,41 +36,53 @@ readonly class OverlayResponse implements Responsable
             $request->headers->remove(Header::PARTIAL_ONLY);
         } else {
             $request->headers->set(Header::PARTIAL_COMPONENT, $pageComponent);
-
-            if ($this->overlay->isRefocusing() && $this->component instanceof SkipReloadOnRefocus) {
-                $partial = '__dummy__';
-            } else {
-                $partial = collect()
-                    ->merge($this->overlay->getPartialProps())
-                    ->merge($this->overlay->getRefreshProps())
-                    ->map($this->overlay->scopePropKey(...))
-                    ->join(',');
-            }
-
-            $request->headers->set(Header::PARTIAL_ONLY, $partial);
+            $request->headers->set(Header::PARTIAL_ONLY, implode(',', $this->resolvePartialPropertyKeys($request)));
         }
 
         $response = Inertia::render($pageComponent, $props)->toResponse($request);
 
-        return $this->transformResponse($response);
+        return $this->withOverlay($response,
+            [
+                'id' => $this->overlay->getId(),
+                'url' => $request->fullUrl(),
+                'component' => $this->component->name(),
+                'props' => array_keys($props),
+                'config' => $this->config->toArray(),
+                'closeRequested' => $this->overlay->closeRequested(),
+            ]
+        );
     }
 
-    private function transformResponse(JsonResponse $response): JsonResponse
+    private function resolveProperties()
     {
-        $data = $response->getData(true);
+        return collect()
+            ->merge($this->overlay->getProps())
+            ->merge($this->component->props($this->overlay))
+            ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopePropKey($key) => $prop])
+            ->all();
+    }
 
-        $data['overlay'] = [
-            'id' => $this->overlay->id,
-            'url' => $this->overlay->getUrl(),
-            'component' => $this->component->name(),
-            'props' => array_keys($this->props),
-            'config' => $this->config->toArray(),
-            'closeRequested' => $this->overlay->closeRequested(),
-        ];
+    private function resolvePartialPropertyKeys(Request $request): array
+    {
+        if ($this->overlay->isRefocusing()) {
+            return ['__dummy__'];
+        } else {
+            $partial = $request->header(Header::PARTIAL_ONLY, '');
 
-        unset($data['props']['__dummy__']);
+            return collect()
+                ->merge(explode(',', $partial))
+                ->merge($this->overlay->getRefreshProps())
+                ->map($this->overlay->scopePropKey(...))
+                ->all();
+        }
+    }
 
-        return $response->setData($data);
+    private function withOverlay(JsonResponse $response, array $data): JsonResponse
+    {
+        $original = $response->getData(true);
+        $original['overlay'] = $data;
+        unset($original['props']['__dummy__']);
+        return $response->setData($original);
     }
 
 }

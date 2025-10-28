@@ -7,6 +7,13 @@ export interface Listener<T = any> {
     subscription?: EventSubscription;
 }
 
+export interface ListenerWithGuard<T, S extends T> {
+    handler: (payload: S) => void;
+    filter: (payload: T) => payload is S;
+    priority?: number | (() => number);
+    subscription?: EventSubscription;
+}
+
 export interface Unsubscribe {
     (): void;
 }
@@ -17,7 +24,9 @@ export class EventEmitter<T = any> {
 
     private listeners: Map<string, Listener<T>> = new Map();
 
-    public on(listener: ListenerInput<T>): Unsubscribe {
+    public on<S extends T>(listener: ListenerWithGuard<T, S>): Unsubscribe;
+    public on(listener: ListenerInput<T>): Unsubscribe;
+    public on(listener: ListenerInput<T> | ListenerWithGuard<T, any>): Unsubscribe {
         listener = this.createListener(listener);
 
         const listenerId = randomString();
@@ -53,7 +62,7 @@ export class EventEmitter<T = any> {
         }
     }
 
-    private createListener(listener: ListenerInput<T>): Listener<T> {
+    private createListener(listener: ListenerInput<T> | ListenerWithGuard<T, any>): Listener<T> {
         if (typeof listener === 'function') {
             return {
                 handler: listener,

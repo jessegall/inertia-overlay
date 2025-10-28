@@ -6,20 +6,21 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use RuntimeException;
 
 class Overlay
 {
 
-    private bool $isNew = false;
-    private OverlayComponent $component;
+    protected bool $isOpening = false;
+    protected bool $isRefocusing = false;
 
     public function __construct(
         public readonly Request $request,
-        public readonly string $id,
-        private array $props = [],
+        protected string $id,
+        protected string $url,
+        protected string $component,
+        protected array $props = [],
     ) {}
 
     public function render(): OverlayResponse
@@ -28,19 +29,30 @@ class Overlay
             throw new RuntimeException('Overlay component is not set.');
         }
 
-        return new OverlayResponse($this, $this->component);
+        $component = $this->makeComponent($this->component, $this->props);
+
+        if ($action = $this->request->header(Header::OVERLAY_ACTION)) {
+            app(OverlayActionRunner::class)->run($this, $component, $action);
+        }
+
+        return new OverlayResponse($this, $component);
     }
 
-    # ----------[ Component ]----------
-
-    public function getComponent(): OverlayComponent
+    private function makeComponent(string $component, array $props): OverlayComponent
     {
-        return $this->component;
-    }
+        $factory = app(OverlayComponentFactory::class);
+        $registrar = app(OverlayComponentRegistrar::class);
 
-    public function setComponent(OverlayComponent $component): void
-    {
-        $this->component = $component;
+        if (class_exists($component)) {
+            return $factory->make($component, $props);
+        }
+
+        if ($registrar->isRegistered($component)) {
+            $component = $registrar->resolveComponentClass($component);
+            return $factory->make($component, $props);
+        }
+
+        return new AnonymouseOverlayComponent($component, $props);
     }
 
     # ----------[ Props ]----------
@@ -67,18 +79,10 @@ class Overlay
         $this->refreshProps(array_keys($props));
     }
 
-    public function refreshProps(array|string|null $keys = null): void
+    public function refreshProps(array|string $keys): void
     {
-        if ($this->get('refresh') === true) {
-            return;
-        }
-
-        if ($keys === null) {
-            $this->flash('refresh', true);
-        } else {
-            $current = $this->get('refresh', []);
-            $this->flash('refresh', array_merge($current, Arr::wrap($keys)));
-        }
+        $current = $this->get('refresh', []);
+        $this->flash('refresh', array_merge($current, Arr::wrap($keys)));
     }
 
     public function scopePropKey(string $key): string
@@ -90,15 +94,6 @@ class Overlay
         return "{$this->id}:{$key}";
     }
 
-    public function unscopePropKey(string $scopedKey): string
-    {
-        if (! $this->isScopedKey($scopedKey)) {
-            return $scopedKey;
-        }
-
-        return str_replace("{$this->id}:", '', $scopedKey);
-    }
-
     public function isScopedKey(string $key): bool
     {
         return Str::startsWith($key, "{$this->id}:");
@@ -106,14 +101,19 @@ class Overlay
 
     # ----------[ Getters ]----------
 
-    public function getAction(): string|null
+    public function getId(): string
     {
-        return $this->request->header(Header::OVERLAY_ACTION);
+        return $this->id;
+    }
+
+    public function getComponent(): string
+    {
+        return $this->component;
     }
 
     public function getUrl(): string
     {
-        return $this->request->header(Header::OVERLAY_URL, $this->request->url());
+        return $this->url;
     }
 
     public function getPageComponent(): string|null
@@ -132,24 +132,20 @@ class Overlay
         }
     }
 
-    public function getPartialProps(): array
-    {
-        return collect()
-            ->merge(explode(',', $this->request->header(InertiaHeader::PARTIAL_ONLY, '')))
-            ->map($this->unscopePropKey(...))
-            ->reject(fn($key) => $key === '__inertia-overlay__')
-            ->values()
-            ->all();
-    }
 
     public function isOpening(): bool
     {
-        return $this->isNew || filter_var($this->request->header(Header::OVERLAY_OPENING), FILTER_VALIDATE_BOOLEAN);
+        return $this->isOpening;
     }
 
     public function isRefocusing(): bool
     {
-        return filter_var($this->request->header(Header::OVERLAY_REFOCUS), FILTER_VALIDATE_BOOLEAN);
+        return $this->isRefocusing;
+    }
+
+    public function urlIsMatch(string $url): bool
+    {
+        return parse_url($this->url, PHP_URL_PATH) === parse_url($url, PHP_URL_PATH);
     }
 
     # ----------[ Response Headers ]----------
@@ -231,36 +227,41 @@ class Overlay
 
     # ----------[ Factory ]----------
 
-    public static function new(array $props = []): static
+    public static function new(string $component, array $props = []): static
     {
         $overlay = app(static::class,
             [
+                'component' => $component,
                 'id' => Str::random(8),
+                'url' => request()->fullUrl(),
             ]
         );
 
-        $overlay->isNew = true;
+        $overlay->isOpening = true;
         $overlay->setProps($props);
 
         return $overlay;
     }
 
-    public static function fromRequest(Request $request): static|null
+    public static function fromRequest(Request $request, string $component, array $props = []): static
     {
-        if (! $id = $request->header(Header::OVERLAY_ID)) {
-            return null;
+        if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
+            throw new RuntimeException('No overlay found in the request.');
         }
 
-        $overlay = app(static::class, [
-            'id' => $id
-        ]);
+        $overlay = app(static::class,
+            [
+                'component' => $component,
+                'id' => $request->header(Header::OVERLAY_ID),
+                'url' => $request->header(Header::OVERLAY_URL, $request->fullUrl()),
+            ]
+        );
 
-        if ($request->has('_props')) {
-            $overlay->setProps($request->get('_props'));
-        } else {
-            $overlay->restoreProps();
-        }
+        $overlay->isOpening = $request->header(Header::OVERLAY_OPENING) === 'true';
+        $overlay->isRefocusing = $request->header(Header::OVERLAY_REFOCUS) === 'true';
 
+        $overlay->restoreProps();
+        $overlay->mergeProps($props);
         $overlay->flashProps();
 
         return $overlay;

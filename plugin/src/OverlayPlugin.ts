@@ -161,14 +161,24 @@ export class OverlayPlugin {
 
     private onOverlayPageLoaded(page: OverlayPage): void {
         if (! this.overlayInstances.has(page.overlay.id)) {
+            const overlayId = page.overlay.id;
+            const props: Record<string, any> = {};
+
+            for (const [key, value] of Object.entries(page.props)) {
+                if (key.startsWith(overlayId)) {
+                    const [, _key] = key.split(':');
+                    props[_key] = value
+                }
+            }
+
             const overlay = this.newOverlayInstance({
                 id: page.overlay.id,
                 url: page.url,
-                props: page.props,
+                props: props,
                 config: page.overlay.config,
             });
 
-            overlay.open(page);
+            overlay.openFromPage(page);
             overlay.focus();
         }
     }

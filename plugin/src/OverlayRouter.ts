@@ -1,9 +1,9 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
-import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
-import { OverlayPage, OverlayResponse } from "./Overlay.ts";
+import { ActiveVisit, Page, PendingVisit, Visit } from "@inertiajs/core";
+import { OverlayPage } from "./Overlay.ts";
 import { deepToRaw, isOverlayPage } from "./helpers.ts";
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 import { OverlayResolver } from "./OverlayPlugin.ts";
 
 export const header = {
@@ -28,7 +28,7 @@ export const header = {
 
 export class OverlayRouter {
 
-    public readonly overlayPage = ref<OverlayResponse>(null);
+    public readonly cache = reactive<Map<string, OverlayPage>>(new Map());
 
     // ----------[ Events ]----------
 
@@ -41,7 +41,6 @@ export class OverlayRouter {
 
     // ----------[ Properties ]----------
 
-    private readonly previousOverlayId = ref<string | null>(null);
     private readonly rootUrl = ref<string | null>(null)
 
     constructor(
@@ -64,22 +63,26 @@ export class OverlayRouter {
 
     private setupListeners(): void {
         this.onBeforeRouteVisit.on({
-            handler: visit => this.prepareRouteVisit(visit),
+            handler: visit => {
+                this.prepareRouteVisit(visit);
+            },
             priority: -1
         });
 
         this.onBeforeRouteUpdate.on({
-            handler: page => this.preservePageProps(page as OverlayPage),
-            filter: page => isOverlayPage(page),
+            handler: page => {
+                this.preservePageProps(page);
+            },
+            filter: isOverlayPage,
             priority: -1
         });
 
         this.onSuccessfulRouteVisit.on({
             handler: page => {
-                this.setOverlayPage(page as OverlayPage);
-                this.onOverlayPageLoad.emit(page as OverlayPage);
+                this.cache.set(page.overlay.id, page);
+                this.onOverlayPageLoad.emit(page);
             },
-            filter: page => isOverlayPage(page),
+            filter: isOverlayPage,
             priority: -1
         });
     }
@@ -90,10 +93,14 @@ export class OverlayRouter {
         const overlay = this.overlayResolver(overlayId);
         overlay.focus();
 
-        return await new Promise((resolve, reject) => router.post(overlay.url,
+        if (this.cache.has(overlay.id)) {
+            return this.cache.get(overlay.id);
+        }
+
+        return await new Promise((resolve, reject) => router.get(overlay.url,
             {
-                _method: 'GET',
-                _props: overlay.initialProps,
+                ...overlay.initialProps,
+                _props: Object.keys(overlay.initialProps),
             },
             {
                 preserveUrl: true,
@@ -120,10 +127,8 @@ export class OverlayRouter {
     public async action(overlayId: string, action: string, payload: Record<string, any> = {}): Promise<Page> {
         const overlay = this.overlayResolver(overlayId);
 
-        return await new Promise((resolve, reject) => router.post(overlay.url,
+        return await new Promise((resolve, reject) => router.get(overlay.url,
             {
-                _method: 'GET',
-                _props: overlay.initialProps,
                 payload,
             },
             {
@@ -151,12 +156,13 @@ export class OverlayRouter {
 
         const rootUrl = new URL(this.rootUrl.value);
 
-        console.log('Navigating to root URL:', rootUrl.href);
-
         return await new Promise(resolve => router.visit(rootUrl.href,
             {
                 preserveState: true,
                 preserveScroll: true,
+                onBefore(visit: Visit) {
+
+                },
                 onSuccess: (page) => {
                     this.url = rootUrl;
                     resolve(page);
@@ -176,50 +182,36 @@ export class OverlayRouter {
     private prepareRouteVisit(visit: PendingVisit): void {
         const page = usePage();
         const overlayId = this.focusedId();
+        const overlay = overlayId ? this.overlayResolver(overlayId) : null;
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
 
-        if (overlayId) {
-            const overlay = this.overlayResolver(overlayId);
-
+        if (overlay && ! overlay.hasState('closing')) {
             visit.headers[header.INERTIA_OVERLAY] = 'true';
+            visit.headers[header.OVERLAY_ID] = overlay.id;
+            visit.headers[header.OVERLAY_URL] = overlay.url;
 
-            if (! visit.headers[header.OVERLAY_ID]) {
-                visit.headers[header.OVERLAY_ID] = overlay.id;
-            }
-
-            if (overlay.initialized) {
-                visit.headers[header.OVERLAY_URL] = overlay.url;
-            }
-
-            if (this.previousOverlayId.value !== overlay.id && overlay.hasState('open')) {
-                visit.headers[header.OVERLAY_REFOCUS] = 'true';
-            }
-
-            if (this.isReloadVisit(visit)) {
-                visit.url = new URL(overlay.url);
-            }
-
-            visit.async = true;
             visit.preserveScroll = true;
             visit.preserveState = true;
+            visit.preserveUrl = true;
+            visit.async = true;
 
-            const displayUrl = overlay.config?.displayUrl ?? overlay.options.config?.displayUrl;
-
-            if (displayUrl === false) {
-                visit.preserveUrl = true;
+            if (visit.method === 'get' && overlay.hasState('open')) {
+                visit.url.pathname = new URL(overlay.url, visit.url.origin).pathname;
             }
+
+            visit.url.searchParams.set('overlay', overlay.id);
 
             if (visit.only.length === 0) {
                 visit.only = ['__inertia-overlay__'];
             }
-
-            this.previousOverlayId.value = overlayId;
         }
     }
 
     private preservePageProps(page: OverlayPage): void {
         if (! this.focusedId()) {
+
+            page.url = this.rootUrl.value;
 
             // Preserve page props when receiving an overlay outside the "overlay context"
             // Frontend initiated overlays use partial requests so Inertia handles prop merging,
@@ -232,19 +224,8 @@ export class OverlayRouter {
                     page.props[key] = previousPageProps[key];
                 }
             }
+
         }
-    }
-
-    private setOverlayPage(page: OverlayPage): void {
-        this.overlayPage.value = page.overlay;
-    }
-
-    // ----------[ Helpers ]----------
-
-    public isReloadVisit(visit: PendingVisit): boolean {
-        return visit.headers[header.INERTIA_OVERLAY]
-            && visit.method === 'get'
-            && visit.only.length > 1;
     }
 
     // ----------[ Accessors ]----------
