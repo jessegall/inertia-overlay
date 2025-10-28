@@ -13,12 +13,13 @@ class OverlayRedirectResponse extends RedirectResponse
         public array $props = []
     )
     {
-        $type = $this->resolveTypeArgument($component);
+        $type = $this->resolveComponentType($component);
+        $url = $this->buildOverlayUrl($type, $props);
 
-        parent::__construct("/overlay/$type?" . http_build_query($props));
+        parent::__construct($url);
     }
 
-    private function resolveTypeArgument(string $component): string
+    private function resolveComponentType(string $component): string
     {
         $registrar = app(OverlayComponentRegistrar::class);
 
@@ -36,5 +37,17 @@ class OverlayRedirectResponse extends RedirectResponse
 
         return $component;
     }
+
+
+    private function buildOverlayUrl(string $type, array $props): string
+    {
+        $queryParams = [
+            ...$props,
+            '_props' => implode(',', array_keys($props))
+        ];
+
+        return "/overlay/$type?" . http_build_query($queryParams);
+    }
+
 
 }

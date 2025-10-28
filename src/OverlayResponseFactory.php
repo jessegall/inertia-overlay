@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\URL;
 readonly class OverlayResponseFactory
 {
 
-    public static function redirect(string $component, array $props): RedirectResponse
+    public function redirect(string $component, array $props): RedirectResponse
     {
         return new OverlayRedirectResponse($component, $props);
     }

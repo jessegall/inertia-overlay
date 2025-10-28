@@ -59,8 +59,6 @@ export class OverlayPlugin {
     }
 
     private registerListeners(app: App): void {
-        this.router.onNavigated.on((event) => this.handleNavigated(event));
-
         this.router.onOverlayPageLoad.on({
             handler: (event) => this.onOverlayPageLoaded(event),
             priority: -1,
@@ -166,12 +164,6 @@ export class OverlayPlugin {
     }
 
     // ----------[ Event Handlers ]----------
-
-    private handleNavigated(page: Page): void {
-        if (! isOverlayPage(page) && this.stack.size() === 0) {
-            this.router.setRootUrl(this.router.url.href);
-        }
-    }
 
     private onOverlayPageLoaded(page: OverlayPage): void {
         if (! this.overlayInstances.has(page.overlay.id)) {

@@ -25,7 +25,7 @@ readonly class OverlayResponse implements Responsable
     public function toResponse($request)
     {
         if ($request->method() !== 'GET') {
-            return OverlayResponseFactory::redirect($this->overlay->getComponent(), $this->overlay->getProps());
+            return InertiaOverlay::redirect($this->overlay->getComponent(), $this->overlay->getProps());
         }
 
         $props = $this->resolveProperties();
@@ -64,24 +64,19 @@ readonly class OverlayResponse implements Responsable
 
     private function resolvePartialPropertyKeys(Request $request): array
     {
-        if ($this->overlay->isRefocusing()) {
-            return ['__dummy__'];
-        } else {
-            $partial = $request->header(Header::PARTIAL_ONLY, '');
+        $partial = $request->header(Header::PARTIAL_ONLY, '');
 
-            return collect()
-                ->merge(explode(',', $partial))
-                ->merge($this->overlay->getRefreshProps())
-                ->map($this->overlay->scopePropKey(...))
-                ->all();
-        }
+        return collect()
+            ->merge(explode(',', $partial))
+            ->merge($this->overlay->getRefreshProps())
+            ->map($this->overlay->scopePropKey(...))
+            ->all();
     }
 
     private function withOverlay(JsonResponse $response, array $data): JsonResponse
     {
         $original = $response->getData(true);
         $original['overlay'] = $data;
-        unset($original['props']['__dummy__']);
         return $response->setData($original);
     }
 

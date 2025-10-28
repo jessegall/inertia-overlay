@@ -169,12 +169,12 @@ class Overlay
 
     public function restoreProps(): void
     {
-        $this->props = $this->get('_props', []);
+        $this->props = $this->get('props', []);
     }
 
     public function flashProps(): void
     {
-        $this->flash('_props', $this->props);
+        $this->flash('props', $this->props);
     }
 
     public function get(string|null $key = null, mixed $default = null): mixed
