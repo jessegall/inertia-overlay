@@ -47,8 +47,8 @@ class Overlay
             return $factory->make($component, $props);
         }
 
-        if ($registrar->isRegistered($component)) {
-            $component = $registrar->resolveComponentClass($component);
+        if ($registrar->isAliasRegistered($component)) {
+            $component = $registrar->resolveClass($component);
             return $factory->make($component, $props);
         }
 

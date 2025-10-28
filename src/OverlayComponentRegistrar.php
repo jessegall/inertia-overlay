@@ -11,38 +11,38 @@ class OverlayComponentRegistrar
     private array $overlays = [];
 
     /**
-     * Register an overlay type
+     * Register an alias for an overlay component type
      *
-     * @param string $typename
+     * @param string $alias
      * @param class-string<OverlayComponent> $type
      * @return void
      */
-    public function register(string $typename, string $type): void
+    public function register(string $alias, string $type): void
     {
         $this->assertIsOverlayComponentType($type);
 
-        $this->overlays[$typename] = $type;
+        $this->overlays[$alias] = $type;
     }
 
     /**
-     * Resolve the overlay type by id
+     * Resolve the overlay class by alias
      *
-     * @param string $typename
+     * @param string $alias
      * @return class-string<OverlayComponent>
      */
-    public function resolveComponentClass(string $typename): string
+    public function resolveClass(string $alias): string
     {
-        return $this->overlays[$typename]
-            ?? throw new InvalidArgumentException("Overlay with id [$typename] not found");
+        return $this->overlays[$alias]
+            ?? throw new InvalidArgumentException("Overlay with id [$alias] not found");
     }
 
     /**
-     * Resolve the overlay typename by class
+     * Resolve the overlay alias by class
      *
      * @param string $class
      * @return string
      */
-    public function resolveTypename(string $class): string
+    public function resolveAlias(string $class): string
     {
         return array_search($class, $this->overlays)
             ?? throw new InvalidArgumentException("Overlay with class [$class] not found");
@@ -51,12 +51,23 @@ class OverlayComponentRegistrar
     /**
      * Check if an overlay type is registered
      *
-     * @param string $typename
+     * @param string $alias
      * @return bool
      */
-    public function isRegistered(string $typename): bool
+    public function isAliasRegistered(string $alias): bool
     {
-        return isset($this->overlays[$typename]);
+        return isset($this->overlays[$alias]);
+    }
+
+    /**
+     * Check if an overlay class is registered
+     *
+     * @param string $class
+     * @return bool
+     */
+    public function isClassRegistered(string $class): bool
+    {
+        return in_array($class, $this->overlays, true);
     }
 
     /**

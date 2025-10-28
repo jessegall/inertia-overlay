@@ -11,9 +11,7 @@ readonly class OverlayResponseFactory
 
     public static function redirect(string $component, array $props): RedirectResponse
     {
-        $component = base64_encode($component);
-
-        return redirect()->to("/overlay/$component?" . http_build_query($props));
+        return new OverlayRedirectResponse($component, $props);
     }
 
     public function render(string $component, array $props = []): OverlayResponse

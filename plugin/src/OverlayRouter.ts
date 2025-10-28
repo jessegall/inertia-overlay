@@ -1,6 +1,6 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
-import { ActiveVisit, Page, PendingVisit, Visit } from "@inertiajs/core";
+import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
 import { deepToRaw, isOverlayPage } from "./helpers.ts";
 import { reactive, ref } from "vue";
@@ -22,7 +22,6 @@ export const header = {
     // -----[ Lifecycle ]-----
 
     OVERLAY_OPENING: 'X-Inertia-Overlay-Opening',
-    OVERLAY_REFOCUS: 'X-Inertia-Overlay-Refocus',
 
 }
 
@@ -91,6 +90,12 @@ export class OverlayRouter {
 
     public async open(overlayId: string): Promise<OverlayPage> {
         const overlay = this.overlayResolver(overlayId);
+
+        if (! overlay) {
+            console.error(`Failed to open overlay. Overlay with ID "${ overlayId }" not found.`);
+            return;
+        }
+
         overlay.focus();
 
         if (this.cache.has(overlay.id)) {
@@ -100,7 +105,7 @@ export class OverlayRouter {
         return await new Promise((resolve, reject) => router.get(overlay.url,
             {
                 ...overlay.initialProps,
-                _props: Object.keys(overlay.initialProps),
+                _props: Object.keys(overlay.initialProps).join(','),
             },
             {
                 preserveUrl: true,
@@ -108,7 +113,6 @@ export class OverlayRouter {
                     [header.INERTIA_OVERLAY]: 'true',
                     [header.OVERLAY_ID]: overlay.id,
                     [header.OVERLAY_OPENING]: overlay.hasState('opening') ? 'true' : 'false',
-                    [header.OVERLAY_REFOCUS]: overlay.hasState('open') ? 'true' : 'false',
                 },
                 onSuccess(page) {
                     if (isOverlayPage(page)) {
@@ -184,17 +188,24 @@ export class OverlayRouter {
         visit.headers[header.PAGE_COMPONENT] = page.component;
 
         if (overlay && ! overlay.hasState('closing')) {
+
             visit.headers[header.INERTIA_OVERLAY] = 'true';
             visit.headers[header.OVERLAY_ID] = overlay.id;
-            visit.headers[header.OVERLAY_URL] = overlay.url;
+            visit.headers[header.OVERLAY_URL] = overlay.url.href;
 
             visit.preserveScroll = true;
             visit.preserveState = true;
             visit.preserveUrl = true;
             visit.async = true;
 
-            if (visit.method === 'get' && overlay.hasState('open')) {
-                visit.url.pathname = new URL(overlay.url, visit.url.origin).pathname;
+            if (this.isPageReload(visit)) {
+                visit.url.pathname = overlay.url.pathname;
+
+                for (const [key, value] of overlay.url.searchParams.entries()) {
+                    if (! visit.url.searchParams.has(key)) {
+                        visit.url.searchParams.set(key, value);
+                    }
+                }
             }
 
             visit.url.searchParams.set('overlay', overlay.id);
@@ -223,6 +234,14 @@ export class OverlayRouter {
             }
 
         }
+    }
+
+    // ----------[ Helpers ]----------
+
+    private isPageReload(visit: PendingVisit): boolean {
+        const page = usePage();
+        const pageUrl = new URL(page.url, visit.url.origin);
+        return visit.method === 'get' && visit.url.pathname === pageUrl.pathname;
     }
 
     // ----------[ Accessors ]----------

@@ -1,5 +1,5 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { ref } from "vue";
+import { Reactive, ref } from "vue";
 import { Page } from "@inertiajs/core";
 import { OverlayRouter } from "./OverlayRouter.ts";
 
@@ -38,8 +38,9 @@ const activeTransitions = ref<number>(0);
 
 export class Overlay {
 
-    private subscription = new EventSubscription();
-    private destroyed = ref(false);
+    public readonly url: Reactive<URL> = null;
+    private readonly subscription = new EventSubscription();
+    private readonly destroyed = ref(false);
 
     // ----------[ Events ]----------
 
@@ -57,13 +58,12 @@ export class Overlay {
     public readonly props = ref<OverlayProps | null>(null);
     public readonly component = ref<string | null>(null);
     public readonly config = ref<OverlayConfig | null>(null);
-    public readonly url = ref<string>(null);
 
     constructor(
         private readonly router: OverlayRouter,
         public readonly options: OverlayOptions,
     ) {
-        this.url.value = options.url;
+        this.url = new URL(options.url, window.location.origin);
     }
 
     // ----------[ Event Listeners ]----------
@@ -90,19 +90,6 @@ export class Overlay {
         }
     }
 
-    public openFromPage(page: OverlayPage): void {
-        this.assertNotDestroyed();
-        if (! this.hasState('closed')) return;
-
-        this.subscribe();
-
-        this.transition(async () => {
-            this.setState('opening');
-            this.applyPage(page);
-            this.setState('open');
-        });
-    }
-
     public async open(): Promise<void> {
         this.assertNotDestroyed();
         if (! this.hasState('closed')) return;
@@ -111,10 +98,8 @@ export class Overlay {
 
         await this.transition(async () => {
             this.setState('opening');
-
             const page = await this.router.open(this.id);
             this.applyPage(page);
-
             this.setState('open');
         });
     }
@@ -122,8 +107,6 @@ export class Overlay {
     public async close(): Promise<void> {
         this.assertNotDestroyed();
         if (! this.hasState('open')) return;
-
-        console.log("Closing overlay", this.id);
 
         await this.transition(async () => {
             this.setState('closing');
@@ -151,14 +134,12 @@ export class Overlay {
 
     public focus(): void {
         if (this.isFocused()) return;
-        console.log(`Overlay "${ this.id }" focused.`);
         this.focused.value = true;
         this.onFocused.emit(this.id);
     }
 
     public blur(): void {
         if (this.isBlurred()) return;
-        console.log(`Overlay "${ this.id }" blurred.`);
         this.focused.value = false;
         this.onBlurred.emit(this.id);
     }
@@ -173,6 +154,25 @@ export class Overlay {
         this.destroyed.value = true;
     }
 
+    private setState(state: OverlayState): void {
+        if (this.state.value === state) return;
+        this.state.value = state;
+        this.onStatusChange.emit(state);
+    }
+
+    public updateUrl(url: URL): void {
+        for (const [key, value] of url.searchParams.entries()) {
+            this.url.searchParams.set(key, value);
+        }
+    }
+
+    public updateProps(props: OverlayProps): void {
+        this.props.value = {
+            ...this.props.value,
+            ...props,
+        };
+    }
+
     private async transition(callback: () => Promise<void>): Promise<void> {
         while (activeTransitions.value > 0) {
             await new Promise(resolve => setTimeout(resolve, 50));
@@ -185,21 +185,6 @@ export class Overlay {
         } finally {
             activeTransitions.value--;
         }
-    }
-
-    // ----------[ Internal ]----------
-
-    private setState(state: OverlayState): void {
-        if (this.state.value === state) return;
-        this.state.value = state;
-        this.onStatusChange.emit(state);
-    }
-
-    private updateProps(props: OverlayProps): void {
-        this.props.value = {
-            ...this.props.value,
-            ...props,
-        };
     }
 
     // ----------[ Helpers ]----------
@@ -241,23 +226,16 @@ export class Overlay {
         this.initialized.value = true;
         this.component.value = page.overlay.component;
         this.config.value = page.overlay.config;
-        this.url.value = page.overlay.url;
 
-        this.updateProps(
-            this.normalizeData(page.props, page.overlay.props)
-        );
+        this.updateUrl(new URL(page.overlay.url));
+        this.updateProps(this.normalizeData(page.props, page.overlay.props));
 
         if (page.overlay.closeRequested) {
-            console.log("Overlay close requested from server:", this.id);
             this.close();
         }
     }
 
     // ----------[ Getters / Setters ]----------
-
-    public isInitialized(): boolean {
-        return this.initialized.value;
-    }
 
     public setParentId(parentId: string | null): void {
         this.parentId.value = parentId;

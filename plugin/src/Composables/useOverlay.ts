@@ -29,7 +29,7 @@ export function useOverlay() {
             return plugin.createOverlayFromComponent(options.component, options.props);
         }
 
-        return plugin.createOverlay(options.url, options.props);
+        return plugin.createOverlayFromUrl(options.url, options.props);
     }
 
     async function overlayAction(action: string, options: OverlayActionOptions = {}): Promise<void> {
