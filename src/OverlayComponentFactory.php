@@ -2,42 +2,30 @@
 
 namespace JesseGall\InertiaOverlay;
 
-use Exception;
-use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
+use JesseGall\InertiaOverlay\Exceptions\InvalidComponentTypeException;
 
 class OverlayComponentFactory
 {
 
-    public function __construct(
-        private OverlayComponentRegistrar $registrar,
-    ) {}
-
+    /**
+     * Create a new OverlayComponent instance
+     *
+     * @param class-string<OverlayComponent> $type
+     * @param array $props
+     * @return OverlayComponent
+     */
     public function make(string $type, array $props = []): OverlayComponent
     {
-        if (! class_exists($type)) {
-            $type = $this->registrar->resolveComponentClass($type);
+        if (! class_exists($type) || ! is_subclass_of($type, OverlayComponent::class)) {
+            throw new InvalidComponentTypeException($type);
         }
 
-        return $this->newComponent($type, $props);
-    }
-
-    public function tryMake(string $type, array $props = []): OverlayComponent|null
-    {
-        try {
-            return $this->make($type, $props);
-        } catch (InvalidArgumentException) {
-            return null;
-        }
-    }
-
-    private function newComponent(string $class, array $props): OverlayComponent
-    {
-        if (is_subclass_of($class, 'Spatie\\LaravelData\\Data')) {
-            return $class::from($props);
+        if (is_subclass_of($type, 'Spatie\LaravelData\Data')) {
+            return $type::from($props);
         }
 
-        return app($class, $props);
+        return app($type, $props);
     }
 
 }

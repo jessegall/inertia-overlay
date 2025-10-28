@@ -9,6 +9,7 @@ readonly class OverlayResponseFactory
 {
 
     public function __construct(
+        private OverlayComponentRegistrar $componentRegistrar,
         private OverlayComponentFactory $componentFactory,
     ) {}
 
@@ -27,27 +28,26 @@ readonly class OverlayResponseFactory
         }
 
         if (is_string($component)) {
-            $component = $this->makeComponent($component, $props);
+            $component = $this->makeComponent($component, $overlay->getProps());
         }
 
-        return $overlay->render($component);
-    }
+        $overlay->setComponent($component);
 
-    public function renderUsing(string $component, Overlay $overlay, array $props = []): OverlayResponse|RedirectResponse
-    {
-        $component = $this->makeComponent($component, [
-            ...$overlay->getProps(),
-            ...$props,
-        ]);
-
-        return $overlay->render($component);
+        return $overlay->render();
     }
 
     private function makeComponent(string $component, array $props): OverlayComponent
     {
-        return $this->componentFactory->tryMake($component, $props)
-            ?? new AnonymouseOverlayComponent($component, $props);
-    }
+        if (class_exists($component)) {
+            return $this->componentFactory->make($component, $props);
+        }
 
+        if ($this->componentRegistrar->isRegistered($component)) {
+            $component = $this->componentRegistrar->resolveComponentClass($component);
+            return $this->componentFactory->make($component, $props);
+        }
+
+        return new AnonymouseOverlayComponent($component, $props);
+    }
 
 }

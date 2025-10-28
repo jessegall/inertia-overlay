@@ -40,7 +40,7 @@ class MockOverlay extends Overlay
     {
         $this->request->headers->set(
             Header::PARTIAL_ONLY,
-            implode(',', array_map(fn($key) => $this->scopedKey($key), $keys))
+            implode(',', array_map(fn($key) => $this->scopePropKey($key), $keys))
         );
     }
 

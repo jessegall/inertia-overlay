@@ -31,7 +31,7 @@ readonly class OverlayResponse implements Responsable
     public function toResponse($request): JsonResponse
     {
         $props = collect($this->props)
-            ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopedKey($key) => $prop])
+            ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopePropKey($key) => $prop])
             ->all();
 
         $pageComponent = $this->overlay->getPageComponent();
@@ -42,13 +42,13 @@ readonly class OverlayResponse implements Responsable
         } else {
             $request->headers->set(Header::PARTIAL_COMPONENT, $pageComponent);
 
-            if ($this->overlay->isRefocusing() && $this->instanceOf(SkipReloadOnRefocus::class)) {
+            if ($this->overlay->isRefocusing() && $this->component instanceof SkipReloadOnRefocus) {
                 $partial = '__dummy__';
             } else {
                 $partial = collect()
                     ->merge($this->overlay->getPartialProps())
                     ->merge($this->overlay->getRefreshProps())
-                    ->map($this->overlay->scopedKey(...))
+                    ->map($this->overlay->scopePropKey(...))
                     ->join(',');
             }
 
@@ -76,15 +76,6 @@ readonly class OverlayResponse implements Responsable
         unset($data['props']['__dummy__']);
 
         return $response->setData($data);
-    }
-
-    private function instanceOf(string $class): bool
-    {
-        $target = $this->component instanceof OverlayComponentDecorator ?
-            $this->component->getWrappedComponent() :
-            $this->component;
-
-        return is_subclass_of($target, $class);
     }
 
 }

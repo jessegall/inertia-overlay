@@ -117,13 +117,14 @@ export class OverlayRouter {
         ));
     }
 
-    public async action(overlayId: string, action: string, data: Record<string, any> = {}): Promise<Page> {
+    public async action(overlayId: string, action: string, payload: Record<string, any> = {}): Promise<Page> {
         const overlay = this.overlayResolver(overlayId);
 
         return await new Promise((resolve, reject) => router.post(overlay.url,
             {
-                ...data,
+                _method: 'GET',
                 _props: overlay.initialProps,
+                payload,
             },
             {
                 preserveUrl: true,
@@ -187,14 +188,16 @@ export class OverlayRouter {
                 visit.headers[header.OVERLAY_ID] = overlay.id;
             }
 
-            visit.headers[header.OVERLAY_URL] = overlay.url;
+            if (overlay.initialized) {
+                visit.headers[header.OVERLAY_URL] = overlay.url;
+            }
 
             if (this.previousOverlayId.value !== overlay.id && overlay.hasState('open')) {
                 visit.headers[header.OVERLAY_REFOCUS] = 'true';
             }
 
-            if (this.isOverlayReloadRequest(visit)) {
-                visit.url.pathname = overlay.url;
+            if (this.isReloadVisit(visit)) {
+                visit.url = new URL(overlay.url);
             }
 
             visit.async = true;
@@ -238,16 +241,10 @@ export class OverlayRouter {
 
     // ----------[ Helpers ]----------
 
-    public isOverlayReloadRequest(visit: PendingVisit): boolean {
+    public isReloadVisit(visit: PendingVisit): boolean {
         return visit.headers[header.INERTIA_OVERLAY]
             && visit.method === 'get'
-            && visit.only.length > 0
-    }
-
-    public setSearchParam(key: string, value: string): void {
-        const url = this.url;
-        url.searchParams.set(key, value);
-        this.url = url;
+            && visit.only.length > 1;
     }
 
     // ----------[ Accessors ]----------

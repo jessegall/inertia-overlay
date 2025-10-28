@@ -14,6 +14,7 @@ class Overlay
 {
 
     private bool $isNew = false;
+    private OverlayComponent $component;
 
     public function __construct(
         public readonly Request $request,
@@ -21,25 +22,25 @@ class Overlay
         private array $props = [],
     ) {}
 
-    public function render(OverlayComponent $component): OverlayResponse
+    public function render(): OverlayResponse
     {
-        $component = new OverlayComponentDecorator($component);
-
-        if ($action = $this->getAction()) {
-            $component->run($this, $action);
+        if (! isset($this->component)) {
+            throw new RuntimeException('Overlay component is not set.');
         }
 
-        return new OverlayResponse($this, $component);
+        return new OverlayResponse($this, $this->component);
     }
 
-    public function scopedKey(string $key): string
+    # ----------[ Component ]----------
+
+    public function getComponent(): OverlayComponent
     {
-        return "{$this->id}:{$key}";
+        return $this->component;
     }
 
-    public function unscopedKey(string $scopedKey): string
+    public function setComponent(OverlayComponent $component): void
     {
-        return str_replace("{$this->id}:", '', $scopedKey);
+        $this->component = $component;
     }
 
     # ----------[ Props ]----------
@@ -80,6 +81,29 @@ class Overlay
         }
     }
 
+    public function scopePropKey(string $key): string
+    {
+        if ($this->isScopedKey($key)) {
+            return $key;
+        }
+
+        return "{$this->id}:{$key}";
+    }
+
+    public function unscopePropKey(string $scopedKey): string
+    {
+        if (! $this->isScopedKey($scopedKey)) {
+            return $scopedKey;
+        }
+
+        return str_replace("{$this->id}:", '', $scopedKey);
+    }
+
+    public function isScopedKey(string $key): bool
+    {
+        return Str::startsWith($key, "{$this->id}:");
+    }
+
     # ----------[ Getters ]----------
 
     public function getAction(): string|null
@@ -112,7 +136,7 @@ class Overlay
     {
         return collect()
             ->merge(explode(',', $this->request->header(InertiaHeader::PARTIAL_ONLY, '')))
-            ->map($this->unscopedKey(...))
+            ->map($this->unscopePropKey(...))
             ->reject(fn($key) => $key === '__inertia-overlay__')
             ->values()
             ->all();
@@ -212,11 +236,11 @@ class Overlay
         $overlay = app(static::class,
             [
                 'id' => Str::random(8),
-                'props' => $props,
             ]
         );
 
         $overlay->isNew = true;
+        $overlay->setProps($props);
 
         return $overlay;
     }
@@ -231,8 +255,8 @@ class Overlay
             'id' => $id
         ]);
 
-        if ($props = $request->get('_props')) {
-            $overlay->props = $props;
+        if ($request->has('_props')) {
+            $overlay->setProps($request->get('_props'));
         } else {
             $overlay->restoreProps();
         }

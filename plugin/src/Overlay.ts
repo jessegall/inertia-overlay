@@ -49,6 +49,7 @@ export class Overlay {
 
     // ----------[ Properties ]----------
 
+    public readonly initialized = ref(false);
     public readonly parentId = ref<string | null>(null);
     public readonly index = ref<number>(-1);
     public readonly state = ref<OverlayState>('closed')
@@ -60,7 +61,10 @@ export class Overlay {
     constructor(
         private readonly router: OverlayRouter,
         public readonly options: OverlayOptions,
-    ) {}
+    ) {
+        options.props = this.normalizeData(options.props);
+        console.log(options.props);
+    }
 
     // ----------[ Event Listeners ]----------
 
@@ -88,10 +92,6 @@ export class Overlay {
         if (this.isDestroyed()) {
             throw new Error(`Cannot perform operation on destroyed overlay instance "${ this.id }".`);
         }
-    }
-
-    private isInitialized(): boolean {
-        return this.config.value !== null;
     }
 
     public async open(page?: OverlayPage): Promise<void> {
@@ -178,37 +178,60 @@ export class Overlay {
 
     // ----------[ Internal ]----------
 
+    private isInitialized(): boolean {
+        return this.initialized.value;
+    }
+
     private setState(state: OverlayState): void {
         if (this.state.value === state) return;
         this.state.value = state;
         this.onStatusChange.emit(state);
     }
 
-    private setComponent(component: string): void {
-        this.component.value = component;
-    }
-
-    private setConfig(config: OverlayConfig): void {
+    private updateConfig(config: OverlayConfig): void {
         this.config.value = {
             ...config,
             ...this.options.config,
         }
     }
 
-    private updateProps(page: OverlayPage): void {
-        const props: OverlayProps = {};
-
-        for (const key of page.overlay.props) {
-            const scopedKey = this.scopedKey(key);
-            const value = page.props[scopedKey];
-            if (value === undefined || value === null) continue;
-            props[key] = page.props[scopedKey];
-        }
-
+    private updateProps(props: OverlayProps): void {
         this.props.value = {
             ...this.props.value,
             ...props,
         };
+    }
+
+    // ----------[ Helpers ]----------
+
+    public scopedKey(key: string) {
+        const prefix = `${ this.id }:`;
+
+        if (key.startsWith(prefix)) {
+            return key;
+        }
+
+        return prefix + key;
+    }
+
+    public unscopedKey(key: string) {
+        const prefix = `${ this.id }:`;
+
+        if (key.startsWith(prefix)) {
+            return key.substring(prefix.length);
+        }
+
+        return key;
+    }
+
+    private normalizeData(data: Record<string, any>, keys?: string[]): OverlayProps {
+        keys ??= Object.keys(data).map((key) => this.unscopedKey(key));
+
+        return keys.reduce<OverlayProps>((resolved, key) => {
+            const value = data[this.scopedKey(key)] ?? data[key];
+            if (value != null) resolved[key] = value;
+            return resolved;
+        }, {});
     }
 
     // ----------[ Event Handlers ]----------
@@ -220,9 +243,13 @@ export class Overlay {
     }
 
     private handlePageLoad(page: OverlayPage): void {
-        this.setComponent(page.overlay.component);
-        this.setConfig(page.overlay.config);
-        this.updateProps(page);
+        if (! this.isInitialized()) {
+            this.initialized.value = true;
+            this.component.value = page.overlay.component;
+        }
+
+        this.updateConfig(page.overlay.config);
+        this.updateProps(this.normalizeData(page.props, page.overlay.props));
 
         if (page.overlay.closeRequested) {
             this.close();
@@ -230,16 +257,6 @@ export class Overlay {
     }
 
     // ----------[ Getters / Setters ]----------
-
-    public scopedKey(key: string) {
-        const prefix = `${ this.id }:`;
-
-        if (key.startsWith(prefix)) {
-            return key;
-        }
-
-        return prefix + key;
-    }
 
     public setParentId(parentId: string | null): void {
         this.parentId.value = parentId;
@@ -275,9 +292,8 @@ export class Overlay {
         return this.options.props;
     }
 
-    public get url(): string {
-        const url = new URL(this.options.url, window.location.href);
-        return url.pathname + url.search;
+    public get url() {
+        return this.options.url;
     }
 
 }
