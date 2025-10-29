@@ -14,10 +14,6 @@ class OverlayBuilder
     public string|null $component = null;
     public array $props = [];
 
-    public function __construct(
-        private readonly ComponentRegistrar $componentRegistrar,
-    ) {}
-
     public function new(): self
     {
         $this->request = null;
@@ -61,22 +57,16 @@ class OverlayBuilder
 
     public function render(): OverlayResponse
     {
-        if (class_exists($this->component)) {
-            $component = $this->componentRegistrar->resolveAlias($this->component);
-        } else {
-            $component = $this->component;
-        }
-
         if ($this->request) {
-            $overlay = $this->createFromRequest($this->request, $component);
+            $overlay = $this->createFromRequest($this->request);
         } else {
-            $overlay = $this->createNew($component);
+            $overlay = $this->createNew();
         }
 
         return $overlay->render();
     }
 
-    protected function createFromRequest(Request $request, string $component): Overlay
+    protected function createFromRequest(Request $request): Overlay
     {
         if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
             throw new RuntimeException('No overlay found in the request.');
@@ -88,7 +78,7 @@ class OverlayBuilder
                 'url' => $request->header(Header::OVERLAY_URL),
                 'isOpening' => $request->header(Header::OVERLAY_OPENING) === 'true',
                 'rootUrl' => $this->rootUrl ?? $request->fullUrl(),
-                'name' => $component,
+                'component' => $this->component,
             ]
         );
 
@@ -98,7 +88,7 @@ class OverlayBuilder
         return $overlay;
     }
 
-    protected function createNew(string $component): Overlay
+    protected function createNew(): Overlay
     {
         $overlay = app(Overlay::class,
             [
@@ -106,13 +96,11 @@ class OverlayBuilder
                 'url' => request()->fullUrl(),
                 'isOpening' => true,
                 'rootUrl' => $this->rootUrl ?? url()->current(),
-                'name' => $component,
+                'component' => $this->component,
             ]
         );
 
         $overlay->setProps($this->props);
-
-        ray($overlay);
 
         return $overlay;
     }

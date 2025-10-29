@@ -66,7 +66,7 @@ readonly class OverlayResponse implements Responsable
     public function toResponse($request)
     {
         if ($request->method() !== 'GET') {
-            return InertiaOverlay::redirect($this->overlay->getName(), $this->overlay->getProps());
+            return InertiaOverlay::redirect($this->overlay->getComponent(), $this->overlay->getProps());
         }
 
         $rootUrl = $this->overlay->getRootUrl();
@@ -85,7 +85,7 @@ readonly class OverlayResponse implements Responsable
             [
                 'id' => $this->overlay->getId(),
                 'url' => $request->fullUrl(),
-                'component' => $this->overlay->getName(),
+                'component' => $this->component->name(),
                 'props' => array_keys($props),
                 'config' => $this->config->toArray(),
                 'input' => array_keys($this->overlay->getProps()),

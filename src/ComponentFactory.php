@@ -24,7 +24,7 @@ readonly class ComponentFactory
             return $this->make($this->registrar->resolveClass($type), $props);
         }
 
-        if (is_subclass_of($type, 'Spatie\LaravelData\Data')) {
+        if (is_subclass_of($type, 'Spatie\\LaravelData\\Data')) {
             return $type::from($props);
         }
 

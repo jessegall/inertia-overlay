@@ -22,7 +22,7 @@ class Overlay
 
         protected string $id,
         protected string $url,
-        protected string $name,
+        protected string $component,
         protected string $rootUrl,
         protected array $props = [],
         protected bool $isOpening = false,
@@ -32,7 +32,7 @@ class Overlay
 
     public function render(): OverlayResponse
     {
-        $component = $this->componentFactory->make($this->name, $this->props);
+        $component = $this->componentFactory->make($this->component, $this->props);
 
         if ($action = $this->request->header(Header::OVERLAY_ACTION)) {
             $this->actionRunner->run($this, $component, $action);
@@ -105,9 +105,9 @@ class Overlay
         return $this->id;
     }
 
-    public function getName(): string
+    public function getComponent(): string
     {
-        return $this->name;
+        return $this->component;
     }
 
     public function getUrl(): string

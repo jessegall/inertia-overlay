@@ -3,16 +3,9 @@ import { OverlayHandle, OverlayPlugin } from "../OverlayPlugin.ts";
 import { OverlayProps } from "../Overlay.ts";
 import { unscopeData } from "../helpers.ts";
 
-type CreateOverlayOptions = {
-    props: OverlayProps;
-}
-
-type CreateComponentOverlayOptions = CreateOverlayOptions & {
-    component: string;
-}
-
-type CreateUrlOverlayOptions = CreateOverlayOptions & {
-    url: string;
+type CreateOverlayOptions = string | {
+    props?: OverlayProps;
+    component?: string;
 }
 
 type OverlayActionOptions = {
@@ -20,16 +13,17 @@ type OverlayActionOptions = {
     onSuccess?: (data: OverlayProps) => void;
 }
 
+
 export function useOverlay() {
 
     const plugin = inject<OverlayPlugin>('overlay.plugin');
 
-    function createOverlay(options: CreateUrlOverlayOptions | CreateComponentOverlayOptions): OverlayHandle {
-        if ('component' in options) {
-            return plugin.createOverlayFromComponent(options.component, options.props);
+    function createOverlay(options: CreateOverlayOptions): OverlayHandle {
+        if (typeof options === 'string') {
+            return plugin.createOverlayFromUrl(options);
         }
 
-        return plugin.createOverlayFromUrl(options.url, options.props);
+        return plugin.createOverlayFromComponent(options.component, options.props);
     }
 
     async function overlayAction(action: string, options: OverlayActionOptions = {}): Promise<void> {
