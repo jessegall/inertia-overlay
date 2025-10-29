@@ -78,6 +78,7 @@ export class Overlay {
                 this.applyPage(page);
             },
             filter: page => page.overlay.id === this.id,
+            priority: () => 10 + this.index.value,
             subscription: this.subscription,
         });
     }
@@ -97,6 +98,7 @@ export class Overlay {
     public async open(): Promise<void> {
         this.assertNotDestroyed();
         if (! this.hasState('closed')) return;
+        console.log("Opening overlay:", this.id);
 
         this.subscribe();
 
@@ -112,6 +114,7 @@ export class Overlay {
     public async close(): Promise<void> {
         this.assertNotDestroyed();
         if (! this.hasState('open')) return;
+        console.log("Closing overlay:", this.id);
 
         await this.transition(async () => {
             this.setState('closing');

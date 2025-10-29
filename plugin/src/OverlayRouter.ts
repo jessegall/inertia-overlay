@@ -193,15 +193,7 @@ export class OverlayRouter {
     }
 
     private resolveRootUrl(): URL {
-        if (! this.hasActiveOverlays()) {
-            return this.rootUrl;
-        }
-
-        const overlay = this.overlayResolver(this.focusedOverlayId());
-
-        if (overlay.options.rootUrl) {
-            return new URL(overlay.options.rootUrl, this.rootUrl);
-        }
+        return this.rootUrl;
     }
 
 }

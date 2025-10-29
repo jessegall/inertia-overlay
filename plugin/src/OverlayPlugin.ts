@@ -169,6 +169,12 @@ export class OverlayPlugin {
 
                 case "closed":
                     this.stack.remove(overlay.id);
+
+                    if (this.stack.size() > 0) {
+                        const topOverlay = this.stack.peek();
+                        topOverlay.setParentId(null);
+                    }
+
                     this.overlayInstances.delete(overlay.id);
                     overlay.destroy();
                     onClosed?.();
