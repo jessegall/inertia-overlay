@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 readonly class OverlayResponseFactory
 {
@@ -12,19 +13,40 @@ readonly class OverlayResponseFactory
         return new OverlayRedirectResponse($component, $props);
     }
 
-    public function render(string $component, array $props = []): OverlayResponse
+    public function build(Request $request): OverlayBuilder
     {
-        $request = request();
+        $builder = app(OverlayBuilder::class);
 
-        return new OverlayResponseBuilder()
-            ->setComponent($component)
-            ->setProps($props)
-            ->render($request);
+        if ($this->isOpeningNewOverlay($request)) {
+            return $builder->new();
+        }
+
+        return $builder->fromRequest($request);
     }
 
-    public function builder(): OverlayResponseBuilder
+    public function render(string $component, array $props = []): OverlayResponse
     {
-        return new OverlayResponseBuilder();
+        return $this->build(request())
+            ->component($component)
+            ->props($props)
+            ->render();
+    }
+
+    # ---------[ Helpers ]----------
+
+    private function isOpeningNewOverlay(Request $request): bool
+    {
+        if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
+            return true;
+        }
+
+        if ($request->hasHeader(Header::OVERLAY_OPENING)) {
+            return false;
+        }
+
+        $from = parse_url($request->header(Header::OVERLAY_URL), PHP_URL_PATH);
+
+        return rtrim($from, '/') === rtrim($request->path(), '/');
     }
 
 

@@ -4,7 +4,7 @@ namespace JesseGall\InertiaOverlay;
 
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
-readonly class AnonymouseOverlayComponent implements OverlayComponent
+readonly class PageOverlayComponent implements OverlayComponent
 {
 
     public function __construct(

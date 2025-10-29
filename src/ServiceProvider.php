@@ -3,7 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Foundation\Application;
-use Illuminate\Http\Request;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\Http\Controllers\OverlayController;
@@ -13,25 +13,39 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 
     public function register(): void
     {
-        $this->registerOverlayRegistrar();
-        $this->registerOverlayRoutes();
+        $config = new Config();
+        $this->app->singleton(Config::class, fn() => $config);
+
+        $this->registerRoutes($config);
+        $this->registerComponentRegistrar($config);
         $this->registerResponseMacros();
     }
 
-    private function registerOverlayRoutes(): void
+    private function registerRoutes(Config $config): void
     {
-        Route::middleware('web')->any('/overlay/{type}', OverlayController::class);
+        Route::group(
+            [
+                'middleware' => $config->getMiddleware(),
+            ],
+            function (Router $router) use ($config) {
+                $router->any('/overlay/{type}', OverlayController::class);
+            }
+        );
     }
 
-    private function registerOverlayRegistrar(): void
+    private function registerComponentRegistrar(Config $config): void
     {
-        $this->app->singleton(OverlayComponentRegistrar::class, function (Application $app) {
-            $registrar = new OverlayComponentRegistrar();
+        $this->app->singleton(ComponentRegistrar::class, function (Application $app) use ($config) {
+            $registrar = new ComponentRegistrar();
 
-            if (! $app->runningInConsole()) {
-                foreach (config('overlays.overlay_class_map', []) as $key => $type) {
-                    $registrar->register($key, $type);
-                }
+            if ($app->runningInConsole()) {
+                return $registrar;
+            }
+
+            $components = $config->getComponents();
+
+            foreach ($components as $key => $type) {
+                $registrar->register($key, $type);
             }
 
             return $registrar;
@@ -40,10 +54,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 
     private function registerResponseMacros(): void
     {
-        Request::macro('isOverlayRequest', function (): bool {
-            return $this->inertia() && $this->header(Header::OVERLAY_ID);
-        });
-
         Inertia::macro('overlay', function ($component, $props = []) {
             return InertiaOverlay::render($component, $props);
         });

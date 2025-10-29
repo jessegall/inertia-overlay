@@ -70,19 +70,10 @@ export class OverlayPlugin {
 
     private initialize(): void {
         const page = usePage();
+        const overlayData = this.resolveOverlayDataFromDocument();
 
-        const metaTag = document.querySelector('meta[name="data-inertia-overlay"]');
-        const content = metaTag?.getAttribute('content');
-        
-        if (content) {
-            try {
-                const data = JSON.parse(decodeURIComponent(content));
-                if (data) {
-                    page['overlay'] = data;
-                }
-            } catch (error) {
-                console.error('Failed to parse initial overlay data from meta tag.', error);
-            }
+        if (overlayData) {
+            page['overlay'] = overlayData;
         }
 
         if (isOverlayPage(page)) {
@@ -143,6 +134,24 @@ export class OverlayPlugin {
         return this.stack.items.find(i => i.isFocused())?.id || null;
     }
 
+    public resolveComponent(type: string): () => Promise<any> {
+        console.log('Resolving overlay component:', type);
+        try {
+            return this.options.resolve(type);
+        } catch {
+            throw new Error(`Overlay component of type "${ type }" could not be resolved.`);
+        }
+    }
+
+    // ----------[ Event Handlers ]----------
+
+    private onOverlayPageLoaded(page: OverlayPage): void {
+        if (! this.overlayInstances.has(page.overlay.id)) {
+            const handle = this.createOverlayFromPage(page);
+            handle.open();
+        }
+    }
+
     // ----------[ Internal ]----------
 
     private registerInstance(overlay: ReadonlyOverlay, onClosed?: () => void): ReadonlyOverlay {
@@ -177,12 +186,15 @@ export class OverlayPlugin {
         return overlay;
     }
 
-    // ----------[ Event Handlers ]----------
-
-    private onOverlayPageLoaded(page: OverlayPage): void {
-        if (! this.overlayInstances.has(page.overlay.id)) {
-            const handle = this.createOverlayFromPage(page);
-            handle.open();
+    private resolveOverlayDataFromDocument() {
+        const element = document.querySelector('[data-page]');
+        const content = element?.getAttribute('data-page');
+        if (! content) return null;
+        try {
+            const data = JSON.parse(decodeURIComponent(content));
+            return data['overlay'] || null;
+        } catch {
+            return null;
         }
     }
 

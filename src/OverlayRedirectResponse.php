@@ -21,12 +21,14 @@ class OverlayRedirectResponse extends RedirectResponse
 
     private function resolveComponentType(string $component): string
     {
-        $registrar = app(OverlayComponentRegistrar::class);
+        $registrar = app(ComponentRegistrar::class);
 
         if (class_exists($component)) {
             if ($registrar->isClassRegistered($component)) {
                 return $registrar->resolveAlias($component);
             }
+
+            $registrar->assertIsOverlayComponentType($component);
 
             return base64_encode($component);
         }

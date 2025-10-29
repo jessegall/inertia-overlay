@@ -167,8 +167,6 @@ export class OverlayRouter {
     }
 
     private preservePageDetails(page: OverlayPage): void {
-        console.log("Preserving page details for overlay page:", page);
-
         // Keep browser URL on the root page instead of showing overlay URL
         page.url = this.rootUrl.pathname + this.rootUrl.search;
 
@@ -201,8 +199,8 @@ export class OverlayRouter {
 
         const overlay = this.overlayResolver(this.focusedOverlayId());
 
-        if (overlay.options.baseUrl) {
-            return new URL(overlay.options.baseUrl, this.rootUrl);
+        if (overlay.options.rootUrl) {
+            return new URL(overlay.options.rootUrl, this.rootUrl);
         }
     }
 

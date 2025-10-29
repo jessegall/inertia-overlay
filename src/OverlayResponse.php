@@ -5,110 +5,149 @@ namespace JesseGall\InertiaOverlay;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as IlluminateResponse;
+use Illuminate\Support\Facades\Route;
+use Illuminate\View\View;
 use Inertia\Inertia;
-use Inertia\Response;
-use Inertia\Support\Header;
+use Inertia\Response as InertiaResponse;
+use Inertia\Support\Header as InertiaHeader;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use ReflectionClass;
+use JesseGall\InertiaOverlay\Header as OverlayHeader;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
 
 readonly class OverlayResponse implements Responsable
 {
 
-    private OverlayConfig $config;
-
     public function __construct(
-        private Overlay $overlay,
-        private OverlayComponent $component,
-    )
-    {
-        $this->config = $this->component->config($this->overlay);
-    }
+        protected Overlay $overlay,
+        protected OverlayComponent $component,
+        protected OverlayConfig $config,
+    ) {}
 
-    public function toResponse($request)
+    public function resolveData(Request $request, string $rootUrl): array
     {
-        if ($request->method() !== 'GET') {
-            return InertiaOverlay::redirect($this->overlay->getComponent(), $this->overlay->getProps());
+        $props = $this->resolveOverlayProperties($this->overlay);
+
+        if ($request->header(InertiaHeader::INERTIA)) {
+            $pageComponent = $request->header(OverlayHeader::PAGE_COMPONENT);
+
+            return [$pageComponent, $props];
         }
 
-        $props = $this->resolveProperties();
-        $baseUrl = $this->overlay->getBaseUrl();
+        [$pageComponent, $pageProps] = $this->resolveRootPageData($rootUrl);
 
-        if (! $pageComponent = $this->overlay->getPageComponent()) {
-            $baseUrl = $this->overlay->getBaseUrl();
-            [$pageComponent, $pageProps] = $this->renderBaseRoute($request, $baseUrl);
-            $props = array_merge($pageProps, $props);
-        }
-
-        if ($this->overlay->isOpening()) {
-            $request->headers->remove(Header::PARTIAL_COMPONENT);
-            $request->headers->remove(Header::PARTIAL_ONLY);
-        } else {
-            $request->headers->set(Header::PARTIAL_COMPONENT, $pageComponent);
-            $request->headers->set(Header::PARTIAL_ONLY, implode(',', $this->resolvePartialPropertyKeys($request)));
-        }
-
-        $response = Inertia::render($pageComponent, $props);
-
-        return $this->withOverlay($response,
-            [
-                'id' => $this->overlay->getId(),
-                'url' => $request->fullUrl(),
-                'component' => $this->component->name(),
-                'props' => array_keys($props),
-                'config' => $this->config->toArray(),
-                'closeRequested' => $this->overlay->closeRequested(),
-                'input' => array_keys($this->overlay->getProps()),
-                'baseUrl' => $baseUrl,
-            ]
-        );
+        return [$pageComponent, array_merge($pageProps, $props)];
     }
 
-    private function renderBaseRoute(Request $request, string $baseUrl): array
+    public function resolveRootPageData(string $rootUrl): array
     {
-        $route = app('router')->getRoutes()->match(Request::create($baseUrl));
+        $request = Request::create($rootUrl);
+        $response = Route::getRoutes()->match($request)->run();
 
-        /** @var Response $response */
-        $response = app()->call([$route->getController(), $route->getActionMethod()]);
-        $reflector = new ReflectionClass($response);
-        $component = $reflector->getProperty('component')->getValue($response);
-        $props = $reflector->getProperty('props')->getValue($response);
+        if (! $response instanceof InertiaResponse) {
+            throw new RuntimeException('The root URL must return an Inertia response.');
+        }
 
-        return [$component, $props];
+        $extractor = fn() => [$this->component, $this->props];
+
+        return $extractor->call($response);
     }
 
-    private function resolveProperties()
+    public function resolveOverlayProperties(Overlay $overlay): array
     {
         return collect()
-            ->merge($this->overlay->getProps())
+            ->merge($overlay->getProps())
             ->merge($this->component->props($this->overlay))
             ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopePropKey($key) => $prop])
             ->all();
     }
 
-    private function resolvePartialPropertyKeys(Request $request): array
+    public function toResponse($request)
     {
-        $partial = $request->header(Header::PARTIAL_ONLY, '');
+        if ($request->method() !== 'GET') {
+            return InertiaOverlay::redirect($this->overlay->getName(), $this->overlay->getProps());
+        }
 
-        return collect()
-            ->merge(explode(',', $partial))
-            ->merge($this->overlay->getRefreshProps())
-            ->map($this->overlay->scopePropKey(...))
-            ->all();
+        $rootUrl = $this->overlay->getRootUrl();
+
+        [$pageComponent, $props] = $this->resolveData($request, $rootUrl);
+
+        if (! $this->overlay->isOpening()) {
+            $this->configurePartialData($request, $pageComponent);
+        }
+
+        $response = Inertia::render($pageComponent, $props)->toResponse($request);
+
+        return $this->toOverlayResponse($response,
+            [
+                'id' => $this->overlay->getId(),
+                'url' => $request->fullUrl(),
+                'component' => $this->overlay->getName(),
+                'props' => array_keys($props),
+                'config' => $this->config->toArray(),
+                'input' => array_keys($this->overlay->getProps()),
+                'rootUrl' => $rootUrl,
+            ]
+        );
     }
 
-    private function withOverlay(Response $response, array $data)
+    protected function configurePartialData(Request $request, string $pageComponent): void
     {
-        $response = $response
-            ->withViewData('overlay', $data)
-            ->toResponse($this->overlay->request);
+        $partial = collect(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
+            ->merge($this->overlay->getReloadProps())
+            ->map($this->overlay->scopePropKey(...))
+            ->join(',');
+
+        $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
+        $request->headers->set(InertiaHeader::PARTIAL_ONLY, $partial);
+    }
+
+    protected function toOverlayResponse(Response $response, array $data): IlluminateResponse|JsonResponse|Response
+    {
+        if ($response instanceof IlluminateResponse) {
+            return $this->toViewResponse($response, $data);
+        }
 
         if ($response instanceof JsonResponse) {
-            $original = $response->getData(true);
-            $original['overlay'] = $data;
-            return $response->setData($original);
+            return $this->toJsonResponse($response, $data);
         }
 
         return $response;
+    }
+
+    protected function toViewResponse(IlluminateResponse $response, array $data): IlluminateResponse
+    {
+        if (! $response->getOriginalContent() instanceof View) {
+            return $response;
+        }
+
+        $content = $response->getContent();
+
+        if (preg_match('/data-page="([^"]+)"/', $content, $matches)) {
+            $pageData = json_decode(html_entity_decode($matches[1]), true);
+            $pageData['overlay'] = $data;
+
+            $newContent = str_replace(
+                $matches[0],
+                'data-page="' . htmlspecialchars(json_encode($pageData), ENT_QUOTES) . '"',
+                $content
+            );
+
+            $response->setContent($newContent);
+        }
+
+        return $response;
+    }
+
+    protected function toJsonResponse(JsonResponse $response, array $data): JsonResponse
+    {
+        return $response->setData(
+            [
+                ...$response->getData(true),
+                'overlay' => $data,
+            ]
+        );
     }
 
 }

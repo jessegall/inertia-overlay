@@ -42,7 +42,7 @@ export class OverlayFactory {
         return this.make({
             ...page.overlay,
             input: page.overlay.input,
-            baseUrl: page.overlay.baseUrl,
+            rootUrl: page.overlay.rootUrl,
             props,
         });
     }

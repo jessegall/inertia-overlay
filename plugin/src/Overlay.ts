@@ -24,7 +24,7 @@ export interface OverlayResponse {
     config: OverlayConfig;
     closeRequested: boolean;
     input: string[]
-    baseUrl?: string
+    rootUrl?: string
 }
 
 export type OverlayPage = Page & { overlay: OverlayResponse };
@@ -34,7 +34,7 @@ export type OverlayOptions = {
     url: string;
     props: OverlayProps;
     input?: string[];
-    baseUrl?: string;
+    rootUrl?: string;
     config?: Partial<OverlayConfig>;
 };
 

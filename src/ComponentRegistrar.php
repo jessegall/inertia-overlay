@@ -5,7 +5,7 @@ namespace JesseGall\InertiaOverlay;
 use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
-class OverlayComponentRegistrar
+class ComponentRegistrar
 {
 
     private array $overlays = [];
@@ -74,7 +74,7 @@ class OverlayComponentRegistrar
      * @param string $type
      * @return void
      */
-    private function assertIsOverlayComponentType(string $type): void
+    public function assertIsOverlayComponentType(string $type): void
     {
         if (! is_subclass_of($type, OverlayComponent::class)) {
             throw new InvalidArgumentException(
