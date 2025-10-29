@@ -112,6 +112,8 @@ class OverlayBuilder
 
         $overlay->setProps($this->props);
 
+        ray($overlay);
+
         return $overlay;
     }
 

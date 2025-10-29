@@ -43,6 +43,7 @@ export class OverlayFactory {
             ...page.overlay,
             input: page.overlay.input,
             rootUrl: page.overlay.rootUrl,
+            url: page.overlay.url,
             props,
         });
     }

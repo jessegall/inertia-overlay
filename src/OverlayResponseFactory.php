@@ -46,7 +46,7 @@ readonly class OverlayResponseFactory
 
         $from = parse_url($request->header(Header::OVERLAY_URL), PHP_URL_PATH);
 
-        return rtrim($from, '/') === rtrim($request->path(), '/');
+        return ltrim($from, '/') !== ltrim($request->path(), '/');
     }
 
 

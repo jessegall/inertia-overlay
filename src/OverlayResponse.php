@@ -27,17 +27,17 @@ readonly class OverlayResponse implements Responsable
 
     public function resolveData(Request $request, string $rootUrl): array
     {
-        $props = $this->resolveOverlayProperties($this->overlay);
+        $overlayProps = $this->resolveOverlayProperties($this->overlay);
 
         if ($request->header(InertiaHeader::INERTIA)) {
             $pageComponent = $request->header(OverlayHeader::PAGE_COMPONENT);
 
-            return [$pageComponent, $props];
+            return [$pageComponent, $overlayProps];
         }
 
         [$pageComponent, $pageProps] = $this->resolveRootPageData($rootUrl);
 
-        return [$pageComponent, array_merge($pageProps, $props)];
+        return [$pageComponent, array_merge($pageProps, $overlayProps)];
     }
 
     public function resolveRootPageData(string $rootUrl): array
@@ -73,8 +73,10 @@ readonly class OverlayResponse implements Responsable
 
         [$pageComponent, $props] = $this->resolveData($request, $rootUrl);
 
-        if (! $this->overlay->isOpening()) {
-            $this->configurePartialData($request, $pageComponent);
+        if ($this->overlay->isOpening()) {
+            $this->removePartialDataHeaders($request);
+        } else {
+            $this->configurePartialDataHeaders($request, $pageComponent);
         }
 
         $response = Inertia::render($pageComponent, $props)->toResponse($request);
@@ -92,7 +94,13 @@ readonly class OverlayResponse implements Responsable
         );
     }
 
-    protected function configurePartialData(Request $request, string $pageComponent): void
+    protected function removePartialDataHeaders(Request $request): void
+    {
+        $request->headers->remove(InertiaHeader::PARTIAL_COMPONENT);
+        $request->headers->remove(InertiaHeader::PARTIAL_ONLY);
+    }
+
+    protected function configurePartialDataHeaders(Request $request, string $pageComponent): void
     {
         $partial = collect(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
             ->merge($this->overlay->getReloadProps())
@@ -142,6 +150,7 @@ readonly class OverlayResponse implements Responsable
 
     protected function toJsonResponse(JsonResponse $response, array $data): JsonResponse
     {
+        ray($data);
         return $response->setData(
             [
                 ...$response->getData(true),
