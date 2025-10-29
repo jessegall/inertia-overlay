@@ -42,59 +42,6 @@ class OverlayResponseTest extends TestCase
         $this->assertArrayNotHasKey($overlay->scopePropKey('deferredProp'), $props);
     }
 
-    public function test_WhenRefocusingOverlay_AllNonLazyPropsAreIncluded()
-    {
-        $overlay = MockOverlay::make();
-        $overlay->setIsOpening(true);
-
-        $response = new OverlayResponse($overlay, new MockOverlayComponent(
-            [
-                'prop' => 'value',
-                'closureProp' => fn() => 'value',
-                'lazyProp' => Inertia::optional(fn() => 'value'),
-                'deferredProp' => Inertia::defer(fn() => 'value'),
-                'alwaysProp' => Inertia::always(fn() => 'value'),
-                'mergeProp' => Inertia::merge(fn() => 'value'),
-            ]
-        ));
-
-        $props = $response->toResponse($overlay->request)->getData(true)['props'];
-
-        $this->assertArrayHasKey($overlay->scopePropKey('prop'), $props);
-        $this->assertArrayHasKey($overlay->scopePropKey('closureProp'), $props);
-        $this->assertArrayHasKey($overlay->scopePropKey('alwaysProp'), $props);
-        $this->assertArrayHasKey($overlay->scopePropKey('mergeProp'), $props);
-
-        $this->assertArrayNotHasKey($overlay->scopePropKey('lazyProp'), $props);
-        $this->assertArrayNotHasKey($overlay->scopePropKey('deferredProp'), $props);
-    }
-
-    public function test_GivenComponentImplementsSkipReloadOnRefocus_WhenRefocusingOverlay_OnlyAlwaysPropsAreIncluded()
-    {
-        $overlay = MockOverlay::make();
-        $overlay->setIsRefocusing(true);
-
-        $component = new class(
-            [
-                'prop' => 'value',
-                'closureProp' => fn() => 'value',
-                'lazyProp' => Inertia::optional(fn() => 'value'),
-                'deferredProp' => Inertia::defer(fn() => 'value'),
-                'alwaysProp' => Inertia::always(fn() => 'value'),
-                'mergeProp' => Inertia::merge(fn() => 'value'),
-            ]
-        ) extends MockOverlayComponent implements SkipReloadOnRefocus {
-
-        };
-
-        $response = new OverlayResponse($overlay, $component);
-
-        $props = $response->toResponse($overlay->request)->getData(true)['props'];
-
-        $this->assertCount(1, $props);
-        $this->assertArrayHasKey($overlay->scopePropKey('alwaysProp'), $props);
-    }
-
     public function test_WhenPartialReloadingOverlay_OnlyPartialAndAlwaysPropsAreIncluded()
     {
         $overlay = MockOverlay::make();

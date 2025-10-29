@@ -13,7 +13,7 @@ class Overlay
 {
 
     protected bool $isOpening = false;
-    protected bool $isRefocusing = false;
+    protected string|null $baseUrl = null;
 
     public function __construct(
         public readonly Request $request,
@@ -138,14 +138,14 @@ class Overlay
         return $this->isOpening;
     }
 
-    public function isRefocusing(): bool
+    public function getBaseUrl(): string|null
     {
-        return $this->isRefocusing;
+        return $this->baseUrl;
     }
 
-    public function urlIsMatch(string $url): bool
+    public function setBaseUrl(string|null $baseUrl): void
     {
-        return parse_url($this->url, PHP_URL_PATH) === parse_url($url, PHP_URL_PATH);
+        $this->baseUrl = $baseUrl;
     }
 
     # ----------[ Response Headers ]----------
@@ -258,7 +258,6 @@ class Overlay
         );
 
         $overlay->isOpening = $request->header(Header::OVERLAY_OPENING) === 'true';
-        $overlay->isRefocusing = $request->header(Header::OVERLAY_REFOCUS) === 'true';
 
         $overlay->restoreProps();
         $overlay->mergeProps($props);

@@ -23,6 +23,8 @@ export interface OverlayResponse {
     props: string[];
     config: OverlayConfig;
     closeRequested: boolean;
+    input: string[]
+    baseUrl?: string
 }
 
 export type OverlayPage = Page & { overlay: OverlayResponse };
@@ -31,6 +33,8 @@ export type OverlayOptions = {
     id: string;
     url: string;
     props: OverlayProps;
+    input?: string[];
+    baseUrl?: string;
     config?: Partial<OverlayConfig>;
 };
 
@@ -97,6 +101,7 @@ export class Overlay {
         this.subscribe();
 
         await this.transition(async () => {
+            this.focus();
             this.setState('opening');
             const page = await this.router.open(this.id);
             this.applyPage(page);
@@ -267,8 +272,12 @@ export class Overlay {
         return this.options.id;
     }
 
-    public get initialProps() {
-        return this.options.props;
+    public get parameters() {
+        if (! this.options.input) {
+            return this.options.props;
+        }
+
+        return this.normalizeData(this.options.props, this.options.input);
     }
 
 }

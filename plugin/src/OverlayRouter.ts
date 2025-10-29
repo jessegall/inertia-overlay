@@ -30,7 +30,7 @@ export const header = {
 
 export class OverlayRouter {
 
-    private readonly cache = new OverlayCache();
+    public readonly cache = new OverlayCache();
     private readonly requestBuilder = new OverlayRequestBuilder();
     private readonly routerAdapter = new InertiaRouterAdapter();
 
@@ -121,12 +121,12 @@ export class OverlayRouter {
 
     public async navigateToRoot(): Promise<Page> {
         const request = this.requestBuilder.buildNavigateToRootRequest();
-        return await this.routerAdapter.get(this.rootUrl, request);
+        return await this.routerAdapter.get(this.resolveRootUrl(), request);
     }
 
     // ----------[ Internal ]----------
 
-    private updateRootUrl(page: Page): void {
+    public updateRootUrl(page: Page): void {
         this.rootUrl.href = new URL(page.url, this.rootUrl).href;
     }
 
@@ -167,6 +167,8 @@ export class OverlayRouter {
     }
 
     private preservePageDetails(page: OverlayPage): void {
+        console.log("Preserving page details for overlay page:", page);
+
         // Keep browser URL on the root page instead of showing overlay URL
         page.url = this.rootUrl.pathname + this.rootUrl.search;
 
@@ -182,10 +184,26 @@ export class OverlayRouter {
 
     // ----------[ Helpers ]----------
 
+    private hasActiveOverlays(): boolean {
+        return this.focusedOverlayId() !== null;
+    }
+
     private isPageReload(visit: PendingVisit): boolean {
         const page = usePage();
         const pageUrl = new URL(page.url, visit.url.origin);
         return visit.method === 'get' && visit.url.pathname === pageUrl.pathname;
+    }
+
+    private resolveRootUrl(): URL {
+        if (! this.hasActiveOverlays()) {
+            return this.rootUrl;
+        }
+
+        const overlay = this.overlayResolver(this.focusedOverlayId());
+
+        if (overlay.options.baseUrl) {
+            return new URL(overlay.options.baseUrl, this.rootUrl);
+        }
     }
 
 }

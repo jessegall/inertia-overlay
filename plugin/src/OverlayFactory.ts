@@ -37,9 +37,13 @@ export class OverlayFactory {
             }
         }
 
+        this.router.cache.set(overlayId, page);
+
         return this.make({
             ...page.overlay,
-            props: props,
+            input: page.overlay.input,
+            baseUrl: page.overlay.baseUrl,
+            props,
         });
     }
 

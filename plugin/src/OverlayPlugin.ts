@@ -4,7 +4,6 @@ import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
 import { OverlayPage, OverlayProps, OverlayState } from "./Overlay.ts";
-import { Page } from "@inertiajs/core";
 import { isOverlayPage } from "./helpers.ts";
 import { usePage } from "@inertiajs/vue3";
 
@@ -71,6 +70,21 @@ export class OverlayPlugin {
 
     private initialize(): void {
         const page = usePage();
+
+        const metaTag = document.querySelector('meta[name="data-inertia-overlay"]');
+        const content = metaTag?.getAttribute('content');
+        
+        if (content) {
+            try {
+                const data = JSON.parse(decodeURIComponent(content));
+                if (data) {
+                    page['overlay'] = data;
+                }
+            } catch (error) {
+                console.error('Failed to parse initial overlay data from meta tag.', error);
+            }
+        }
+
         if (isOverlayPage(page)) {
             const handle = this.createOverlayFromPage(page);
             handle.open();
