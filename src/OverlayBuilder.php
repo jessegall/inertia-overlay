@@ -4,14 +4,15 @@ namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use RuntimeException;
 
 class OverlayBuilder
 {
 
     public Request|null $request = null;
-    public string|null $rootUrl = null;
-    public string|null $component = null;
+    public string|null $baseUrl = null;
+    public OverlayComponent|string|null $component = null;
     public array $props = [];
 
     public function new(): self
@@ -26,13 +27,13 @@ class OverlayBuilder
         return $this;
     }
 
-    public function rootUrl(string $baseUrl): self
+    public function baseUrl(string $baseUrl): self
     {
-        $this->rootUrl = $baseUrl;
+        $this->baseUrl = $baseUrl;
         return $this;
     }
 
-    public function component(string $component): self
+    public function component(OverlayComponent|string $component): self
     {
         $this->component = $component;
         return $this;
@@ -74,11 +75,11 @@ class OverlayBuilder
 
         $overlay = app(Overlay::class,
             [
+                'component' => $this->component,
                 'id' => $request->header(Header::OVERLAY_ID),
                 'url' => $request->header(Header::OVERLAY_URL),
                 'isOpening' => $request->header(Header::OVERLAY_OPENING) === 'true',
-                'rootUrl' => $this->rootUrl ?? $request->fullUrl(),
-                'component' => $this->component,
+                'baseUrl' => $this->baseUrl ?? $request->fullUrl(),
             ]
         );
 
@@ -92,11 +93,11 @@ class OverlayBuilder
     {
         $overlay = app(Overlay::class,
             [
+                'component' => $this->component,
                 'id' => Str::random(8),
                 'url' => request()->fullUrl(),
                 'isOpening' => true,
-                'rootUrl' => $this->rootUrl ?? url()->current(),
-                'component' => $this->component,
+                'baseUrl' => $this->baseUrl ?? url()->current(),
             ]
         );
 

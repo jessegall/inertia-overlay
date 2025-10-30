@@ -9,6 +9,7 @@ class Header
 
     public const string OVERLAY_ID = 'X-Inertia-Overlay-Id';
     public const string OVERLAY_URL = 'X-Inertia-Overlay-Url';
+    public const string OVERLAY_BASE_URL = 'X-Inertia-Overlay-Base-Url';
     public const string OVERLAY_ACTION = 'X-Inertia-Overlay-Action';
     public const string OVERLAY_OPENING = 'X-Inertia-Overlay-Opening';
     public const string PAGE_COMPONENT = 'X-Inertia-Overlay-Page-Component';

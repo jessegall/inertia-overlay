@@ -2,6 +2,7 @@ import { EventEmitter, EventSubscription } from "./event.ts";
 import { ref } from "vue";
 import { Page } from "@inertiajs/core";
 import { OverlayRouter } from "./OverlayRouter.ts";
+import { HttpMethod } from "./InertiaRouterAdapter.ts";
 
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | '80%' | 'full';
@@ -24,7 +25,8 @@ export interface OverlayResponse {
     config: OverlayConfig;
     closeRequested: boolean;
     input: string[]
-    rootUrl?: string
+    baseUrl?: string
+    method?: HttpMethod;
 }
 
 export type OverlayPage = Page & { overlay: OverlayResponse };

@@ -1,6 +1,6 @@
 <?php
 
-use JesseGall\InertiaOverlay\Http\OverlayRedirectResponse;
+use JesseGall\InertiaOverlay\OverlayRedirectResponse;
 
 if (! function_exists('overlay')) {
 

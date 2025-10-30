@@ -25,22 +25,6 @@ readonly class OverlayResponse implements Responsable
         protected OverlayConfig $config = new OverlayConfig(),
     ) {}
 
-    public function resolveData(Request $request, string $rootUrl): array
-    {
-        $overlayProps = $this->resolveOverlayProperties($this->overlay);
-
-        if ($request->header(InertiaHeader::INERTIA)) {
-            $pageComponent = $request->header(OverlayHeader::PAGE_COMPONENT);
-
-            return [$pageComponent, $overlayProps];
-        }
-
-        [$pageComponent, $pageProps] = $this->resolveRootPageData($rootUrl);
-
-        return [$pageComponent, array_merge($pageProps, $overlayProps)];
-    }
-
-
     public function resolveOverlayProperties(Overlay $overlay): array
     {
         return collect()
@@ -50,13 +34,14 @@ readonly class OverlayResponse implements Responsable
             ->all();
     }
 
-    public function resolveRootPageData(string $rootUrl): array
+    public function resolveRootPageData(Request $request, string $url): array
     {
-        $request = Request::create($rootUrl);
-        $response = Route::getRoutes()->match($request)->run();
+        $rootPageRequest = Request::create($url);
+
+        $response = Route::getRoutes()->match($rootPageRequest)->run();
 
         if (! $response instanceof InertiaResponse) {
-            throw new RuntimeException('The root URL must return an Inertia response.');
+            throw new RuntimeException('The base URL must return an Inertia response.');
         }
 
         $extractor = fn() => [$this->component, $this->props];
@@ -64,15 +49,29 @@ readonly class OverlayResponse implements Responsable
         return $extractor->call($response);
     }
 
-    public function toResponse($request)
+
+    public function resolveResponseData(Request $request, string $rootUrl, bool $includeRootPage): array
     {
-        if ($request->method() !== 'GET') {
-            return InertiaOverlay::redirect($this->overlay->getComponent(), $this->overlay->getProps());
+        $overlayProps = $this->resolveOverlayProperties($this->overlay);
+
+        if ($includeRootPage) {
+            [$pageComponent, $pageProps] = $this->resolveRootPageData($request, $rootUrl);
+            return [$pageComponent, array_merge($pageProps, $overlayProps)];
         }
 
-        $rootUrl = $this->overlay->getRootUrl();
+        $pageComponent = $request->header(OverlayHeader::PAGE_COMPONENT);
+        return [$pageComponent, $overlayProps];
+    }
 
-        [$pageComponent, $props] = $this->resolveData($request, $rootUrl);
+    public function toResponse($request)
+    {
+        $baseUrl = $request->header(OverlayHeader::OVERLAY_BASE_URL, $this->overlay->getBaseUrl());
+
+        [$pageComponent, $props] = $this->resolveResponseData(
+            $request,
+            $baseUrl,
+            includeRootPage: ! $request->inertia() || count($this->overlay->getReloadPageProps()) > 0
+        );
 
         if ($this->overlay->isOpening()) {
             $this->removePartialDataHeaders($request);
@@ -90,7 +89,10 @@ readonly class OverlayResponse implements Responsable
                 'props' => array_keys($props),
                 'config' => $this->config->toArray(),
                 'input' => array_keys($this->overlay->getProps()),
-                'rootUrl' => $rootUrl,
+                'baseUrl' => $baseUrl,
+                'method' => $request->method(),
+
+                'closeRequested' => $this->overlay->isCloseRequested(),
             ]
         );
     }
@@ -106,6 +108,7 @@ readonly class OverlayResponse implements Responsable
         $partial = collect(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
             ->merge($this->overlay->getReloadProps())
             ->map($this->overlay->scopePropKey(...))
+            ->merge($this->overlay->getReloadPageProps())
             ->join(',');
 
         $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);

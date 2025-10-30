@@ -4,6 +4,7 @@ namespace JesseGall\InertiaOverlay;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
 readonly class OverlayResponseFactory
 {
@@ -24,7 +25,7 @@ readonly class OverlayResponseFactory
         return $builder->fromRequest($request);
     }
 
-    public function render(string $component, array $props = []): OverlayResponse
+    public function render(OverlayComponent|string $component, array $props = []): OverlayResponse
     {
         return $this->build(request())
             ->component($component)

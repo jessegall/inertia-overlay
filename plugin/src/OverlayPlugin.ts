@@ -83,8 +83,10 @@ export class OverlayPlugin {
         }
 
         if (isOverlayPage(page)) {
-            // const handle = this.createOverlayFromPage(page);
-            // handle.open();
+            const overlay = this.factory.makeFromPage(page);
+            this.router.cache.set(overlay.id, page);
+            this.registerInstance(overlay);
+            overlay.open();
         }
     }
 

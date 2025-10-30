@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
 class Overlay
 {
@@ -20,10 +21,11 @@ class Overlay
 
         # ----------[ Input ]----------
 
+        protected OverlayComponent|string $component,
+
         protected string $id,
         protected string $url,
-        protected string $component,
-        protected string $rootUrl,
+        protected string $baseUrl,
         protected array $props = [],
         protected bool $isOpening = false,
         protected OverlayConfig|null $config = null,
@@ -32,7 +34,11 @@ class Overlay
 
     public function render(): OverlayResponse
     {
-        $component = $this->componentFactory->make($this->component, $this->props);
+        if (is_string($this->component)) {
+            $component = $this->componentFactory->make($this->component, $this->props);
+        } else {
+            $component = $this->component;
+        }
 
         if ($action = $this->request->header(Header::OVERLAY_ACTION)) {
             $this->actionRunner->run($this, $component, $action);
@@ -75,13 +81,18 @@ class Overlay
 
     public function getReloadProps(): array
     {
-        $reload = $this->get('reload', []);
+        return $this->get('reload', []);
+    }
 
-        if ($reload === true) {
-            return array_keys($this->props);
-        } else if (is_array($reload)) {
-            return $reload;
-        }
+    public function reloadPageProps(array|string $keys): void
+    {
+        $current = $this->get('reloadPage', []);
+        $this->flash('reloadPage', array_merge($current, Arr::wrap($keys)));
+    }
+
+    public function getReloadPageProps(): array
+    {
+        return $this->get('reloadPage', []);
     }
 
     public function scopePropKey(string $key): string
@@ -120,12 +131,22 @@ class Overlay
         return $this->isOpening;
     }
 
-    public function getRootUrl(): string|null
+    public function getBaseUrl(): string|null
     {
-        return $this->rootUrl;
+        return $this->baseUrl;
     }
 
     # ----------[ Session ]----------
+
+    public function close(): void
+    {
+        $this->flash('close', true);
+    }
+
+    public function isCloseRequested(): bool
+    {
+        return $this->get('close', false) === true;
+    }
 
     public function restoreProps(): void
     {
