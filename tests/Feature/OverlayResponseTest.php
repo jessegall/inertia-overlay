@@ -128,7 +128,7 @@ class OverlayResponseTest extends TestCase
                 'lazyProp' => Inertia::optional(fn() => 'value'),
                 'deferredProp' => Inertia::defer(fn() => 'value'),
                 'alwaysProp' => Inertia::always(fn() => 'value'),
-            ]
+            ],
         ));
 
         $props = $response->toResponse($overlay->request)->getData(true)['props'];

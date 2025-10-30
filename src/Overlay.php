@@ -69,8 +69,8 @@ class Overlay
 
     public function reloadProps(array|string $keys): void
     {
-        $current = $this->get('refresh', []);
-        $this->flash('refresh', array_merge($current, Arr::wrap($keys)));
+        $current = $this->get('reload', []);
+        $this->flash('reload', array_merge($current, Arr::wrap($keys)));
     }
 
     public function getReloadProps(): array

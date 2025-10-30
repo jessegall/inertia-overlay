@@ -22,7 +22,7 @@ readonly class OverlayResponse implements Responsable
     public function __construct(
         protected Overlay $overlay,
         protected OverlayComponent $component,
-        protected OverlayConfig $config,
+        protected OverlayConfig $config = new OverlayConfig(),
     ) {}
 
     public function resolveData(Request $request, string $rootUrl): array
@@ -40,6 +40,16 @@ readonly class OverlayResponse implements Responsable
         return [$pageComponent, array_merge($pageProps, $overlayProps)];
     }
 
+
+    public function resolveOverlayProperties(Overlay $overlay): array
+    {
+        return collect()
+            ->merge($overlay->getProps())
+            ->merge($this->component->props($this->overlay))
+            ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopePropKey($key) => $prop])
+            ->all();
+    }
+
     public function resolveRootPageData(string $rootUrl): array
     {
         $request = Request::create($rootUrl);
@@ -52,15 +62,6 @@ readonly class OverlayResponse implements Responsable
         $extractor = fn() => [$this->component, $this->props];
 
         return $extractor->call($response);
-    }
-
-    public function resolveOverlayProperties(Overlay $overlay): array
-    {
-        return collect()
-            ->merge($overlay->getProps())
-            ->merge($this->component->props($this->overlay))
-            ->mapWithKeys(fn($prop, $key) => [$this->overlay->scopePropKey($key) => $prop])
-            ->all();
     }
 
     public function toResponse($request)
@@ -150,7 +151,6 @@ readonly class OverlayResponse implements Responsable
 
     protected function toJsonResponse(JsonResponse $response, array $data): JsonResponse
     {
-        ray($data);
         return $response->setData(
             [
                 ...$response->getData(true),
