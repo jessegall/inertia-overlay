@@ -1,13 +1,10 @@
-import { Overlay, OverlayConfig, OverlayOptions, OverlayPage } from "./Overlay.ts";
+import { Overlay, OverlayPage } from "./Overlay.ts";
 import { randomString, toReadonly } from "./helpers.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { Reactive } from "vue";
+import qs from 'qs'
 
 export type ReadonlyOverlay = Readonly<Reactive<Overlay>>;
-export type MakeOverlayOptions = Omit<OverlayOptions, 'id' | 'config'> & {
-    id?: string;
-    config?: Partial<OverlayConfig>
-}
 
 export class OverlayFactory {
 
@@ -17,35 +14,38 @@ export class OverlayFactory {
 
     // ----------[ Api ]----------
 
-    public make(options: MakeOverlayOptions): ReadonlyOverlay {
+    public make(url: string | URL, data: Record<string, any>): ReadonlyOverlay {
         const overlay = new Overlay(this.router, {
             id: randomString(),
-            ...options,
+            url: this.makeUrl(url, data),
         });
 
         return toReadonly(overlay);
     }
 
     public makeFromPage(page: OverlayPage): ReadonlyOverlay {
-        const overlayId = page.overlay.id;
-        const props: Record<string, any> = {};
-
-        for (const [key, value] of Object.entries(page.props)) {
-            if (key.startsWith(overlayId)) {
-                const [, _key] = key.split(':');
-                props[_key] = value
-            }
-        }
-
-        this.router.cache.set(overlayId, page);
-
-        return this.make({
-            ...page.overlay,
-            input: page.overlay.input,
-            rootUrl: page.overlay.rootUrl,
-            url: page.overlay.url,
-            props,
+        const overlay = new Overlay(this.router, {
+            id: page.overlay.id,
+            url: this.makeUrl(page.overlay.url),
         });
+
+        return toReadonly(overlay);
     }
+
+    // ----------[ Helpers ]----------
+
+    private makeUrl(url: string | URL, data: Record<string, any> = {}): URL {
+        const baseUrl = typeof url === 'string' ? new URL(url, window.location.origin) : url;
+
+        const queryString = qs.stringify(data, {
+            arrayFormat: 'brackets',
+            encode: false
+        });
+
+        console.log(data, queryString);
+
+        return new URL(`${ baseUrl.pathname }?${ queryString }`, baseUrl.origin);
+    }
+
 
 }

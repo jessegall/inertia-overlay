@@ -20,10 +20,7 @@ export class OverlayRequestBuilder {
 
     public buildOverlayOpenRequest(overlay: ReadonlyOverlay): RequestConfig<OverlayPage> {
         return {
-            data: {
-                ...overlay.parameters,
-                _props: Object.keys(overlay.parameters).join(','),
-            },
+            data: {},
             options: {
                 preserveUrl: true,
                 preserveState: true,

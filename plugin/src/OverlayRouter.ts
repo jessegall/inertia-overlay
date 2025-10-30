@@ -80,6 +80,8 @@ export class OverlayRouter {
         this.onBeforeRouteUpdate.on({
             handler: page => {
                 if (isOverlayPage(page)) {
+                    console.log("Caching overlay page:", page.overlay.id);
+                    this.cache.set(page.overlay.id, page);
                     this.preservePageDetails(page);
                 }
             },
@@ -89,7 +91,6 @@ export class OverlayRouter {
         this.onSuccessfulRouteVisit.on({
             handler: page => {
                 if (isOverlayPage(page)) {
-                    this.cache.set(page.overlay.id, page);
                     this.onOverlayPageLoad.emit(page);
                 } else {
                     this.updateRootUrl(page);

@@ -1,9 +1,8 @@
 import { OverlayStack } from "./OverlayStack.ts";
-import { App, computed, nextTick, reactive, shallowRef } from "vue";
+import { App, nextTick } from "vue";
 import { OverlayFactory, ReadonlyOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
-import { OverlayPage, OverlayProps, OverlayState } from "./Overlay.ts";
 import { isOverlayPage } from "./helpers.ts";
 import { usePage } from "@inertiajs/vue3";
 
@@ -13,14 +12,11 @@ export interface OverlayPluginOptions<T = any> {
     resolve: OverlayComponentResolver<T>;
 }
 
-export interface OverlayHandle {
-    id: string | undefined;
-    state: OverlayState;
-    open: () => Promise<void>;
-    close: () => Promise<void>;
-}
-
 export type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
+
+export interface InstanceOptions {
+    onClose?: () => void;
+}
 
 export class OverlayPlugin {
 
@@ -59,12 +55,18 @@ export class OverlayPlugin {
 
     private registerListeners(app: App): void {
         this.router.onOverlayPageLoad.on({
-            handler: (event) => this.onOverlayPageLoaded(event),
+            handler: (page) => {
+                if (! this.overlayInstances.has(page.overlay.id)) {
+                    const overlay = this.factory.makeFromPage(page);
+                    this.registerInstance(overlay);
+                    overlay.open();
+                }
+            },
             priority: -1,
         });
 
         this.router.onNavigated.on(() => {
-            this.stack.items.forEach(overlay => overlay.close());
+            // this.stack.items.forEach(overlay => overlay.close());
         })
     }
 
@@ -81,85 +83,20 @@ export class OverlayPlugin {
         }
 
         if (isOverlayPage(page)) {
-            const handle = this.createOverlayFromPage(page);
-            handle.open();
+            // const handle = this.createOverlayFromPage(page);
+            // handle.open();
         }
     }
 
     // ----------[ Api ]----------
 
-    public createOverlayFromUrl(url: string, props: OverlayProps = {}): OverlayHandle {
-        return this.createOverlay(() => this.factory.make({
-            url: url,
-            props: props,
-        }));
+    public newInstance(url: string | URL, data: Record<string, any> = {}, options: InstanceOptions = {}): ReadonlyOverlay {
+        const overlay = this.factory.make(url, data);
+        this.registerInstance(overlay, options);
+        return overlay;
     }
 
-    public createOverlayFromComponent(component: string, props: OverlayProps = {}): OverlayHandle {
-        return this.createOverlayFromUrl(`/overlay/${ component }`, props);
-    }
-
-    public createOverlayFromPage(page: OverlayPage): OverlayHandle {
-        return this.createOverlay(() => this.factory.makeFromPage(page));
-    }
-
-    public createOverlay(create: () => ReadonlyOverlay): OverlayHandle {
-
-        // We create a fresh overlay instance on each open() to prevent memory leaks.
-        // While overlays can technically be reopened, destroying and recreating ensures
-        // event listeners, subscriptions, and state are properly cleaned up. Since overlays
-        // aren't children of page components, we can't rely on Vue's lifecycle hooks like
-        // onUnmounted to determine when cleanup should occur, making explicit destruction
-        // on each close the safer approach.
-
-        const instance = shallowRef<ReadonlyOverlay>(null);
-
-        return reactive({
-            id: computed(() => instance.value?.id),
-            state: computed(() => instance.value?.state || 'closed'),
-            open: async () => {
-                if (instance.value) return;
-                const overlay = create();
-                instance.value = this.registerInstance(overlay, () => instance.value = null);
-                await instance.value.open();
-            },
-            close: async () => {
-                if (! instance.value) return;
-                await instance.value.close();
-            },
-        });
-    }
-
-    public resolveOverlay(overlayId: string): ReadonlyOverlay | null {
-        return this.overlayInstances.get(overlayId) || null;
-    }
-
-    public resolveFocusedOverlayId(): string | null {
-        return this.stack.items.find(i => i.isFocused())?.id || null;
-    }
-
-    public resolveComponent(type: string): () => Promise<any> {
-        console.log('Resolving overlay component:', type);
-        try {
-            return this.options.resolve(type);
-        } catch {
-            throw new Error(`Overlay component of type "${ type }" could not be resolved.`);
-        }
-    }
-
-    // ----------[ Event Handlers ]----------
-
-    private onOverlayPageLoaded(page: OverlayPage): void {
-        if (! this.overlayInstances.has(page.overlay.id)) {
-            const handle = this.createOverlayFromPage(page);
-            handle.open();
-        }
-    }
-
-    // ----------[ Internal ]----------
-
-    private registerInstance(overlay: ReadonlyOverlay, onClosed?: () => void): ReadonlyOverlay {
-
+    public registerInstance(overlay: ReadonlyOverlay, options: InstanceOptions = {}): void {
         this.overlayInstances.set(overlay.id, overlay);
 
         overlay.onStatusChange.on((status) => {
@@ -173,15 +110,18 @@ export class OverlayPlugin {
 
                 case "closed":
                     this.stack.remove(overlay.id);
-
-                    if (this.stack.size() > 0) {
-                        const topOverlay = this.stack.peek();
-                        topOverlay.setParentId(null);
-                    }
-
                     this.overlayInstances.delete(overlay.id);
                     overlay.destroy();
-                    onClosed?.();
+
+                    if (this.stack.size() > 0) {
+                        const child = this.stack.items.find(i => i.parentId === overlay.id);
+                        if (child) {
+                            child.setParentId(null);
+                            child.close();
+                        }
+                    }
+
+                    options?.onClose?.();
                     break;
 
             }
@@ -192,11 +132,11 @@ export class OverlayPlugin {
                 .filter(other => other.id !== overlay.id)
                 .forEach(other => other.blur());
         })
-
-        return overlay;
     }
 
-    private resolveOverlayDataFromDocument() {
+    // ----------[ Internal ]----------
+
+    public resolveOverlayDataFromDocument() {
         const element = document.querySelector('[data-page]');
         const content = element?.getAttribute('data-page');
         if (! content) return null;
@@ -205,6 +145,22 @@ export class OverlayPlugin {
             return data['overlay'] || null;
         } catch {
             return null;
+        }
+    }
+
+    public resolveOverlay(overlayId: string): ReadonlyOverlay | null {
+        return this.overlayInstances.get(overlayId) || null;
+    }
+
+    public resolveFocusedOverlayId(): string | null {
+        return this.stack.items.find(i => i.isFocused())?.id || null;
+    }
+
+    public resolveComponent(type: string): () => Promise<any> {
+        try {
+            return this.options.resolve(type);
+        } catch {
+            throw new Error(`Overlay component of type "${ type }" could not be resolved.`);
         }
     }
 

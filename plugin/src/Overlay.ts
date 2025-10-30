@@ -1,5 +1,5 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { Reactive, ref } from "vue";
+import { ref } from "vue";
 import { Page } from "@inertiajs/core";
 import { OverlayRouter } from "./OverlayRouter.ts";
 
@@ -31,18 +31,14 @@ export type OverlayPage = Page & { overlay: OverlayResponse };
 
 export type OverlayOptions = {
     id: string;
-    url: string;
-    props: OverlayProps;
-    input?: string[];
-    rootUrl?: string;
-    config?: Partial<OverlayConfig>;
+    url: URL;
+    data?: Record<string, any>;
 };
 
 const activeTransitions = ref<number>(0);
 
 export class Overlay {
 
-    public readonly url: Reactive<URL> = null;
     private readonly subscription = new EventSubscription();
     private readonly destroyed = ref(false);
 
@@ -65,10 +61,8 @@ export class Overlay {
 
     constructor(
         private readonly router: OverlayRouter,
-        public readonly options: OverlayOptions,
-    ) {
-        this.url = new URL(options.url, window.location.origin);
-    }
+        private readonly options: OverlayOptions,
+    ) {}
 
     // ----------[ Event Listeners ]----------
 
@@ -171,7 +165,7 @@ export class Overlay {
 
     public updateUrl(url: URL): void {
         for (const [key, value] of url.searchParams.entries()) {
-            this.url.searchParams.set(key, value);
+            this.options.url.searchParams.set(key, value);
         }
     }
 
@@ -193,6 +187,20 @@ export class Overlay {
             await callback();
         } finally {
             activeTransitions.value--;
+        }
+    }
+
+    // ----------[ Event Handlers ]----------
+
+    public applyPage(page: OverlayPage): void {
+        this.component.value = page.overlay.component;
+        this.config.value = page.overlay.config;
+
+        this.updateUrl(new URL(page.overlay.url));
+        this.updateProps(this.normalizeData(page.props, page.overlay.props));
+
+        if (page.overlay.closeRequested) {
+            this.close();
         }
     }
 
@@ -229,21 +237,6 @@ export class Overlay {
         }, {});
     }
 
-    // ----------[ Event Handlers ]----------
-
-    public applyPage(page: OverlayPage): void {
-        this.initialized.value = true;
-        this.component.value = page.overlay.component;
-        this.config.value = page.overlay.config;
-
-        this.updateUrl(new URL(page.overlay.url));
-        this.updateProps(this.normalizeData(page.props, page.overlay.props));
-
-        if (page.overlay.closeRequested) {
-            this.close();
-        }
-    }
-
     // ----------[ Getters / Setters ]----------
 
     public setParentId(parentId: string | null): void {
@@ -276,12 +269,7 @@ export class Overlay {
         return this.options.id;
     }
 
-    public get parameters() {
-        if (! this.options.input) {
-            return this.options.props;
-        }
-
-        return this.normalizeData(this.options.props, this.options.input);
+    public get url() {
+        return this.options.url;
     }
-
 }

@@ -16,9 +16,7 @@ class OverlayController extends Controller
             $component = base64_decode($component);
         }
 
-        $propKeys = explode(',', $request->get('_props', ''));
-
-        return Inertia::overlay($component, $request->only($propKeys));
+        return Inertia::overlay($component, $request->all());
     }
 
 }

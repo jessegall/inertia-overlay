@@ -25,10 +25,12 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     {
         Route::group(
             [
+                'as' => 'inertia-overlay.',
+                'prefix' => $config->getRoutePrefix(),
                 'middleware' => $config->getMiddleware(),
             ],
             function (Router $router) use ($config) {
-                $router->any('/overlay/{type}', OverlayController::class);
+                $router->any('/{type}', OverlayController::class)->name('overlay');
             }
         );
     }
