@@ -62,6 +62,10 @@ export class OverlayPlugin {
             handler: (event) => this.onOverlayPageLoaded(event),
             priority: -1,
         });
+
+        this.router.onNavigated.on(() => {
+            this.stack.items.forEach(overlay => overlay.close());
+        })
     }
 
     private extendComponents(): void {

@@ -160,6 +160,7 @@ export class Overlay {
         this.onFocused.clear();
         this.onBlurred.clear();
         this.destroyed.value = true;
+        console.log("Destroyed overlay:", this.id);
     }
 
     private setState(state: OverlayState): void {

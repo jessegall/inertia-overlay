@@ -45,7 +45,7 @@ export class OverlayRouter {
 
     // ----------[ Properties ]----------
 
-    private readonly rootUrl: URL = new URL(window.location.href);
+    private rootUrl: URL = new URL(window.location.href);
 
     constructor(
         private readonly overlayResolver: OverlayResolver,
@@ -66,6 +66,10 @@ export class OverlayRouter {
     }
 
     private setupListeners(): void {
+        this.onNavigated.on((event) => {
+            this.rootUrl = new URL(event.url, this.rootUrl);
+        })
+
         this.onBeforeRouteVisit.on({
             handler: visit => {
                 this.prepareRouteVisit(visit);
@@ -120,8 +124,16 @@ export class OverlayRouter {
     }
 
     public async navigateToRoot(): Promise<Page> {
+        const page = usePage();
+        const rootUrl = this.resolveRootUrl();
+        const currentUrl = new URL(page.url, rootUrl);
+
+        if (rootUrl.href === currentUrl.href) {
+            return page;
+        }
+
         const request = this.requestBuilder.buildNavigateToRootRequest();
-        return await this.routerAdapter.get(this.resolveRootUrl(), request);
+        return await this.routerAdapter.get(rootUrl, request);
     }
 
     // ----------[ Internal ]----------
@@ -144,7 +156,6 @@ export class OverlayRouter {
 
             visit.preserveScroll = true;
             visit.preserveState = true;
-            visit.preserveUrl = true;
 
             if (this.isPageReload(visit)) {
                 this.restoreOverlayUrl(visit, overlay);

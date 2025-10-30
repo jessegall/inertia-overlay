@@ -44,6 +44,10 @@ export class OverlayStack {
         return this.stack.value.length;
     }
 
+    public clear(): void {
+        this.stack.value = [];
+    }
+
     // ----------[ Accessors ]----------
 
     public get items(): ReadonlyOverlay[] {
