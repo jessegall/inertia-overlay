@@ -16,7 +16,17 @@ class OverlayController extends Controller
             $component = base64_decode($component);
         }
 
-        return Inertia::overlay($component, $request->all());
+        return Inertia::overlay($component, $this->resolveProps($request));
+    }
+
+    private function resolveProps(Request $request): array
+    {
+        if ($parameters = parse_url($request->fullUrl(), PHP_URL_QUERY)) {
+            parse_str($parameters, $data);
+            return $data;
+        }
+
+        return [];
     }
 
 }

@@ -15,7 +15,7 @@ export interface OverlayPluginOptions<T = any> {
 export type OverlayResolver = (overlayId: string) => ReadonlyOverlay;
 
 export interface InstanceOptions {
-    onClose?: () => void;
+    onClosed?: () => void;
 }
 
 export class OverlayPlugin {
@@ -54,7 +54,7 @@ export class OverlayPlugin {
     }
 
     private registerListeners(app: App): void {
-        this.router.onOverlayPageLoad.on({
+        this.router.onOverlayPageLoad.listen({
             handler: (page) => {
                 if (! this.overlayInstances.has(page.overlay.id)) {
                     const overlay = this.factory.makeFromPage(page);
@@ -65,7 +65,7 @@ export class OverlayPlugin {
             priority: -1,
         });
 
-        this.router.onNavigated.on(() => {
+        this.router.onNavigated.listen(() => {
             // this.stack.items.forEach(overlay => overlay.close());
         })
     }
@@ -101,39 +101,43 @@ export class OverlayPlugin {
     public registerInstance(overlay: ReadonlyOverlay, options: InstanceOptions = {}): void {
         this.overlayInstances.set(overlay.id, overlay);
 
-        overlay.onStatusChange.on((status) => {
+        overlay.onStatusChange.listen((status) => {
             switch (status) {
 
-                case "opening":
-                    overlay.setParentId(this.stack.peekId());
+                case "opening": {
+                    const parent = this.stack.peek();
+                    if (parent) {
+                        overlay.setParentId(parent.id);
+                        parent.blur();
+                    }
                     overlay.setIndex(this.stack.size());
+                    overlay.focus();
                     this.stack.push(overlay.id);
                     break;
+                }
 
-                case "closed":
+                case "closed": {
+                    options?.onClosed?.();
+
+                    const child = this.stack.items.find(i => i.parentId === overlay.id);
+                    if (child) {
+                        child.setParentId(null);
+                        child.close();
+                    }
+
+                    const parent = this.stack.items.find(i => i.id === overlay.parentId);
+                    if (parent) {
+                        parent.focus();
+                    }
+
                     this.stack.remove(overlay.id);
                     this.overlayInstances.delete(overlay.id);
                     overlay.destroy();
 
-                    if (this.stack.size() > 0) {
-                        const child = this.stack.items.find(i => i.parentId === overlay.id);
-                        if (child) {
-                            child.setParentId(null);
-                            child.close();
-                        }
-                    }
-
-                    options?.onClose?.();
                     break;
-
+                }
             }
         });
-
-        overlay.onFocused.on(() => {
-            this.stack.items
-                .filter(other => other.id !== overlay.id)
-                .forEach(other => other.blur());
-        })
     }
 
     // ----------[ Internal ]----------

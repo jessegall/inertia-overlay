@@ -24,9 +24,9 @@ export class EventEmitter<T = any> {
 
     private listeners: Map<string, Listener<T>> = new Map();
 
-    public on<S extends T>(listener: ListenerWithGuard<T, S>): Unsubscribe;
-    public on(listener: ListenerInput<T>): Unsubscribe;
-    public on(listener: ListenerInput<T> | ListenerWithGuard<T, any>): Unsubscribe {
+    public listen<S extends T>(listener: ListenerWithGuard<T, S>): Unsubscribe;
+    public listen(listener: ListenerInput<T>): Unsubscribe;
+    public listen(listener: ListenerInput<T> | ListenerWithGuard<T, any>): Unsubscribe {
         listener = this.createListener(listener);
 
         const listenerId = randomString();

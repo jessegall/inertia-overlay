@@ -14,15 +14,15 @@ readonly class HandleInertiaOverlayRequests
     /** @param \Closure(\Illuminate\Http\Request): (Response) $next */
     public function handle(Request $request, Closure $next)
     {
+        if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
+            return $next($request);
+        }
+
         $response = $next($request);
+        $referrer = $request->headers->get('referer', '');
 
-        if ($request->hasHeader(Header::INERTIA_OVERLAY)) {
-
-            $referrer = $request->headers->get('referer', '');
-
-            if ($response instanceof RedirectResponse && $response->getTargetUrl() == $referrer) {
-                $response->setTargetUrl($request->header(Header::OVERLAY_URL));
-            }
+        if ($response instanceof RedirectResponse && $response->getTargetUrl() == $referrer) {
+            $response->setTargetUrl($request->header(Header::OVERLAY_URL));
         }
 
         return $response;

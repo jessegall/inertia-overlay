@@ -42,8 +42,6 @@ export class OverlayFactory {
             encode: false
         });
 
-        console.log(data, queryString);
-
         return new URL(`${ baseUrl.pathname }?${ queryString }`, baseUrl.origin);
     }
 

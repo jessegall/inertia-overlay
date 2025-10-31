@@ -7,7 +7,8 @@ export class OverlayStack {
 
     // ----------[ Events ]----------
 
-    public readonly onOverlayPushed = new EventEmitter<string>();
+    public readonly onOverlayPushed = new EventEmitter<ReadonlyOverlay>();
+    public readonly onOverlayRemoved = new EventEmitter<ReadonlyOverlay>();
 
     // ----------[ Properties ]----------
 
@@ -21,11 +22,12 @@ export class OverlayStack {
 
     public push(overlayId: string): void {
         this.stack.value = [...this.stack.value, overlayId];
-        this.onOverlayPushed.emit(overlayId);
+        this.onOverlayPushed.emit(this.overlayResolver(overlayId));
     }
 
     public remove(overlayId: string): void {
         this.stack.value = this.stack.value.filter(id => id !== overlayId);
+        this.onOverlayRemoved.emit(this.overlayResolver(overlayId));
     }
 
     public peek(): ReadonlyOverlay | null {
@@ -42,10 +44,6 @@ export class OverlayStack {
 
     public size(): number {
         return this.stack.value.length;
-    }
-
-    public clear(): void {
-        this.stack.value = [];
     }
 
     // ----------[ Accessors ]----------

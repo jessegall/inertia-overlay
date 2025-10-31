@@ -67,14 +67,14 @@ export class OverlayRouter {
     }
 
     private setupListeners(): void {
-        this.onBeforeRouteVisit.on({
+        this.onBeforeRouteVisit.listen({
             handler: visit => {
                 this.prepareRouteVisit(visit);
             },
             priority: -1
         });
 
-        this.onBeforeRouteUpdate.on({
+        this.onBeforeRouteUpdate.listen({
             handler: page => {
                 if (isOverlayPage(page)) {
                     this.cache.set(page.overlay.id, page);
@@ -84,7 +84,7 @@ export class OverlayRouter {
             priority: -1
         });
 
-        this.onSuccessfulRouteVisit.on({
+        this.onSuccessfulRouteVisit.listen({
             handler: page => {
                 if (isOverlayPage(page)) {
                     this.onOverlayPageLoad.emit(page);
@@ -104,8 +104,6 @@ export class OverlayRouter {
         if (! overlay) {
             throw new Error(`Failed to open overlay. Overlay with ID "${ overlayId }" not found.`)
         }
-
-        overlay.focus();
 
         if (this.cache.has(overlay.id)) {
             return this.cache.get(overlay.id);

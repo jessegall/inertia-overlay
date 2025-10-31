@@ -15,7 +15,6 @@ const props = withDefaults(defineProps<Props>(), {
         class="inertia-overlay-backdrop"
         :class="{
             'inertia-overlay-backdrop--active': blur,
-            'inertia-overlay-backdrop--inactive': !blur,
         }"
     />
 </template>

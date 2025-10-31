@@ -42,6 +42,9 @@ function handleState(state: OverlayState) {
 
         case 'closing':
             shouldRenderComponent.value = false;
+            break;
+
+        case 'closed':
             shouldRenderBackdrop.value = false;
             break;
 

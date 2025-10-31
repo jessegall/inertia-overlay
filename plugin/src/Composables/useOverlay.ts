@@ -1,4 +1,4 @@
-import { computed, inject, onUnmounted, reactive, shallowRef } from "vue";
+import { computed, inject, nextTick, onUnmounted, reactive, shallowRef } from "vue";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 import { OverlayProps, OverlayState } from "../Overlay.ts";
 import { ReadonlyOverlay } from "../OverlayFactory.ts";
@@ -45,7 +45,7 @@ export function useOverlay() {
                 if (instance.value) return;
 
                 instance.value = plugin.newInstance(url, data, {
-                    onClose: () => {
+                    onClosed: () => {
                         instance.value = null;
                     }
                 });
@@ -81,11 +81,11 @@ export function useOverlay() {
 
     // ----------[ Lifecycle ]----------
 
-    onUnmounted(() => {
+    onUnmounted(() => nextTick(() => {
         if (instance.value) {
             instance.value.close();
         }
-    })
+    }))
 
     return {
         createOverlay,

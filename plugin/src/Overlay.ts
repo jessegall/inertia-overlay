@@ -1,5 +1,5 @@
 import { EventEmitter, EventSubscription } from "./event.ts";
-import { ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
 import { Page } from "@inertiajs/core";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { HttpMethod } from "./InertiaRouterAdapter.ts";
@@ -7,7 +7,7 @@ import { HttpMethod } from "./InertiaRouterAdapter.ts";
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | '80%' | 'full';
 export type OverlayProps = Record<string, any>;
-export type OverlayState = 'closed' | 'opening' | 'open' | 'closing';
+export type OverlayState = 'closed' | 'close-requested' | 'closing' | 'open' | 'open-requested' | 'opening';
 
 export type OverlayFlag = 'skip_hydration_on_refocus' | 'use_shared_props'
 
@@ -37,7 +37,7 @@ export type OverlayOptions = {
     data?: Record<string, any>;
 };
 
-const activeTransitions = ref<number>(0);
+const activeTransitions = reactive<string[]>([]);
 
 export class Overlay {
 
@@ -69,7 +69,7 @@ export class Overlay {
     // ----------[ Event Listeners ]----------
 
     private subscribe(): void {
-        this.router.onOverlayPageLoad.on({
+        this.router.onOverlayPageLoad.listen({
             handler: page => {
                 this.applyPage(page);
             },
@@ -94,50 +94,34 @@ export class Overlay {
     public async open(): Promise<void> {
         this.assertNotDestroyed();
         if (! this.hasState('closed')) return;
-        console.log("Opening overlay:", this.id);
 
-        this.subscribe();
+        this.setState('opening');
 
         await this.transition(async () => {
-            this.focus();
-            this.setState('opening');
-            const page = await this.router.open(this.id);
-            this.applyPage(page);
-            this.setState('open');
+            this.subscribe();
+            this.applyPage(await this.router.open(this.id));
+
+            nextTick(() => {
+                this.setState('open');
+            })
         });
     }
 
     public async close(): Promise<void> {
         this.assertNotDestroyed();
         if (! this.hasState('open')) return;
-        console.log("Closing overlay:", this.id);
 
-        await this.transition(async () => {
-            this.setState('closing');
-
-            if (this.isFocused()) {
-                const start = Date.now();
-                const parentId = this.parentId.value;
-
-                if (parentId) {
-                    await this.router.open(parentId);
-                } else {
-                    await this.router.navigateToRoot();
-                }
-
-                const elapsed = Date.now() - start;
-                const minDuration = 300;
-                if (elapsed < minDuration) {
-                    await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
-                }
-            }
-
-            this.setState('closed');
-        })
+        this.setState('closing');
+        await this.transition(() => {
+            nextTick(() => {
+                this.setState('closed')
+            })
+        });
     }
 
     public focus(): void {
         if (this.isFocused()) return;
+        console.log('focusing overlay', this.index.value);
         this.focused.value = true;
         this.onFocused.emit(this.id);
     }
@@ -150,13 +134,11 @@ export class Overlay {
 
     public destroy(): void {
         if (this.isDestroyed()) return;
-        this.setState('closed');
         this.unsubscribe();
         this.onStatusChange.clear();
         this.onFocused.clear();
         this.onBlurred.clear();
         this.destroyed.value = true;
-        console.log("Destroyed overlay:", this.id);
     }
 
     private setState(state: OverlayState): void {
@@ -172,24 +154,23 @@ export class Overlay {
     }
 
     public updateProps(props: OverlayProps): void {
-        console.log("Updating overlay props:", this.id, props);
         this.props.value = {
             ...this.props.value,
             ...props,
         };
     }
 
-    private async transition(callback: () => Promise<void>): Promise<void> {
-        while (activeTransitions.value > 0) {
+    private async transition(callback: () => Promise<void> | void): Promise<void> {
+        activeTransitions.push(this.id);
+
+        while (activeTransitions[0] !== this.id) {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
-
-        activeTransitions.value++;
 
         try {
             await callback();
         } finally {
-            activeTransitions.value--;
+            activeTransitions.splice(activeTransitions.indexOf(this.id), 1);
         }
     }
 

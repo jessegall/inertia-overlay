@@ -38,7 +38,7 @@ export class OverlayRequestBuilder {
     public buildOverlayActionRequest(overlay: ReadonlyOverlay, action: string, payload: Record<string, any> = {}): RequestConfig<OverlayPage> {
         return {
             data: {
-                ...payload,
+                payload,
             },
             options: {
                 preserveUrl: true,
