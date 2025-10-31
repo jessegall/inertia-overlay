@@ -101,7 +101,7 @@ class Overlay
             return $key;
         }
 
-        return "{$this->id}:{$key}";
+        return "{$this->id}.{$key}";
     }
 
     public function isScopedKey(string $key): bool

@@ -1,7 +1,6 @@
 import { computed, inject, onUnmounted, reactive, shallowRef } from "vue";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 import { OverlayProps, OverlayState } from "../Overlay.ts";
-import { unscopeData } from "../helpers.ts";
 import { ReadonlyOverlay } from "../OverlayFactory.ts";
 
 type OverlayActionOptions = {
@@ -76,7 +75,7 @@ export function useOverlay() {
         const page = await plugin.router.action(overlay.id, action, options.data);
 
         if (options.onSuccess) {
-            options.onSuccess(unscopeData(overlay.id, page.props));
+            options.onSuccess(page.props[overlay.id]);
         }
     }
 

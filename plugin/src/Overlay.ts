@@ -172,6 +172,7 @@ export class Overlay {
     }
 
     public updateProps(props: OverlayProps): void {
+        console.log("Updating overlay props:", this.id, props);
         this.props.value = {
             ...this.props.value,
             ...props,
@@ -199,44 +200,11 @@ export class Overlay {
         this.config.value = page.overlay.config;
 
         this.updateUrl(new URL(page.overlay.url));
-        this.updateProps(this.normalizeData(page.props, page.overlay.props));
+        this.updateProps(page.props[this.id]);
 
         if (page.overlay.closeRequested) {
             this.close();
         }
-    }
-
-    // ----------[ Helpers ]----------
-
-    public scopedKey(key: string) {
-        const prefix = `${ this.id }:`;
-
-        if (key.startsWith(prefix)) {
-            return key;
-        }
-
-        return prefix + key;
-    }
-
-    public unscopedKey(key: string) {
-        const prefix = `${ this.id }:`;
-
-        if (key.startsWith(prefix)) {
-            return key.substring(prefix.length);
-        }
-
-        return key;
-    }
-
-    private normalizeData(data: Record<string, any>, keys?: string[]): OverlayProps {
-        keys ??= Object.keys(data);
-        keys = keys.map((key) => this.unscopedKey(key));
-
-        return keys.reduce<OverlayProps>((resolved, key) => {
-            const value = data[this.scopedKey(key)] ?? data[key];
-            if (value != null) resolved[key] = value;
-            return resolved;
-        }, {});
     }
 
     // ----------[ Getters / Setters ]----------

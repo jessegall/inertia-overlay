@@ -13,7 +13,7 @@ export function extendDeferredComponent(stack: OverlayStack): void {
         function resolveKeys(data: string | string[], scope: string | null): string[] {
             const keys = Array.isArray(data) ? data : [data];
             if (scope) {
-                return keys.map((key) => `${ scope }:${ key }`);
+                return keys.map((key) => `${ scope }.${ key }`);
             }
             return keys;
         }

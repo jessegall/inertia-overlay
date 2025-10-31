@@ -24,4 +24,10 @@ readonly class RequestContextSwitcher
             app()->instance('request', $this->from);
         }
     }
+
+    public static function new(Request $from, Request $to): static
+    {
+        return new static($from, $to);
+    }
+
 }

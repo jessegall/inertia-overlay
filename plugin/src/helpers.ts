@@ -37,19 +37,6 @@ export function bindMethods<T extends object>(obj: T): T {
     return obj;
 }
 
-export function unscopeData(instanceId: string, props: Record<string, any>): Record<string, any> {
-    const unscoped: Record<string, any> = {};
-
-    for (const key in props) {
-        if (key.startsWith(`${ instanceId }:`)) {
-            const unscopedKey = key.replace(`${ instanceId }:`, '');
-            unscoped[unscopedKey] = props[key];
-        }
-    }
-
-    return unscoped;
-}
-
 export function deepToRaw(obj: any): any {
     const raw = toRaw(obj)
 
