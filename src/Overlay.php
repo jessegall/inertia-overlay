@@ -38,7 +38,7 @@ class Overlay
         $this->flash('overlay.only', array_merge($current, Arr::wrap($keys)));
     }
 
-    public function includePage(array|string $keys): void
+    public function reloadPage(array|string $keys): void
     {
         $current = $this->get('page.include', []);
         $this->flash('page.include', array_merge($current, Arr::wrap($keys)));

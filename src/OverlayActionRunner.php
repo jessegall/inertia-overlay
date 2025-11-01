@@ -36,7 +36,7 @@ readonly class OverlayActionRunner
             ->mapWithKeys(function (ReflectionMethod $method) use ($component) {
                 [$attribute] = $method->getAttributes(OverlayAction::class);
                 $instance = $attribute->newInstance();
-                return [$instance->name => $method->getClosure($component)];
+                return [$instance->name ?? $method->name => $method->getClosure($component)];
             })
             ->all();
     }
