@@ -15,6 +15,10 @@ class OverlayBuilder
     public OverlayComponent|string|null $component = null;
     public array $props = [];
 
+    public function __construct(
+        public readonly ComponentFactory $componentFactory,
+    ) {}
+
     public function new(): self
     {
         $this->request = null;
@@ -64,46 +68,43 @@ class OverlayBuilder
             $overlay = $this->createNew();
         }
 
-        return $overlay->render();
+        if (is_string($this->component)) {
+            $component = $this->componentFactory->make($this->component, $this->props);
+        } else {
+            $component = $this->component;
+        }
+
+        return $overlay->render($component);
     }
 
-    protected function createFromRequest(Request $request): Overlay
+    public function createFromRequest(Request $request): Overlay
     {
         if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
             throw new RuntimeException('No overlay found in the request.');
         }
 
-        $overlay = app(Overlay::class,
+        return app(Overlay::class,
             [
-                'component' => $this->component,
                 'id' => $request->header(Header::OVERLAY_ID),
                 'url' => $request->header(Header::OVERLAY_URL),
                 'isOpening' => $request->header(Header::OVERLAY_OPENING) === 'true',
                 'baseUrl' => $this->baseUrl ?? $request->fullUrl(),
+                'initialProps' => $this->props,
             ]
         );
-
-        $overlay->restoreProps();
-        $overlay->mergeProps($this->props);
-
-        return $overlay;
     }
 
-    protected function createNew(): Overlay
+    public function createNew(): Overlay
     {
-        $overlay = app(Overlay::class,
+        return app(Overlay::class,
             [
-                'component' => $this->component,
                 'id' => Str::random(8),
                 'url' => request()->fullUrl(),
                 'isOpening' => true,
                 'baseUrl' => $this->baseUrl ?? url()->current(),
+                'initialProps' => $this->props,
             ]
         );
-
-        $overlay->setProps($this->props);
-
-        return $overlay;
     }
 
 

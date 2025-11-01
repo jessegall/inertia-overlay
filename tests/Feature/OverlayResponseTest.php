@@ -82,7 +82,7 @@ class OverlayResponseTest extends TestCase
             ]
         );
 
-        $overlay->reloadProps(['closureProp', 'lazyProp']);
+        $overlay->only(['closureProp', 'lazyProp']);
 
         $response = new OverlayResponse($overlay, new MockOverlayComponent(
             [
@@ -113,7 +113,7 @@ class OverlayResponseTest extends TestCase
             ]
         );
 
-        $overlay->appendProps(
+        $overlay->append(
             [
                 'appendedProp' => 'value',
                 'closureAppendedProp' => fn() => 'value',

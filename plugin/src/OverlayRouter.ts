@@ -18,9 +18,11 @@ export const header = {
 
     // -----[ Identification ]-----
 
+    OVERLAY_COMPONENT: 'X-Inertia-Overlay-Component',
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
     OVERLAY_URL: 'X-Inertia-Overlay-Url',
-    OVERLAY_BASE_URL: 'X-Inertia-Overlay-Base-Url',
+    OVERLAY_METHOD: 'X-Inertia-Overlay-Method',
+    BASE_URL: 'X-Inertia-Overlay-Base-Url',
     OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
 
     // -----[ Lifecycle ]-----
@@ -114,10 +116,10 @@ export class OverlayRouter {
     }
 
     public async action(overlayId: string, action: string, payload: Record<string, any> = {}): Promise<Page> {
-        const page = this.cache.get(overlayId);
         const overlay = this.overlayResolver(overlayId);
         const request = this.requestBuilder.buildOverlayActionRequest(overlay, action, payload);
-        return await this.routerAdapter.method(page.overlay.method, overlay.url, request);
+        const url = new URL(`/overlay/${ action }`, window.location.origin);
+        return await this.routerAdapter.post(url, request);
     }
 
     public async navigateToRoot(): Promise<Page> {
@@ -142,12 +144,15 @@ export class OverlayRouter {
         const overlay = overlayId ? this.overlayResolver(overlayId) : null;
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
-        visit.headers[header.OVERLAY_BASE_URL] = this.baseUrl.href;
+        visit.headers[header.BASE_URL] = this.baseUrl.href;
 
         if (overlay && ! overlay.hasState('closing')) {
             visit.headers[header.INERTIA_OVERLAY] = 'true';
-            visit.headers[header.OVERLAY_ID] = overlay.id;
+
+            visit.headers[header.OVERLAY_COMPONENT] = overlay.component;
+            visit.headers[header.OVERLAY_METHOD] = overlay.method;
             visit.headers[header.OVERLAY_URL] = overlay.url.href;
+            visit.headers[header.OVERLAY_ID] = overlay.id;
 
             visit.preserveScroll = true;
             visit.preserveState = true;

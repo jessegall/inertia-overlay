@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 readonly class OverlayResponse implements Responsable
 {
+
     public function __construct(
         protected Overlay $overlay,
         protected OverlayComponent $component,
@@ -27,12 +28,16 @@ readonly class OverlayResponse implements Responsable
         $baseUrl = $this->resolveBaseUrl($request);
         $response = $this->buildResponse($request, $baseUrl);
 
+        if (! $request->hasHeader(OverlayHeader::OVERLAY_ACTION)) {
+            $this->overlay->saveToSession($this->component);
+        }
+
         return $this->attachOverlayMetadata($response, $request, $baseUrl);
     }
 
     private function resolveBaseUrl(Request $request): string
     {
-        return $request->header(OverlayHeader::OVERLAY_BASE_URL, $this->overlay->getBaseUrl());
+        return $request->header(OverlayHeader::BASE_URL, $this->overlay->getBaseUrl());
     }
 
     private function buildResponse(Request $request, string $baseUrl): Response|JsonResponse
@@ -108,7 +113,7 @@ readonly class OverlayResponse implements Responsable
 
     private function buildScopedProps(): array
     {
-        return collect($this->overlay->getProps())
+        return collect($this->overlay->getInitialProps())
             ->merge($this->component->props($this->overlay))
             ->mapWithKeys(fn($prop, $key) => [
                 $this->overlay->scopePropKey($key) => $prop
@@ -127,9 +132,10 @@ readonly class OverlayResponse implements Responsable
         $pageComponent = $request->header(OverlayHeader::PAGE_COMPONENT);
 
         $partial = collect(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
-            ->merge($this->overlay->getReloadProps())
+            ->merge($this->overlay->getOnly())
             ->map($this->overlay->scopePropKey(...))
-            ->merge($this->overlay->getReloadPageProps())
+            ->merge($this->overlay->getPageInclude())
+            ->unique()
             ->join(',');
 
         $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
@@ -139,13 +145,13 @@ readonly class OverlayResponse implements Responsable
     private function configureInertiaHeaders(Request $request, string $component): void
     {
         $request->headers->set(InertiaHeader::INERTIA, 'true');
-        $request->headers->set(InertiaHeader::PARTIAL_ONLY, $this->overlay->getReloadPageProps());
+        $request->headers->set(InertiaHeader::PARTIAL_ONLY, $this->overlay->getPageInclude());
         $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $component);
     }
 
     private function shouldReloadPageProps(): bool
     {
-        return count($this->overlay->getReloadPageProps()) > 0;
+        return count($this->overlay->getPageInclude()) > 0;
     }
 
     private function attachOverlayMetadata(Response $response, Request $request, string $baseUrl): Response

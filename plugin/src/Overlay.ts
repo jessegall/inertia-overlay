@@ -30,6 +30,7 @@ export type OverlayPage = Page & { overlay: OverlayResponse };
 export type OverlayOptions = {
     id: string;
     url: URL;
+    method?: HttpMethod;
     data?: Record<string, any>;
 };
 
@@ -95,7 +96,9 @@ export class Overlay {
 
         await this.transition(async () => {
             this.subscribe();
-            this.applyPage(await this.router.open(this.id));
+            const page = await this.router.open(this.id);
+            this.applyPage(page);
+            this.options.method = page.overlay.method;
 
             nextTick(() => {
                 this.setState('open');
@@ -214,6 +217,10 @@ export class Overlay {
 
     public get id() {
         return this.options.id;
+    }
+
+    public get method() {
+        return this.options.method ?? 'get';
     }
 
     public get url() {
