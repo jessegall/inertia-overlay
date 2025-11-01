@@ -49,6 +49,8 @@ export class Overlay {
 
     // ----------[ State ]----------
 
+    public url = ref<URL>(this.options.url);
+    public baseUrl = ref<URL | null>(null);
     public parentId = ref<string | null>(null);
     public index = ref(0);
     public state = ref<OverlayState>('created');
@@ -61,8 +63,11 @@ export class Overlay {
 
     constructor(
         private readonly router: OverlayRouter,
-        private readonly options: OverlayOptions,
-    ) {}
+        public readonly options: OverlayOptions,
+    ) {
+        this.url.value = this.options.url;
+        this.baseUrl.value = null;
+    }
 
     // ----------[ Lifecycle ]----------
 
@@ -125,9 +130,9 @@ export class Overlay {
     // ----------[ Updates ]----------
 
     public updateUrl(url: URL): void {
-        url.searchParams.forEach((value, key) => {
-            this.options.url.searchParams.set(key, value);
-        });
+        const _url = this.url.value;
+        url.searchParams.forEach((value, key) => _url.searchParams.set(key, value));
+        this.url.value = _url;
     }
 
     public updateProps(props: OverlayProps): void {
@@ -137,6 +142,7 @@ export class Overlay {
     public applyPage(page: OverlayPage): void {
         this.component.value = page.overlay.component;
         this.config.value = page.overlay.config;
+        this.baseUrl.value = new URL(page.overlay.baseUrl);
         this.updateUrl(new URL(page.overlay.url));
         this.updateProps(page.props[this.id]);
 
@@ -153,10 +159,6 @@ export class Overlay {
 
     public get method(): HttpMethod {
         return this.options.method ?? 'get';
-    }
-
-    public get url(): URL {
-        return this.options.url;
     }
 
     public hasState(...states: OverlayState[]): boolean {

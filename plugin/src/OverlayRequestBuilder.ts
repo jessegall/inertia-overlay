@@ -55,7 +55,7 @@ export class OverlayRequestBuilder {
         }
     }
 
-    public buildNavigateToRootRequest(): RequestConfig {
+    public buildReloadRootRequest(): RequestConfig {
         return {
             options: {
                 preserveState: true,

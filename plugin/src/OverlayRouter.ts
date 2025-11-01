@@ -120,16 +120,9 @@ export class OverlayRouter {
         return await this.routerAdapter.post(url, request);
     }
 
-    public async navigateToRoot(): Promise<Page> {
-        const page = usePage();
+    public async reloadRoot(): Promise<Page> {
         const rootUrl = this.resolveRootUrl();
-        const currentUrl = new URL(page.url, rootUrl);
-
-        if (rootUrl.href === currentUrl.href) {
-            return page;
-        }
-
-        const request = this.requestBuilder.buildNavigateToRootRequest();
+        const request = this.requestBuilder.buildReloadRootRequest();
         return await this.routerAdapter.get(rootUrl, request);
     }
 
@@ -201,7 +194,7 @@ export class OverlayRouter {
         return visit.method === 'get' && visit.url.pathname === pageUrl.pathname;
     }
 
-    private resolveRootUrl(): URL {
+    public resolveRootUrl(): URL {
         return this.baseUrl;
     }
 

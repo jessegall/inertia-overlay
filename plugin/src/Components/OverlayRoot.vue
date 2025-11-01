@@ -2,9 +2,8 @@
 
 import { useOverlayStack } from "../Composables/useOverlayStack.ts";
 import OverlayRenderer from "./OverlayRenderer.vue";
-import { inject, onBeforeMount, ref } from "vue";
+import { onBeforeMount, ref } from "vue";
 import { ReactiveOverlay } from "../OverlayFactory.ts";
-import { OverlayPlugin } from "../OverlayPlugin.ts";
 
 // ----------[ Setup ]----------
 

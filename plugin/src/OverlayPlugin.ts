@@ -4,7 +4,7 @@ import { OverlayFactory, ReactiveOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
 import { isOverlayPage } from "./helpers.ts";
-import { usePage } from "@inertiajs/vue3";
+import { router, usePage } from "@inertiajs/vue3";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -53,7 +53,7 @@ export class OverlayPlugin {
     private registerListeners(): void {
         this.router.onOverlayPageLoad.listen({
             handler: async (page) => {
-                if (!this.overlayInstances.has(page.overlay.id)) {
+                if (! this.overlayInstances.has(page.overlay.id)) {
                     const overlay = this.factory.makeFromPage(page);
                     this.registerInstance(overlay);
                     await overlay.initialize();
@@ -144,6 +144,11 @@ export class OverlayPlugin {
         this.stack.remove(overlay.id);
         this.overlayInstances.delete(overlay.id);
         overlay.destroy();
+
+        const rootUrl = this.router.resolveRootUrl();
+        if (this.stack.size() === 0 && overlay.baseUrl.href === rootUrl.href) {
+            this.router.reloadRoot();
+        }
     }
 
     private blurOthers(overlayId: string): void {
@@ -157,7 +162,7 @@ export class OverlayPlugin {
     private resolveOverlayDataFromDocument(): any {
         const element = document.querySelector('[data-page]');
         const content = element?.getAttribute('data-page');
-        if (!content) return null;
+        if (! content) return null;
 
         try {
             const data = JSON.parse(decodeURIComponent(content));
@@ -179,7 +184,7 @@ export class OverlayPlugin {
         try {
             return this.options.resolve(type);
         } catch {
-            throw new Error(`Overlay component of type "${type}" could not be resolved.`);
+            throw new Error(`Overlay component of type "${ type }" could not be resolved.`);
         }
     }
 
