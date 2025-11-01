@@ -6,6 +6,9 @@ import { h, VNode } from "vue";
 export { useOverlayFactory } from './Composables/useOverlayFactory.ts';
 export { useOverlayStack } from './Composables/useOverlayStack.ts';
 export { useOverlay } from './Composables/useOverlay.ts';
+export {
+    onOverlayFocus, onOverlayBlur, onBeforeOverlayClose, onOverlayClosed
+} from './Hooks.ts';
 
 export type * from "./Overlay.ts";
 

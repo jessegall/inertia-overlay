@@ -21,8 +21,8 @@ export function randomString(length: number = 8) {
     ).join('');
 }
 
-export function toReadonly<T extends object>(obj: T): Readonly<Reactive<T>> {
-    return shallowReadonly(reactive(bindMethods(obj))) as Readonly<Reactive<T>>;
+export function toReactive<T extends object>(obj: T): Reactive<T> {
+    return reactive(bindMethods(obj))
 }
 
 export function bindMethods<T extends object>(obj: T): T {

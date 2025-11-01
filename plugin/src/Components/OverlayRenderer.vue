@@ -2,13 +2,13 @@
 
 import { Component, defineAsyncComponent, inject, nextTick, ref, shallowRef, watch } from "vue";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
-import { ReadonlyOverlay } from "../OverlayFactory.ts";
+import { ReactiveOverlay } from "../OverlayFactory.ts";
 import OverlayWrapper from "./OverlayWrapper.vue";
 import { OverlayState } from "../Overlay.ts";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 
 interface Props {
-    overlay: ReadonlyOverlay
+    overlay: ReactiveOverlay
 }
 
 // ----------[ Setup ]----------
@@ -32,12 +32,12 @@ function handleState(state: OverlayState) {
 
         case 'opening':
             shouldRenderBackdrop.value = true;
+            component.value = defineAsyncComponent(plugin.resolveComponent(overlay.component))
             break;
 
         case 'open':
             shouldRenderBackdrop.value = true;
             shouldRenderComponent.value = true;
-            component.value = defineAsyncComponent(plugin.resolveComponent(overlay.component))
             break;
 
         case 'closing':
@@ -65,7 +65,7 @@ watch(() => overlay.state, (state) => nextTick(() => handleState(state)), { imme
             @click="overlay.close"
         />
 
-        <template v-if="overlay.config">
+        <template v-if="component">
 
             <OverlayWrapper
                 :show="shouldRenderComponent"

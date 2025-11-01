@@ -14,7 +14,7 @@ class Overlay
         protected string $id,
         protected string $url,
         protected string $baseUrl,
-        protected bool $isOpening = false,
+        protected bool $isInitializing = false,
         protected array $initialProps = [],
         protected OverlayConfig|null $config = null,
     ) {}
@@ -70,9 +70,9 @@ class Overlay
         return $this->url;
     }
 
-    public function isOpening(): bool
+    public function isInitializing(): bool
     {
-        return $this->isOpening;
+        return $this->isInitializing;
     }
 
     public function getBaseUrl(): string|null
@@ -139,7 +139,7 @@ class Overlay
     public function saveToSession(OverlayComponent $component): void
     {
         $self = clone $this;
-        $self->isOpening = false;
+        $self->isInitializing = false;
 
         $component = is_subclass_of($component, 'Spatie\\LaravelData\\Data')
             ? get_class($component)

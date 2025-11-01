@@ -40,7 +40,7 @@ class MockOverlay extends Overlay
 
     public function setIsOpening(bool $value): void
     {
-        $this->isOpening = $value;
+        $this->isInitializing = $value;
     }
 
 }

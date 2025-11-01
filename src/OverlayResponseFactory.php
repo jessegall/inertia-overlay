@@ -18,8 +18,12 @@ readonly class OverlayResponseFactory
     {
         $builder = app(OverlayBuilder::class);
 
-        if ($this->isOpeningNewOverlay($request)) {
-            return $builder->new();
+        if ($this->shouldCreateNewOverlay($request)) {
+            $id = $request->hasHeader(Header::OVERLAY_INITIALIZING)
+                ? $request->header(Header::OVERLAY_ID)
+                : null;
+
+            return $builder->new($id);
         }
 
         return $builder->fromRequest($request);
@@ -35,14 +39,10 @@ readonly class OverlayResponseFactory
 
     # ---------[ Helpers ]----------
 
-    private function isOpeningNewOverlay(Request $request): bool
+    private function shouldCreateNewOverlay(Request $request): bool
     {
-        if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
+        if (! $request->hasHeader(Header::INERTIA_OVERLAY) || $request->hasHeader(Header::OVERLAY_INITIALIZING)) {
             return true;
-        }
-
-        if ($request->hasHeader(Header::OVERLAY_OPENING)) {
-            return false;
         }
 
         $from = parse_url($request->header(Header::OVERLAY_URL), PHP_URL_PATH);

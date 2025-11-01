@@ -1,10 +1,10 @@
 import { Overlay, OverlayPage } from "./Overlay.ts";
-import { randomString, toReadonly } from "./helpers.ts";
+import { randomString, toReactive } from "./helpers.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { Reactive } from "vue";
 import qs from 'qs'
 
-export type ReadonlyOverlay = Readonly<Reactive<Overlay>>;
+export type ReactiveOverlay = Reactive<Overlay>;
 
 export class OverlayFactory {
 
@@ -14,22 +14,22 @@ export class OverlayFactory {
 
     // ----------[ Api ]----------
 
-    public make(url: string | URL, data: Record<string, any>): ReadonlyOverlay {
+    public make(url: string | URL, data: Record<string, any>): ReactiveOverlay {
         const overlay = new Overlay(this.router, {
             id: randomString(),
             url: this.makeUrl(url, data),
         });
 
-        return toReadonly(overlay);
+        return toReactive(overlay);
     }
 
-    public makeFromPage(page: OverlayPage): ReadonlyOverlay {
+    public makeFromPage(page: OverlayPage): ReactiveOverlay {
         const overlay = new Overlay(this.router, {
             id: page.overlay.id,
             url: this.makeUrl(page.overlay.url),
         });
 
-        return toReadonly(overlay);
+        return toReactive(overlay);
     }
 
     // ----------[ Helpers ]----------

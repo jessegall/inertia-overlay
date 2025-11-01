@@ -36,7 +36,9 @@ class OverlayController extends Controller
             $component = $this->componentFactory->make($component, $overlay->getInitialProps());
         }
 
-        $this->overlayActionRunner->run($overlay, $component, $action);
+        if ($response = $this->overlayActionRunner->run($overlay, $component, $action)) {
+            return $response;
+        }
 
         return $overlay->render($component);
     }

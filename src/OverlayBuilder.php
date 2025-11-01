@@ -10,6 +10,7 @@ use RuntimeException;
 class OverlayBuilder
 {
 
+    public string|null $id = null;
     public Request|null $request = null;
     public string|null $baseUrl = null;
     public OverlayComponent|string|null $component = null;
@@ -19,15 +20,17 @@ class OverlayBuilder
         public readonly ComponentFactory $componentFactory,
     ) {}
 
-    public function new(): self
+    public function new(string|null $id = null): self
     {
         $this->request = null;
+        $this->id = $id;
         return $this;
     }
 
     public function fromRequest(Request $request): self
     {
         $this->request = $request;
+        $this->id = null;
         return $this;
     }
 
@@ -87,9 +90,9 @@ class OverlayBuilder
             [
                 'id' => $request->header(Header::OVERLAY_ID),
                 'url' => $request->header(Header::OVERLAY_URL),
-                'isOpening' => $request->header(Header::OVERLAY_OPENING) === 'true',
                 'baseUrl' => $this->baseUrl ?? $request->fullUrl(),
                 'initialProps' => $this->props,
+                'isInitializing' => false,
             ]
         );
     }
@@ -98,11 +101,11 @@ class OverlayBuilder
     {
         return app(Overlay::class,
             [
-                'id' => Str::random(8),
+                'id' => $this->id ?? Str::random(8),
                 'url' => request()->fullUrl(),
-                'isOpening' => true,
                 'baseUrl' => $this->baseUrl ?? url()->current(),
                 'initialProps' => $this->props,
+                'isInitializing' => true,
             ]
         );
     }

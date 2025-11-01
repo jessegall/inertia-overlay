@@ -7,7 +7,7 @@ import { OverlayResolver } from "./OverlayPlugin.ts";
 import { OverlayRequestBuilder } from "./OverlayRequestBuilder.ts";
 import { InertiaRouterAdapter } from "./InertiaRouterAdapter.ts";
 import { OverlayCache } from "./OverlayCache.ts";
-import { ReadonlyOverlay } from "./OverlayFactory.ts";
+import { ReactiveOverlay } from "./OverlayFactory.ts";
 
 export const header = {
 
@@ -27,7 +27,7 @@ export const header = {
 
     // -----[ Lifecycle ]-----
 
-    OVERLAY_OPENING: 'X-Inertia-Overlay-Opening',
+    OVERLAY_INITIALIZING: 'X-Inertia-Overlay-Initializing',
 
 }
 
@@ -101,17 +101,15 @@ export class OverlayRouter {
 
     // ----------[ Api ]----------
 
-    public async open(overlayId: string): Promise<OverlayPage> {
+    public async fetch(overlayId: string): Promise<OverlayPage> {
         const overlay = this.overlayResolver(overlayId);
-        if (! overlay) {
-            throw new Error(`Failed to open overlay. Overlay with ID "${ overlayId }" not found.`)
-        }
+        if (! overlay) throw new Error(`Failed to fetch overlay. Overlay with ID "${ overlayId }" not found.`)
 
         if (this.cache.has(overlay.id)) {
             return this.cache.get(overlay.id);
         }
 
-        const request = this.requestBuilder.buildOverlayOpenRequest(overlay);
+        const request = this.requestBuilder.buildOverlayInitializeRequest(overlay);
         return await this.routerAdapter.get(overlay.url, request);
     }
 
@@ -163,7 +161,7 @@ export class OverlayRouter {
         }
     }
 
-    private restoreOverlayUrl(visit: PendingVisit, overlay: ReadonlyOverlay): void {
+    private restoreOverlayUrl(visit: PendingVisit, overlay: ReactiveOverlay): void {
         // When reloading the page while an overlay is open, redirect the request
         // to the overlay's URL instead of the underlying page URL
         visit.url.pathname = overlay.url.pathname;

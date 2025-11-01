@@ -28,7 +28,7 @@ readonly class OverlayResponse implements Responsable
         $baseUrl = $this->resolveBaseUrl($request);
         $response = $this->buildResponse($request, $baseUrl);
 
-        if (! $request->hasHeader(OverlayHeader::OVERLAY_ACTION)) {
+        if ($this->shouldSaveToSession($request)) {
             $this->overlay->saveToSession($this->component);
         }
 
@@ -46,7 +46,7 @@ readonly class OverlayResponse implements Responsable
             return $this->buildInitialResponse($request, $baseUrl);
         }
 
-        if ($this->overlay->isOpening()) {
+        if ($this->overlay->isInitializing()) {
             $this->clearPartialHeaders($request);
         } else {
             $this->setPartialHeaders($request);
@@ -154,6 +154,12 @@ readonly class OverlayResponse implements Responsable
         return count($this->overlay->getPageInclude()) > 0;
     }
 
+    private function shouldSaveToSession(Request $request): bool
+    {
+        return ! $request->hasHeader(OverlayHeader::OVERLAY_ACTION)
+            || $request->header(OverlayHeader::OVERLAY_ID) != $this->overlay->getId();
+    }
+
     private function attachOverlayMetadata(Response $response, Request $request, string $baseUrl): Response
     {
         $metadata = [
@@ -210,9 +216,13 @@ readonly class OverlayResponse implements Responsable
                 continue;
             }
 
-            $a[$key] = (array_is_list($value) && array_is_list($a[$key]))
-                ? array_unique(array_merge($a[$key], $value), SORT_REGULAR)
-                : $this->mergeDeep($a[$key], $value);
+            $bothArraysAreList = array_is_list($value) && array_is_list($a[$key]);
+
+            if ($bothArraysAreList) {
+                $a[$key] = array_unique(array_merge($a[$key], $value), SORT_REGULAR);
+            } else {
+                $a[$key] = $this->mergeDeep($a[$key], $value);
+            }
         }
 
         return $a;

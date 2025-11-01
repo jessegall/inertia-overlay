@@ -1,14 +1,14 @@
 import { ref } from "vue";
 import { EventEmitter } from "./event.ts";
-import { ReadonlyOverlay } from "./OverlayFactory.ts";
+import { ReactiveOverlay } from "./OverlayFactory.ts";
 import { OverlayResolver } from "./OverlayPlugin.ts";
 
 export class OverlayStack {
 
     // ----------[ Events ]----------
 
-    public readonly onOverlayPushed = new EventEmitter<ReadonlyOverlay>();
-    public readonly onOverlayRemoved = new EventEmitter<ReadonlyOverlay>();
+    public readonly onOverlayPushed = new EventEmitter<ReactiveOverlay>();
+    public readonly onOverlayRemoved = new EventEmitter<ReactiveOverlay>();
 
     // ----------[ Properties ]----------
 
@@ -30,16 +30,11 @@ export class OverlayStack {
         this.onOverlayRemoved.emit(this.overlayResolver(overlayId));
     }
 
-    public peek(): ReadonlyOverlay | null {
+    public peek(): ReactiveOverlay | null {
         const size = this.size();
         if (size === 0) return null;
         const overlayId = this.stack.value[size - 1];
         return this.overlayResolver(overlayId);
-    }
-
-    public peekId(): string | null {
-        const top = this.peek();
-        return top ? top.id : null;
     }
 
     public size(): number {
@@ -48,13 +43,13 @@ export class OverlayStack {
 
     // ----------[ Accessors ]----------
 
-    public get items(): ReadonlyOverlay[] {
+    public get items(): ReactiveOverlay[] {
         return this.stack.value.map(id => this.overlayResolver(id));
     }
 
     // ----------[ Iterator ]----------
 
-    * [Symbol.iterator](): Iterator<ReadonlyOverlay> {
+    * [Symbol.iterator](): Iterator<ReactiveOverlay> {
         for (const item of this.items) {
             yield item;
         }

@@ -2,8 +2,9 @@
 
 import { useOverlayStack } from "../Composables/useOverlayStack.ts";
 import OverlayRenderer from "./OverlayRenderer.vue";
-import { onBeforeMount, ref } from "vue";
-import { ReadonlyOverlay } from "../OverlayFactory.ts";
+import { inject, onBeforeMount, ref } from "vue";
+import { ReactiveOverlay } from "../OverlayFactory.ts";
+import { OverlayPlugin } from "../OverlayPlugin.ts";
 
 // ----------[ Setup ]----------
 
@@ -11,7 +12,7 @@ const stack = useOverlayStack();
 
 // ----------[ Data ]----------
 
-const overlays = ref<ReadonlyOverlay[]>([]);
+const overlays = ref<ReactiveOverlay[]>([]);
 
 // ----------[ Lifecycle ]----------
 

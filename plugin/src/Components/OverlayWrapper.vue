@@ -21,7 +21,7 @@ const sizeClass = computed(() => overlaySizeClasses[props.size]);
 
         <div class="inertia-overlay-modal-container">
             <Transition name="inertia-overlay-modal" appear>
-                <div v-if="show" class="inertia-overlay-modal" :class="sizeClass">
+                <div v-show="show" class="inertia-overlay-modal" :class="sizeClass">
                     <slot/>
                 </div>
             </Transition>
@@ -34,7 +34,7 @@ const sizeClass = computed(() => overlaySizeClasses[props.size]);
         <div class="inertia-overlay-drawer-container">
             <div class="inertia-overlay-drawer-wrapper">
                 <Transition name="inertia-overlay-drawer" appear>
-                    <div v-if="show" class="inertia-overlay-drawer" :class="sizeClass">
+                    <div v-show="show" class="inertia-overlay-drawer" :class="sizeClass">
                         <slot/>
                     </div>
                 </Transition>

@@ -1,4 +1,4 @@
-import { ReadonlyOverlay } from "./OverlayFactory.ts";
+import { ReactiveOverlay } from "./OverlayFactory.ts";
 import { header } from "./OverlayRouter.ts";
 import { Page, VisitOptions } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
@@ -18,16 +18,17 @@ export class OverlayRequestBuilder {
         return true;
     }
 
-    public buildOverlayOpenRequest(overlay: ReadonlyOverlay): RequestConfig<OverlayPage> {
+    public buildOverlayInitializeRequest(overlay: ReactiveOverlay): RequestConfig<OverlayPage> {
         return {
             data: {},
             options: {
+                async: true,
                 preserveUrl: true,
                 preserveState: true,
                 preserveScroll: true,
                 headers: {
                     [header.INERTIA_OVERLAY]: 'true',
-                    [header.OVERLAY_OPENING]: 'true',
+                    [header.OVERLAY_INITIALIZING]: 'true',
                     [header.OVERLAY_ID]: overlay.id,
                 },
             },
@@ -35,7 +36,7 @@ export class OverlayRequestBuilder {
         }
     }
 
-    public buildOverlayActionRequest(overlay: ReadonlyOverlay, action: string, payload: Record<string, any> = {}): RequestConfig<OverlayPage> {
+    public buildOverlayActionRequest(overlay: ReactiveOverlay, action: string, payload: Record<string, any> = {}): RequestConfig<OverlayPage> {
         return {
             data: {
                 payload,

@@ -1,7 +1,7 @@
 import { computed, inject, nextTick, onUnmounted, reactive, shallowRef } from "vue";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 import { OverlayProps, OverlayState } from "../Overlay.ts";
-import { ReadonlyOverlay } from "../OverlayFactory.ts";
+import { ReactiveOverlay } from "../OverlayFactory.ts";
 
 type OverlayActionOptions = {
     data?: Record<string, any>;
@@ -28,7 +28,7 @@ export function useOverlay() {
 
     // ----------[ Data ]----------
 
-    const instance = shallowRef<ReadonlyOverlay>(null);
+    const instance = shallowRef<ReactiveOverlay>(null);
 
     // ----------[ Methods ]----------
 
@@ -45,11 +45,12 @@ export function useOverlay() {
                 if (instance.value) return;
 
                 instance.value = plugin.newInstance(url, data, {
-                    onClosed: () => {
+                    onClosed() {
                         instance.value = null;
                     }
                 });
 
+                await instance.value.initialize();
                 await instance.value.open();
             },
             close: async () => {

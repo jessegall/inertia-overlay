@@ -16,6 +16,6 @@ class Header
     public const string OVERLAY_ID = 'X-Inertia-Overlay-Id';
 
     public const string OVERLAY_ACTION = 'X-Inertia-Overlay-Action';
-    public const string OVERLAY_OPENING = 'X-Inertia-Overlay-Opening';
+    public const string OVERLAY_INITIALIZING = 'X-Inertia-Overlay-Initializing';
 
 }
