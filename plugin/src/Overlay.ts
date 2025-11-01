@@ -9,8 +9,6 @@ export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5
 export type OverlayProps = Record<string, any>;
 export type OverlayState = 'closed' | 'close-requested' | 'closing' | 'open' | 'open-requested' | 'opening';
 
-export type OverlayFlag = 'skip_hydration_on_refocus' | 'use_shared_props'
-
 export interface OverlayConfig {
     variant: OverlayVariant;
     size: OverlaySize;
@@ -21,12 +19,10 @@ export interface OverlayResponse {
     id: string,
     url: string;
     component: string;
-    props: string[];
     config: OverlayConfig;
-    closeRequested: boolean;
-    input: string[]
     baseUrl?: string
     method?: HttpMethod;
+    closeRequested: boolean;
 }
 
 export type OverlayPage = Page & { overlay: OverlayResponse };
