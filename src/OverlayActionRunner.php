@@ -31,6 +31,12 @@ readonly class OverlayActionRunner
     {
         $reflector = new ReflectionClass($component);
 
+        if (method_exists($component, 'getOverlayActions')) {
+            $actions = $component->getOverlayActions();
+        } else {
+            $actions = [];
+        }
+
         return collect($reflector->getMethods())
             ->filter(fn(ReflectionMethod $method) => $method->getAttributes(OverlayAction::class))
             ->mapWithKeys(function (ReflectionMethod $method) use ($component) {
@@ -38,6 +44,7 @@ readonly class OverlayActionRunner
                 $instance = $attribute->newInstance();
                 return [$instance->name ?? $method->name => $method->getClosure($component)];
             })
+            ->merge($actions)
             ->all();
     }
 

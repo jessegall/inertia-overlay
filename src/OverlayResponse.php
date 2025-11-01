@@ -40,6 +40,7 @@ readonly class OverlayResponse implements Responsable
         return $request->header(OverlayHeader::BASE_URL, $this->overlay->getBaseUrl());
     }
 
+
     private function buildResponse(Request $request, string $baseUrl): Response|JsonResponse
     {
         if (! $request->hasHeader(InertiaHeader::INERTIA)) {
@@ -160,11 +161,25 @@ readonly class OverlayResponse implements Responsable
             || $request->header(OverlayHeader::OVERLAY_ID) != $this->overlay->getId();
     }
 
+    private function resolveOverlayUrl(Request $request): string
+    {
+        if ($request->header(OverlayHeader::OVERLAY_ACTION)) {
+            return route('inertia-overlay.overlay', [
+                ...$this->overlay->getInitialProps(),
+                'type' => $request->header(OverlayHeader::OVERLAY_COMPONENT)
+            ]);
+        }
+
+        return $request->fullUrl();
+    }
+
     private function attachOverlayMetadata(Response $response, Request $request, string $baseUrl): Response
     {
+        $url = $this->resolveOverlayUrl($request);
+
         $metadata = [
             'id' => $this->overlay->getId(),
-            'url' => $request->fullUrl(),
+            'url' => $url,
             'component' => $this->component->name(),
             'config' => $this->config->toArray(),
             'baseUrl' => $baseUrl,
@@ -227,4 +242,5 @@ readonly class OverlayResponse implements Responsable
 
         return $a;
     }
+
 }
