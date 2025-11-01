@@ -2,9 +2,11 @@ import { computed, inject, nextTick, onUnmounted, reactive, shallowRef } from "v
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 import { OverlayProps, OverlayState } from "../Overlay.ts";
 import { ReactiveOverlay } from "../OverlayFactory.ts";
+import { VisitOptions } from "@inertiajs/core";
 
 type OverlayActionOptions = {
     data?: Record<string, any>;
+    headers?: Record<string, string>;
     onSuccess?: (data: OverlayProps) => void;
 }
 
@@ -65,7 +67,7 @@ export function useOverlay() {
         return createOverlay(url, options.props || {});
     }
 
-    async function overlayAction(action: string, options: OverlayActionOptions = {}): Promise<void> {
+    async function overlayAction(action: string, options: VisitOptions = {}): Promise<void> {
         const overlay = plugin.stack.peek();
 
         if (! overlay) {
@@ -73,11 +75,7 @@ export function useOverlay() {
             return;
         }
 
-        const page = await plugin.router.action(overlay.id, action, options.data);
-
-        if (options.onSuccess) {
-            options.onSuccess(page.props[overlay.id]);
-        }
+        await plugin.router.action(overlay.id, action, options);
     }
 
     // ----------[ Lifecycle ]----------

@@ -1,6 +1,6 @@
 import { router, usePage, } from "@inertiajs/vue3";
 import { EventEmitter } from "./event.ts";
-import { ActiveVisit, Page, PendingVisit } from "@inertiajs/core";
+import { ActiveVisit, Page, PendingVisit, VisitOptions } from "@inertiajs/core";
 import { OverlayPage } from "./Overlay.ts";
 import { deepToRaw, isOverlayPage } from "./helpers.ts";
 import { OverlayResolver } from "./OverlayPlugin.ts";
@@ -113,9 +113,9 @@ export class OverlayRouter {
         return await this.routerAdapter.get(overlay.url, request);
     }
 
-    public async action(overlayId: string, action: string, payload: Record<string, any> = {}): Promise<Page> {
+    public async action(overlayId: string, action: string, options: VisitOptions): Promise<Page> {
         const overlay = this.overlayResolver(overlayId);
-        const request = this.requestBuilder.buildOverlayActionRequest(overlay, action, payload);
+        const request = this.requestBuilder.buildOverlayActionRequest(overlay, action, options);
         const url = new URL(`/overlay/${ action }`, window.location.origin);
         return await this.routerAdapter.post(url, request);
     }
