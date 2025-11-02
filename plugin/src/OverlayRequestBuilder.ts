@@ -36,16 +36,19 @@ export class OverlayRequestBuilder {
         }
     }
 
-    public buildOverlayActionRequest(overlay: ReactiveOverlay, action: string, payload: Record<string, any> = {}): RequestConfig<OverlayPage> {
+    public buildOverlayActionRequest(overlay: ReactiveOverlay, action: string, options: VisitOptions = {}): RequestConfig<OverlayPage> {
+        console.log(options);
         return {
             data: {
-                payload,
+                ...(options.data || {}),
+                __overlay: overlay.props,
             },
             options: {
                 preserveUrl: true,
                 preserveState: true,
                 preserveScroll: true,
                 headers: {
+                    ...(options.headers || {}),
                     [header.INERTIA_OVERLAY]: 'true',
                     [header.OVERLAY_ACTION]: action,
                     [header.OVERLAY_ID]: overlay.id,

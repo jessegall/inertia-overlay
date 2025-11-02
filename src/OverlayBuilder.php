@@ -63,18 +63,28 @@ class OverlayBuilder
         return $this;
     }
 
-    public function render(): OverlayResponse
+    public function build(): Overlay
     {
         if ($this->request) {
-            $overlay = $this->createFromRequest($this->request);
+            return $this->createFromRequest($this->request);
         } else {
-            $overlay = $this->createNew();
+            return$this->createNew();
         }
+    }
 
+    public function render(): OverlayResponse
+    {
         if (is_string($this->component)) {
             $component = $this->componentFactory->make($this->component, $this->props);
         } else {
             $component = $this->component;
+            $this->with(get_object_vars($component));
+        }
+
+        if ($this->request) {
+            $overlay = $this->createFromRequest($this->request);
+        } else {
+            $overlay = $this->createNew();
         }
 
         return $overlay->render($component);

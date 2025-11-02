@@ -3,31 +3,42 @@
 namespace JesseGall\InertiaOverlay;
 
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
+use Laravel\SerializableClosure\SerializableClosure;
 use ReflectionClass;
 use ReflectionMethod;
-use RuntimeException;
 
 readonly class OverlayActionRunner
 {
 
     public function run(Overlay $overlay, OverlayComponent $component, string $action)
     {
+        /** @var \Closure $callback */
+        $callback = $overlay->get("actions.{$action}")->getClosure();
+
+        $callback = $callback->bindTo($component, $component);
+
+        return app()->call($callback,
+            [
+                'overlay' => $overlay,
+                'payload' => request()->all(),
+            ]
+        );
+    }
+
+    public function flash(Overlay $overlay, OverlayComponent $component): void
+    {
         $actions = $this->resolveActions($component);
 
-        if (! $callback = $actions[$action] ?? null) {
-            throw new RuntimeException("Action [{$action}] not found on overlay");
+        foreach ($actions as $name => $action) {
+            $overlay->flash("actions.{$name}", new SerializableClosure($action));
         }
-
-        return app()->call($callback, [
-            'overlay' => $overlay,
-        ]);
     }
 
     /**
      * @param OverlayComponent $component
      * @return array<string, callable>
      */
-    private function resolveActions(OverlayComponent $component): array
+    public function resolveActions(OverlayComponent $component): array
     {
         $reflector = new ReflectionClass($component);
 

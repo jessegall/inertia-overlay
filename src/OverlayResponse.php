@@ -29,7 +29,8 @@ readonly class OverlayResponse implements Responsable
         $response = $this->buildResponse($request, $baseUrl);
 
         if ($this->shouldSaveToSession($request)) {
-            $this->overlay->saveToSession($this->component);
+            $actionRunner = app(OverlayActionRunner::class);
+            $actionRunner->flash($this->overlay, $this->component);
         }
 
         return $this->attachOverlayMetadata($response, $request, $baseUrl);

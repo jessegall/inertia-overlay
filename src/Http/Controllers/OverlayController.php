@@ -7,9 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\ComponentFactory;
-use JesseGall\InertiaOverlay\Header;
-use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlayActionRunner;
+use JesseGall\InertiaOverlay\OverlayBuilder;
 
 class OverlayController extends Controller
 {
@@ -30,11 +29,12 @@ class OverlayController extends Controller
 
     public function action(Request $request, string $action)
     {
-        [$overlay, $component] = Overlay::fromSession($request->header(Header::OVERLAY_ID));
+        $overlay = app(OverlayBuilder::class)
+            ->props($request->get('__overlay'))
+            ->fromRequest($request)
+            ->build();
 
-        if (is_string($component)) {
-            $component = $this->componentFactory->make($component, $overlay->getInitialProps());
-        }
+        $component = $this->componentFactory->make($overlay->get('render.component'), $overlay->getInitialProps());
 
         if ($response = $this->overlayActionRunner->run($overlay, $component, $action)) {
             return $response;

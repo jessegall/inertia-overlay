@@ -21,8 +21,10 @@ class Overlay
 
     public function render(OverlayComponent $component): OverlayResponse
     {
-        $config = $this->config ?? $component->config($this);
+        $this->flash('render.component', get_class($component));
+        $this->flash('render.props', get_class($component));
 
+        $config = $this->config ?? $component->config($this);
         return new OverlayResponse($this, $component, $config);
     }
 
@@ -141,9 +143,7 @@ class Overlay
         $self = clone $this;
         $self->isInitializing = false;
 
-        $component = is_subclass_of($component, 'Spatie\\LaravelData\\Data')
-            ? get_class($component)
-            : $component;
+        $component = get_class($component);
 
         session()->put($self->sessionKey('instance'), serialize(new SerializableClosure(fn() => [$self, $component])));
     }
