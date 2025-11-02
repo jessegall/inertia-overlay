@@ -2,123 +2,70 @@
 
 namespace JesseGall\InertiaOverlay;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use RuntimeException;
 
 class OverlayBuilder
 {
 
+
     public string|null $id = null;
-    public Request|null $request = null;
+    public string|null $url = null;
     public string|null $baseUrl = null;
-    public OverlayComponent|string|null $component = null;
-    public array $props = [];
+    public array|null $props = null;
+
+    public bool|null $isInitializing = null;
 
     public function __construct(
         public readonly ComponentFactory $componentFactory,
     ) {}
 
-    public function new(string|null $id = null): self
+    public function setId(string $id): self
     {
-        $this->request = null;
         $this->id = $id;
         return $this;
     }
 
-    public function fromRequest(Request $request): self
+    public function setUrl(string $url): self
     {
-        $this->request = $request;
-        $this->id = null;
+        $this->url = $url;
         return $this;
     }
 
-    public function baseUrl(string $baseUrl): self
+    public function setBaseUrl(string $baseUrl): self
     {
         $this->baseUrl = $baseUrl;
         return $this;
     }
 
-    public function component(OverlayComponent|string $component): self
-    {
-        $this->component = $component;
-        return $this;
-    }
-
-    public function props(array $props): self
+    public function setProps(array $props): self
     {
         $this->props = $props;
         return $this;
     }
 
-    public function with(array|string $props, mixed $value = null): self
+    public function setIsInitializing(bool $isInitializing): self
     {
-        if (is_array($props)) {
-            $this->props = array_merge($this->props, $props);
-        } else {
-            $this->props[$props] = $value;
-        }
-
+        $this->isInitializing = $isInitializing;
         return $this;
     }
 
     public function build(): Overlay
     {
-        if ($this->request) {
-            return $this->createFromRequest($this->request);
-        } else {
-            return$this->createNew();
-        }
-    }
-
-    public function render(): OverlayResponse
-    {
-        if (is_string($this->component)) {
-            $component = $this->componentFactory->make($this->component, $this->props);
-        } else {
-            $component = $this->component;
-            $this->with(get_object_vars($component));
-        }
-
-        if ($this->request) {
-            $overlay = $this->createFromRequest($this->request);
-        } else {
-            $overlay = $this->createNew();
-        }
-
-        return $overlay->render($component);
-    }
-
-    public function createFromRequest(Request $request): Overlay
-    {
-        if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
-            throw new RuntimeException('No overlay found in the request.');
-        }
-
-        return app(Overlay::class,
-            [
-                'id' => $request->header(Header::OVERLAY_ID),
-                'url' => $request->header(Header::OVERLAY_URL),
-                'baseUrl' => $this->baseUrl ?? $request->fullUrl(),
-                'initialProps' => $this->props,
-                'isInitializing' => false,
-            ]
-        );
-    }
-
-    public function createNew(): Overlay
-    {
         return app(Overlay::class,
             [
                 'id' => $this->id ?? Str::random(8),
-                'url' => request()->fullUrl(),
+                'url' => $this->url ?? url()->current(),
                 'baseUrl' => $this->baseUrl ?? url()->current(),
-                'initialProps' => $this->props,
-                'isInitializing' => true,
+                'props' => $this->props ?? [],
+                'isInitializing' => $this->isInitializing ?? true,
             ]
         );
     }
 
+    public function render(OverlayComponent|string $component): OverlayResponse
+    {
+        return InertiaOverlay::renderOverlay($this->build(), $component);
+    }
 
 }

@@ -24,4 +24,23 @@ class OverlayConfig implements Arrayable
         ];
     }
 
+    public static function fromArray(array $config): static
+    {
+        $instance = new static();
+
+        if (isset($config['variant'])) {
+            $instance->variant = OverlayVariant::from($config['variant']);
+        }
+
+        if (isset($config['size'])) {
+            $instance->size = OverlaySize::from($config['size']);
+        }
+
+        if (isset($config['displayUrl'])) {
+            $instance->displayUrl = $config['displayUrl'];
+        }
+
+        return $instance;
+    }
+
 }

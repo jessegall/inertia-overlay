@@ -44,6 +44,7 @@ export class OverlayRequestBuilder {
                 __overlay: overlay.props,
             },
             options: {
+                ...options,
                 preserveUrl: true,
                 preserveState: true,
                 preserveScroll: true,

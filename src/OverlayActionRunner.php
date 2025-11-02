@@ -2,6 +2,8 @@
 
 namespace JesseGall\InertiaOverlay;
 
+use Closure;
+use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use Laravel\SerializableClosure\SerializableClosure;
 use ReflectionClass;
@@ -12,8 +14,7 @@ readonly class OverlayActionRunner
 
     public function run(Overlay $overlay, OverlayComponent $component, string $action)
     {
-        /** @var \Closure $callback */
-        $callback = $overlay->get("actions.{$action}")->getClosure();
+        $callback = $overlay->session()->get("actions.{$action}")->getClosure();
 
         return app()->call($callback,
             [
@@ -29,7 +30,13 @@ readonly class OverlayActionRunner
         $actions = $this->resolveActions($component);
 
         foreach ($actions as $name => $action) {
-            $overlay->put("actions.{$name}", new SerializableClosure($action));
+            $action = match (true) {
+                $action instanceof Closure => new SerializableClosure($action),
+                is_callable($action) => new SerializableClosure(fn(...$args) => $action(...$args)),
+                default => throw new InvalidArgumentException("Overlay action '{$name}' is not callable."),
+            };
+
+            $overlay->session()->put("actions.{$name}", $action);
         }
     }
 
