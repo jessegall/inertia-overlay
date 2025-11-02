@@ -21,8 +21,7 @@ class Overlay
 
     public function render(OverlayComponent $component): OverlayResponse
     {
-        $this->flash('render.component', get_class($component));
-        $this->flash('render.props', get_class($component));
+        $this->put('render.component', get_class($component));
 
         $config = $this->config ?? $component->config($this);
         return new OverlayResponse($this, $component, $config);
@@ -87,6 +86,11 @@ class Overlay
         return $this->initialProps;
     }
 
+    public function getProp(string $key, mixed $default = null): mixed
+    {
+        return Arr::get($this->initialProps, $key, $default);
+    }
+
     public function getOnly(): array
     {
         return $this->get('overlay.only', []);
@@ -136,29 +140,6 @@ class Overlay
         }
 
         return "overlay.{$this->id}.{$key}";
-    }
-
-    public function saveToSession(OverlayComponent $component): void
-    {
-        $self = clone $this;
-        $self->isInitializing = false;
-
-        $component = get_class($component);
-
-        session()->put($self->sessionKey('instance'), serialize(new SerializableClosure(fn() => [$self, $component])));
-    }
-
-    /** @return array{0: Overlay, 1: class-string<OverlayComponent>}|null */
-    public static function fromSession(string $id)
-    {
-        $data = session()->get("overlay.{$id}.instance");
-        $data = unserialize($data);
-
-        if (! $data instanceof SerializableClosure) {
-            return null;
-        }
-
-        return $data->getClosure()();
     }
 
 }

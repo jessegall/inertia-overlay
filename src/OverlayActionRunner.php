@@ -15,22 +15,21 @@ readonly class OverlayActionRunner
         /** @var \Closure $callback */
         $callback = $overlay->get("actions.{$action}")->getClosure();
 
-        $callback = $callback->bindTo($component, $component);
-
         return app()->call($callback,
             [
                 'overlay' => $overlay,
+                'component' => $component,
                 'payload' => request()->all(),
             ]
         );
     }
 
-    public function flash(Overlay $overlay, OverlayComponent $component): void
+    public function register(Overlay $overlay, OverlayComponent $component): void
     {
         $actions = $this->resolveActions($component);
 
         foreach ($actions as $name => $action) {
-            $overlay->flash("actions.{$name}", new SerializableClosure($action));
+            $overlay->put("actions.{$name}", new SerializableClosure($action));
         }
     }
 
