@@ -120,6 +120,7 @@ export class Overlay {
 
     public focus(): void {
         if (this.focused.value) return;
+        console.log("focusing overlay:", this.id);
         this.focused.value = true;
         this.onFocused.emit(this.id);
     }
@@ -164,12 +165,18 @@ export class Overlay {
         return this.options.method ?? 'get';
     }
 
+    // ----------[ Helpers ]----------
+
     public hasState(...states: OverlayState[]): boolean {
         return states.includes(this.state.value);
     }
 
     public notInState(...states: OverlayState[]): boolean {
         return ! this.hasState(...states);
+    }
+
+    public unscope(key: string): string {
+        return key.startsWith(`${ this.id }.`) ? key.slice(this.id.length + 1) : key;
     }
 
     // ----------[ Internal ]----------
@@ -215,11 +222,4 @@ export class Overlay {
             activeTransitions.splice(activeTransitions.indexOf(this.id), 1);
         }
     }
-
-    private assertState(...expected: OverlayState[]): void {
-        if (! this.hasState(...expected)) {
-            throw new Error(`Overlay "${ this.id }" in state "${ this.state.value }", expected: ${ expected.join(', ') }`);
-        }
-    }
-
 }

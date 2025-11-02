@@ -9,12 +9,12 @@ use Laravel\SerializableClosure\SerializableClosure;
 use ReflectionClass;
 use ReflectionMethod;
 
-readonly class OverlayActionRunner
+readonly class ActionRegistry
 {
 
-    public function run(Overlay $overlay, OverlayComponent $component, string $action)
+    public function invoke(Overlay $overlay, OverlayComponent $component, string $action)
     {
-        $callback = $overlay->session()->get("actions.{$action}")->getClosure();
+        $callback = $overlay->session->get("actions.{$action}")->getClosure();
 
         return app()->call($callback,
             [
@@ -36,7 +36,7 @@ readonly class OverlayActionRunner
                 default => throw new InvalidArgumentException("Overlay action '{$name}' is not callable."),
             };
 
-            $overlay->session()->put("actions.{$name}", $action);
+            $overlay->session->put("actions.{$name}", $action);
         }
     }
 

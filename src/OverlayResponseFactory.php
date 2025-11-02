@@ -12,7 +12,7 @@ readonly class OverlayResponseFactory
 {
 
     public function __construct(
-        protected ComponentRegistrar $componentRegistrar,
+        protected ComponentRegistry $componentRegistrar,
         protected ComponentFactory $componentFactory,
     ) {}
 
@@ -73,11 +73,7 @@ readonly class OverlayResponseFactory
             $overlay = $this->buildOverlayFromSession($request);
         }
 
-        if (is_string($component)) {
-            $component = $this->buildComponent($component, $overlay->getProps());
-        }
-
-        return $overlay->render($component);
+        return $this->renderOverlay($overlay, $component);
     }
 
     public function renderOverlay(Overlay $overlay, OverlayComponent|string $component): OverlayResponse
@@ -102,7 +98,7 @@ readonly class OverlayResponseFactory
             ->setUrl($request->fullUrl())
             ->setBaseUrl($request->header(Header::BASE_URL, url()->current()))
             ->setProps($props)
-            ->setIsInitializing(true)
+            ->setInitializing(true)
             ->build();
     }
 
@@ -115,7 +111,7 @@ readonly class OverlayResponseFactory
             ->setUrl($session->meta('url'))
             ->setBaseUrl($session->meta('baseUrl'))
             ->setProps([...$session->props(), ...$props])
-            ->setIsInitializing(false)
+            ->setInitializing(false)
             ->build();
     }
 

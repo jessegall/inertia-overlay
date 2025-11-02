@@ -43,7 +43,7 @@ class DemoDrawerOverlay implements OverlayComponent
     {
         $random = rand(1111, 9999);
         $overlay->put('message', "Message from action testAction(): {$random}");
-        $overlay->only('message');
+        $overlay->reloadOverlay('message');
     }
 
     #[OverlayAction('resize')]

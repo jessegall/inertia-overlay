@@ -8,7 +8,7 @@ readonly class ComponentFactory
 {
 
     public function __construct(
-        private ComponentRegistrar $registrar,
+        private ComponentRegistry $registrar,
     ) {}
 
     /**

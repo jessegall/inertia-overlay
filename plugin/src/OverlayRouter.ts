@@ -11,6 +11,11 @@ import { ReactiveOverlay } from "./OverlayFactory.ts";
 
 export const header = {
 
+    // -----[ Inertia ]-----
+
+    INERTIA: 'X-Inertia',
+    PARTIAL_ONLY: 'X-Inertia-Partial-Data',
+
     // -----[ General ]-----
 
     INERTIA_OVERLAY: 'X-Inertia-Overlay',
@@ -137,6 +142,8 @@ export class OverlayRouter {
         visit.headers[header.PAGE_COMPONENT] = page.component;
         visit.headers[header.BASE_URL] = this.baseUrl.href;
 
+        console.log("loading overlay:", overlay);
+
         if (overlay && ! overlay.hasState('closing')) {
             visit.headers[header.INERTIA_OVERLAY] = 'true';
 
@@ -150,6 +157,10 @@ export class OverlayRouter {
 
             if (this.isPageReload(visit)) {
                 this.restoreOverlayUrl(visit, overlay);
+            }
+
+            if (visit.only.length > 0) {
+                this.removeScopeFromPartialProps(visit, overlay);
             }
         }
     }
@@ -166,6 +177,10 @@ export class OverlayRouter {
                 visit.url.searchParams.set(key, value);
             }
         }
+    }
+
+    private removeScopeFromPartialProps(visit: PendingVisit, overlay: ReactiveOverlay): void {
+        visit.only = visit.only.map(key => overlay.unscope(key));
     }
 
     private preservePageDetails(page: OverlayPage): void {

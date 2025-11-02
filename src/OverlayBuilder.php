@@ -13,8 +13,7 @@ class OverlayBuilder
     public string|null $url = null;
     public string|null $baseUrl = null;
     public array|null $props = null;
-
-    public bool|null $isInitializing = null;
+    public bool|null $initializing = null;
 
     public function __construct(
         public readonly ComponentFactory $componentFactory,
@@ -50,9 +49,9 @@ class OverlayBuilder
         return $this;
     }
 
-    public function setIsInitializing(bool $isInitializing): self
+    public function setInitializing(bool $initializing): self
     {
-        $this->isInitializing = $isInitializing;
+        $this->initializing = $initializing;
         return $this;
     }
 
@@ -64,7 +63,7 @@ class OverlayBuilder
                 'url' => $this->url ?? url()->current(),
                 'baseUrl' => $this->baseUrl ?? url()->current(),
                 'props' => $this->props ?? [],
-                'isInitializing' => $this->isInitializing ?? true,
+                'initializing' => $this->initializing ?? true,
             ]
         );
     }

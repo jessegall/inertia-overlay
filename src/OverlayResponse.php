@@ -31,7 +31,7 @@ readonly class OverlayResponse implements Responsable
         $metaData = $this->buildOverlayMetaData($request, $baseUrl);
         $pageData = $this->buildPageData($response, $metaData);
 
-        $this->overlay->session()->setPage($pageData);
+        $this->overlay->session->setPage($pageData);
         $this->registerActions();
 
         return $this->attachPage($response, $pageData);
@@ -98,11 +98,24 @@ readonly class OverlayResponse implements Responsable
 
             if ($isInertia) {
                 $component = (fn() => $this->component)->call($response);
-                $this->configureInertiaHeaders($request, $component);
+                $this->configureInertiaHeadersForPageRequest($request, $component);
             }
 
             return $response->toResponse($request);
         });
+    }
+
+    private function configureInertiaHeadersForPageRequest(Request $request, string $component): void
+    {
+        $request->headers->set(InertiaHeader::INERTIA, 'true');
+
+        if ($this->shouldReloadAllPageProps()) {
+            $request->headers->remove(InertiaHeader::PARTIAL_ONLY);
+        } else {
+            $request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', $this->overlay->getReloadedPageKeys()));
+        }
+
+        $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $component);
     }
 
     private function buildOverlayResponse(Request $request, string $component): Response|JsonResponse
@@ -113,10 +126,12 @@ readonly class OverlayResponse implements Responsable
 
     private function buildScopedProps(): array
     {
-        return collect($this->overlay->getProps())
+        return collect()
+            ->merge($this->overlay->getProps())
+            ->merge($this->overlay->getAppendedProps())
             ->merge($this->component->props($this->overlay))
             ->mapWithKeys(fn($prop, $key) => [
-                $this->overlay->scopePropKey($key) => $prop
+                $this->overlay->scopeKey($key) => $prop
             ])
             ->all();
     }
@@ -131,31 +146,43 @@ readonly class OverlayResponse implements Responsable
     {
         $pageComponent = $request->header(OverlayHeader::PAGE_COMPONENT);
 
-        $partial = collect(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
-            ->merge($this->overlay->getOnly())
-            ->map($this->overlay->scopePropKey(...))
-            ->merge($this->overlay->getPageInclude())
-            ->unique()
-            ->join(',');
+        if ($this->shouldReloadAllOverlayProps()) {
+            $request->headers->remove(InertiaHeader::PARTIAL_ONLY);
+        } else {
+            $partial = collect()
+                ->merge(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
+                ->merge($this->overlay->getReloadedOverlayKeys())
+                ->merge($this->overlay->getAppendedPropKeys())
+                ->map($this->overlay->scopeKey(...))
+                ->filter()
+                ->unique()
+                ->join(',');
+
+            $request->headers->set(InertiaHeader::PARTIAL_ONLY, $partial);
+        }
 
         $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
-        $request->headers->set(InertiaHeader::PARTIAL_ONLY, $partial);
-    }
-
-    private function configureInertiaHeaders(Request $request, string $component): void
-    {
-        $request->headers->set(InertiaHeader::INERTIA, 'true');
-        $request->headers->set(InertiaHeader::PARTIAL_ONLY, $this->overlay->getPageInclude());
-        $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $component);
     }
 
     private function shouldReloadPageProps(): bool
     {
-        return count($this->overlay->getPageInclude()) > 0;
+        return count($this->overlay->getReloadedPageKeys()) > 0;
+    }
+
+    private function shouldReloadAllPageProps(): bool
+    {
+        return in_array('*', $this->overlay->getReloadedPageKeys());
+    }
+
+    private function shouldReloadAllOverlayProps(): bool
+    {
+        return in_array('*', $this->overlay->getReloadedOverlayKeys());
     }
 
     public function buildOverlayMetaData(Request $request, string $baseUrl): array
     {
+        // TODO: Revisit URL logic
+
         if ($request->header(OverlayHeader::OVERLAY_ACTION)) {
             $url = route('inertia-overlay.overlay', [
                 ...$this->overlay->getProps(),
@@ -182,18 +209,17 @@ readonly class OverlayResponse implements Responsable
     {
         $data = $response instanceof JsonResponse
             ? $response->getData(true)
-            : $response->data;
+            : $response->data['page'];
 
         return [
-            ...$data['page'] ?? $data,
+            ...$data,
             'overlay' => $metaData,
         ];
     }
 
     private function registerActions(): void
     {
-        $actionRunner = app(OverlayActionRunner::class);
-        $actionRunner->register($this->overlay, $this->component);
+        app(ActionRegistry::class)->register($this->overlay, $this->component);
     }
 
     private function attachPage(InitialOverlayResponse|JsonResponse $response, array $page): Response

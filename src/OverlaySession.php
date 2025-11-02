@@ -18,8 +18,8 @@ readonly class OverlaySession
 
     public function setPage(array $page): void
     {
+        $page = json_decode(json_encode($page), true);
         session()->put("{$this->key}.page", $page);
-
         $this->mergeProps($page['props'][$this->overlayId]);
     }
 
@@ -36,10 +36,10 @@ readonly class OverlaySession
     public function props(string|null $key = null): mixed
     {
         if ($key) {
-            return session()->get("{$this->key}._props.{$key}");
+            return session()->get("{$this->key}.props.{$key}");
         }
 
-        return session()->get("{$this->key}._props", []);
+        return session()->get("{$this->key}.props", []);
     }
 
     public function put(string $key, mixed $value): void
@@ -63,10 +63,15 @@ readonly class OverlaySession
     {
         $current = $this->props();
         $merged = array_merge($current, $props);
-        session()->put("{$this->key}._props", $merged);
+        session()->put("{$this->key}.props", $merged);
     }
 
     # ----------[ Static ]----------
+
+    public static function flush(): void
+    {
+        session()->forget('inertia-overlay');
+    }
 
     public static function load(string $overlayId): OverlaySession
     {

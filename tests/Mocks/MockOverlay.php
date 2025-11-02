@@ -20,8 +20,8 @@ class MockOverlay extends Overlay
             'component' => 'Dashboard',
             'id' => 'mock-overlay-id',
             'url' => url()->current(),
-            'isOpening' => false,
-            'rootUrl' => url()->current(),
+            'initializing' => false,
+            'baseUrl' => url()->current(),
         ]);
     }
 
@@ -32,15 +32,13 @@ class MockOverlay extends Overlay
 
     public function setPartialProps(array $keys): void
     {
-        $this->request->headers->set(
-            InertiaHeader::PARTIAL_ONLY,
-            implode(',', array_map(fn($key) => $this->scopePropKey($key), $keys))
-        );
+        $this->request->headers->set(InertiaHeader::PARTIAL_ONLY, implode(',', $keys));
+        $this->request->headers->set(InertiaHeader::PARTIAL_COMPONENT, 'Dashboard');
     }
 
-    public function setIsOpening(bool $value): void
+    public function setIsInitializing(bool $value): void
     {
-        $this->isInitializing = $value;
+        $this->initializing = $value;
     }
 
 }

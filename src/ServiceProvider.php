@@ -38,8 +38,8 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 
     private function registerComponentRegistrar(Config $config): void
     {
-        $this->app->singleton(ComponentRegistrar::class, function (Application $app) use ($config) {
-            $registrar = new ComponentRegistrar();
+        $this->app->singleton(ComponentRegistry::class, function (Application $app) use ($config) {
+            $registrar = new ComponentRegistry();
 
             if ($app->runningInConsole()) {
                 return $registrar;

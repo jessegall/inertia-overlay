@@ -4,7 +4,7 @@ import { OverlayFactory, ReactiveOverlay } from "./OverlayFactory.ts";
 import { OverlayRouter } from "./OverlayRouter.ts";
 import { extendDeferredComponent } from "./Deferred.ts";
 import { isOverlayPage } from "./helpers.ts";
-import { router, usePage } from "@inertiajs/vue3";
+import { usePage } from "@inertiajs/vue3";
 
 export type OverlayComponentResolver<T = any> = (type: string) => () => Promise<T>;
 
@@ -24,7 +24,7 @@ export class OverlayPlugin {
     public readonly router: OverlayRouter;
     public readonly factory: OverlayFactory;
 
-    private readonly overlayInstances = new Map<string, ReactiveOverlay>();
+    private readonly instances = new Map<string, ReactiveOverlay>();
 
     // ----------[ Constructor ]----------
 
@@ -53,7 +53,7 @@ export class OverlayPlugin {
     private registerListeners(): void {
         this.router.onOverlayPageLoad.listen({
             handler: async (page) => {
-                if (! this.overlayInstances.has(page.overlay.id)) {
+                if (! this.instances.has(page.overlay.id)) {
                     const overlay = this.factory.makeFromPage(page);
                     this.registerInstance(overlay);
                     await overlay.initialize();
@@ -68,7 +68,7 @@ export class OverlayPlugin {
         extendDeferredComponent(this.stack);
     }
 
-    private initialize(): void {
+    private async initialize(): Promise<void> {
         const page = usePage();
         const overlayData = this.resolveOverlayDataFromDocument();
 
@@ -80,7 +80,8 @@ export class OverlayPlugin {
             const overlay = this.factory.makeFromPage(page);
             this.router.cache.set(overlay.id, page);
             this.registerInstance(overlay);
-            overlay.open();
+            await overlay.initialize();
+            await overlay.open();
         }
     }
 
@@ -93,7 +94,7 @@ export class OverlayPlugin {
     }
 
     public registerInstance(overlay: ReactiveOverlay, options: InstanceOptions = {}): void {
-        this.overlayInstances.set(overlay.id, overlay);
+        this.instances.set(overlay.id, overlay);
 
         overlay.onFocused.listen(() => this.blurOthers(overlay.id));
 
@@ -142,7 +143,7 @@ export class OverlayPlugin {
         }
 
         this.stack.remove(overlay.id);
-        this.overlayInstances.delete(overlay.id);
+        this.instances.delete(overlay.id);
         overlay.destroy();
 
         const rootUrl = this.router.resolveRootUrl();
@@ -173,11 +174,11 @@ export class OverlayPlugin {
     }
 
     private resolveOverlay(overlayId: string): ReactiveOverlay | null {
-        return this.overlayInstances.get(overlayId) || null;
+        return this.instances.get(overlayId) || null;
     }
 
     private resolveFocusedOverlayId(): string | null {
-        return this.stack.items.find(i => i.focused)?.id || null;
+        return Array.from(this.instances.values()).find(i => i.focused)?.id || null;
     }
 
     public resolveComponent(type: string): () => Promise<any> {

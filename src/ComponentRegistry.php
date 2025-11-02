@@ -5,10 +5,15 @@ namespace JesseGall\InertiaOverlay;
 use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
-class ComponentRegistrar
+class ComponentRegistry
 {
 
-    private array $overlays = [];
+    /**
+     * Registered overlay components
+     *
+     * @var array<string, class-string<OverlayComponent>>
+     */
+    private array $components = [];
 
     /**
      * Register an alias for an overlay component type
@@ -21,7 +26,7 @@ class ComponentRegistrar
     {
         $this->assertIsOverlayComponentType($type);
 
-        $this->overlays[$alias] = $type;
+        $this->components[$alias] = $type;
     }
 
     /**
@@ -32,8 +37,8 @@ class ComponentRegistrar
      */
     public function resolveClass(string $alias): string
     {
-        return $this->overlays[$alias]
-            ?? throw new InvalidArgumentException("Overlay with id [$alias] not found");
+        return $this->components[$alias]
+            ?? throw new InvalidArgumentException("Overlay component with alias [$alias] not found");
     }
 
     /**
@@ -44,8 +49,8 @@ class ComponentRegistrar
      */
     public function resolveAlias(string $class): string
     {
-        return array_search($class, $this->overlays)
-            ?? throw new InvalidArgumentException("Overlay with class [$class] not found");
+        return array_search($class, $this->components)
+            ?? throw new InvalidArgumentException("Overlay component with class [$class] not found");
     }
 
     /**
@@ -56,7 +61,7 @@ class ComponentRegistrar
      */
     public function isAliasRegistered(string $alias): bool
     {
-        return isset($this->overlays[$alias]);
+        return isset($this->components[$alias]);
     }
 
     /**
@@ -67,7 +72,7 @@ class ComponentRegistrar
      */
     public function isClassRegistered(string $class): bool
     {
-        return in_array($class, $this->overlays, true);
+        return in_array($class, $this->components, true);
     }
 
     /**
@@ -77,13 +82,11 @@ class ComponentRegistrar
     public function assertIsOverlayComponentType(string $type): void
     {
         if (! is_subclass_of($type, OverlayComponent::class)) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    "Overlay must be an instance of %s [%s] given.",
-                    OverlayComponent::class,
-                    $type
-                )
-            );
+            throw new InvalidArgumentException(sprintf(
+                "Class must be an instance of %s [%s] given.",
+                OverlayComponent::class,
+                $type
+            ));
         }
     }
 

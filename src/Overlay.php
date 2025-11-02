@@ -2,6 +2,7 @@
 
 namespace JesseGall\InertiaOverlay;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
@@ -9,19 +10,30 @@ use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 class Overlay
 {
 
+    public readonly OverlaySession $session;
+
     public function __construct(
+
+        # ----------[ Dependencies ]----------
+
+        public readonly Request $request,
+
+        # ----------[ Input ]----------
+
         protected string $id,
         protected string $url,
         protected string $baseUrl,
         protected array $props = [],
-        protected bool $isInitializing = false,
+        protected bool $initializing = false,
         protected OverlayConfig|null $config = null,
-    ) {}
+
+    )
+    {
+        $this->session = OverlaySession::load($this->id);
+    }
 
     public function render(OverlayComponent $component): OverlayResponse
     {
-        $this->session()->put('render.component', get_class($component));
-
         $config = $this->config ?? $component->config($this);
 
         return new OverlayResponse($this, $component, $config);
@@ -29,23 +41,23 @@ class Overlay
 
     public function append(array $props): void
     {
-        $current = $this->session()->get('append', []);
-        $this->session()->flash('append', array_merge($current, $props));
+        $current = $this->session->get('append', []);
+        $this->session->flash('append', array_merge($current, $props));
     }
 
-    public function only(array|string $keys): void
+    public function reloadOverlay(array|string $keys = '*'): void
     {
-        $current = $this->session()->get('overlay.only', []);
-        $this->session()->flash('overlay.only', array_merge($current, Arr::wrap($keys)));
+        $current = $this->session->get('reload.overlay', []);
+        $this->session->flash('reload.overlay', array_merge($current, Arr::wrap($keys)));
     }
 
-    public function reloadPage(array|string $keys): void
+    public function reloadPage(array|string $keys = '*'): void
     {
-        $current = $this->session()->get('page.include', []);
-        $this->session()->flash('page.include', array_merge($current, Arr::wrap($keys)));
+        $current = $this->session->get('reload.page', []);
+        $this->session->flash('reload.page', array_merge($current, Arr::wrap($keys)));
     }
 
-    public function scopePropKey(string $key): string
+    public function scopeKey(mixed $key): string
     {
         if ($this->isScopedKey($key)) {
             return $key;
@@ -73,7 +85,7 @@ class Overlay
 
     public function isInitializing(): bool
     {
-        return $this->isInitializing;
+        return $this->initializing;
     }
 
     public function getBaseUrl(): string|null
@@ -91,31 +103,36 @@ class Overlay
         return Arr::get($this->props, $key, $default);
     }
 
-    public function getOnly(): array
+    public function getAppendedProps(): array
     {
-        return $this->session()->get('overlay.only', []);
+        return $this->session->get('append', []);
     }
 
-    public function getPageInclude(): array
+    public function getReloadedOverlayKeys(): array
     {
-        return $this->session()->get('page.include', []);
+        return $this->session->get('reload.overlay', []);
+    }
+
+    public function getReloadedPageKeys(): array
+    {
+        return $this->session->get('reload.page', []);
+    }
+
+    public function getAppendedPropKeys(): array
+    {
+        return array_keys($this->session->get('append', []));
     }
 
     # ----------[ Session ]----------
 
-    public function session(): OverlaySession
-    {
-        return OverlaySession::load($this->id);
-    }
-
     public function close(): void
     {
-        $this->session()->flash('close', true);
+        $this->session->flash('close', true);
     }
 
     public function isCloseRequested(): bool
     {
-        return $this->session()->get('close', false);
+        return $this->session->get('close', false);
     }
 
 }

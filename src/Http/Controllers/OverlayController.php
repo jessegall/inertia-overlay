@@ -8,13 +8,13 @@ use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\ComponentFactory;
 use JesseGall\InertiaOverlay\InertiaOverlay;
-use JesseGall\InertiaOverlay\OverlayActionRunner;
+use JesseGall\InertiaOverlay\ActionRegistry;
 
 class OverlayController extends Controller
 {
 
     public function __construct(
-        private readonly OverlayActionRunner $overlayActionRunner,
+        private readonly ActionRegistry $actionRegistry,
         private readonly ComponentFactory $componentFactory,
     ) {}
 
@@ -32,7 +32,7 @@ class OverlayController extends Controller
         $overlay = InertiaOverlay::buildOverlayFromSession($request);
         $component = InertiaOverlay::buildComponentFromSession($request);
 
-        if ($response = $this->overlayActionRunner->run($overlay, $component, $action)) {
+        if ($response = $this->actionRegistry->invoke($overlay, $component, $action)) {
             return $response;
         }
 
