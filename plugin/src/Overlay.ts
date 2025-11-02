@@ -72,7 +72,8 @@ export class Overlay {
     // ----------[ Lifecycle ]----------
 
     public async initialize(): Promise<void> {
-        this.assertState('created');
+        if (this.notInState('created')) return;
+
         await this.transition(async () => {
             this.subscribe();
             this.setState('initializing');
@@ -87,7 +88,8 @@ export class Overlay {
     }
 
     public async open(): Promise<void> {
-        this.assertState('initialized', 'closed');
+        if (this.notInState('initialized', 'closed')) return;
+
         await this.transition(async () => {
             this.setState('opening');
             await nextTick();
@@ -96,7 +98,8 @@ export class Overlay {
     }
 
     public async close(): Promise<void> {
-        this.assertState('open');
+        if (this.notInState('open')) return;
+
         await this.transition(async () => {
             this.setState('closing');
             await nextTick();
@@ -163,6 +166,10 @@ export class Overlay {
 
     public hasState(...states: OverlayState[]): boolean {
         return states.includes(this.state.value);
+    }
+
+    public notInState(...states: OverlayState[]): boolean {
+        return ! this.hasState(...states);
     }
 
     // ----------[ Internal ]----------

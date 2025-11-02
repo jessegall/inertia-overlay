@@ -14,15 +14,30 @@ readonly class OverlayResponseFactory
     public function __construct(
         protected ComponentRegistrar $componentRegistrar,
         protected ComponentFactory $componentFactory,
-        protected OverlayBuilder $overlayBuilder,
     ) {}
 
-    public function build(Closure $build): OverlayResponse
+    /**
+     * Build an overlay with custom options
+     *
+     * Use this method when you need to configure overlay-specific options before rendering.
+     *
+     * Note: Overlays with an already existing session will be loaded from the session instead of creating a new one.
+     *
+     * @param (Closure(OverlayBuilder): (OverlayBuilder|OverlayResponse|Overlay)) | null $factory
+     * @return OverlayResponse|HigherOrderBuildProxy
+     */
+    public function build(Closure|null $factory = null): OverlayResponse|HigherOrderBuildProxy
     {
+        $builder = $this->makeBuilder();
+
+        if (is_null($factory)) {
+            return new HigherOrderBuildProxy($builder, $this->build(...));
+        }
+
         $request = request();
 
         if ($this->shouldCreateNewOverlay($request)) {
-            $result = $build($this->overlayBuilder);
+            $result = $factory($builder);
         } else {
             $result = $this->buildOverlayFromSession($request);
         }
@@ -82,7 +97,7 @@ readonly class OverlayResponseFactory
             ? $request->header(Header::OVERLAY_ID)
             : Str::random(8);
 
-        return $this->overlayBuilder
+        return $this->makeBuilder()
             ->setId($id)
             ->setUrl($request->fullUrl())
             ->setBaseUrl($request->header(Header::BASE_URL, url()->current()))
@@ -95,7 +110,7 @@ readonly class OverlayResponseFactory
     {
         $session = OverlaySession::loadFromRequest($request);
 
-        return $this->overlayBuilder
+        return $this->makeBuilder()
             ->setId($session->meta('id'))
             ->setUrl($session->meta('url'))
             ->setBaseUrl($session->meta('baseUrl'))
@@ -118,10 +133,19 @@ readonly class OverlayResponseFactory
 
     public function buildComponent(string $component, array $props = []): OverlayComponent
     {
-        return $this->componentFactory->make($component, $props);
+        if (class_exists($component) || $this->componentRegistrar->isAliasRegistered($component)) {
+            return $this->componentFactory->make($component, $props);
+        }
+
+        return new PageOverlayComponent($component, $props);
     }
 
     # ---------[ Helpers ]----------
+
+    private function makeBuilder(): OverlayBuilder
+    {
+        return app(OverlayBuilder::class);
+    }
 
     private function shouldCreateNewOverlay(Request $request): bool
     {

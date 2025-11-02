@@ -38,6 +38,12 @@ class OverlayBuilder
         return $this;
     }
 
+    public function setBaseRoute(string $routeName, array $parameters = []): self
+    {
+        $this->baseUrl = route($routeName, $parameters);
+        return $this;
+    }
+
     public function setProps(array $props): self
     {
         $this->props = $props;
