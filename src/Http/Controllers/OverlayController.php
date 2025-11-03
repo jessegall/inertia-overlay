@@ -7,16 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\ActionRegistry;
-use JesseGall\InertiaOverlay\ComponentFactory;
 use JesseGall\InertiaOverlay\Header;
-use JesseGall\InertiaOverlay\OverlayRenderer;
 use JesseGall\InertiaOverlay\OverlaySession;
 
 class OverlayController extends Controller
 {
 
     public function __construct(
-        private readonly ComponentFactory $componentFactory,
         private readonly ActionRegistry $actionRegistry,
     ) {}
 
@@ -31,13 +28,13 @@ class OverlayController extends Controller
 
     public function action(Request $request, string $action)
     {
-        $renderer = $this->resolveRenderer($request);
+        $overlay = OverlaySession::load($request->header(Header::OVERLAY_ID));
 
-        if ($response = $this->actionRegistry->invoke($renderer->overlay, $renderer->component, $action)) {
+        if ($response = $this->actionRegistry->invoke($overlay, $overlay->component, $action)) {
             return $response;
         }
 
-        return $renderer->render();
+        return $overlay->render();
     }
 
     # ----------[ Helpers ]----------
@@ -50,15 +47,6 @@ class OverlayController extends Controller
         }
 
         return [];
-    }
-
-    private function resolveRenderer(Request $request): OverlayRenderer
-    {
-        $overlayId = $request->header(Header::OVERLAY_ID);
-        $overlay = OverlaySession::load($overlayId);
-        $component = $overlay->session->metadata('component_class');
-
-        return OverlayRenderer::new($overlay, $component);
     }
 
 }

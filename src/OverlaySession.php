@@ -20,6 +20,7 @@ readonly class OverlaySession
         $this->set('url', $this->overlay->url);
         $this->set('props', $this->overlay->props);
         $this->set('config', $this->overlay->config);
+        $this->set('component', get_class($this->overlay->component));
     }
 
     # ----------[ Session ]----------
@@ -58,9 +59,15 @@ readonly class OverlaySession
 
     public static function load(string $id): Overlay
     {
+        $data = session(self::handle($id));
+
+        ray($data);
+        $data['component'] = app(ComponentFactory::class)->make($data['component'], $data['props']);
+
         /** @var Overlay $overlay */
-        $overlay = app(Overlay::class, session(self::handle($id)));
+        $overlay = app()->make(Overlay::class, $data);
         $overlay->restoreProps();
+
         return $overlay;
     }
 

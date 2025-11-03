@@ -21,10 +21,10 @@ readonly class OverlayResponseFactory
      *
      * Use this method when you need to configure overlay-specific options before rendering.
      *
-     * @param (Closure(OverlayBuilder $builder, Request $request): (OverlayBuilder|OverlayRenderer)) | null $apply
-     * @return OverlayBuilder|HigherOrderBuildProxy|OverlayRenderer|OverlayResponse
+     * @param (Closure(OverlayBuilder $builder, Request $request): (OverlayBuilder)) | null $apply
+     * @return OverlayBuilder|HigherOrderBuildProxy|OverlayResponse
      */
-    public function build(Closure|null $apply = null): OverlayBuilder|HigherOrderBuildProxy|OverlayRenderer|OverlayResponse
+    public function build(Closure|null $apply = null): OverlayBuilder|HigherOrderBuildProxy|OverlayResponse
     {
         $builder = OverlayBuilder::new();
         $request = request();
@@ -36,12 +36,13 @@ readonly class OverlayResponseFactory
         return $apply($builder, $request);
     }
 
-    public function render(OverlayComponent|string $component, array $props = []): OverlayRenderer|OverlayResponse|HigherOrderBuildProxy
+    public function render(OverlayComponent|string $component, array $props = []): OverlayResponse
     {
         return $this
             ->build($this->buildFreshOverlay())
+            ->setComponent($component)
             ->setProps($props)
-            ->render($component);
+            ->render();
     }
 
     # ---------[ Factory ]----------
@@ -55,21 +56,6 @@ readonly class OverlayResponseFactory
                 ->setBaseUrl($request->header(Header::BASE_URL) ?? $request->header('referer'));
 
         };
-    }
-
-    # ----------[ Helpers ]----------
-
-    public function shouldLoadFromStorage(Request $request, string $overlayId): bool
-    {
-        if (! OverlaySession::exists($overlayId)) {
-            return false;
-        }
-
-        if (array_key_exists($overlayId, $this->resolved)) {
-            return false;
-        }
-
-        return true;
     }
 
 }

@@ -29,6 +29,7 @@ class OverlayBuilder
 
     public function __construct(
         public readonly ComponentFactory $componentFactory,
+        protected ComponentRegistry $componentRegistrar,
     ) {}
 
     public static function new(): static
@@ -134,12 +135,14 @@ class OverlayBuilder
         }
 
         $url = $this->resolveUrl();
+        $component = $this->resolveComponent();
 
         $overlay = app(Overlay::class,
             [
                 'id' => $id ?? Str::random(8),
                 'url' => $url,
-                'props' => $this->props,
+                'props' => [...$this->props, ...get_object_vars($component)],
+                'component' => $component,
                 'config' => new OverlayConfig(
                     variant: $this->variant ?? OverlayVariant::MODAL,
                     size: $this->size ?? OverlaySize::XL2,
@@ -151,6 +154,7 @@ class OverlayBuilder
         $overlay->session->set_metadata(
             [
                 'time' => time(),
+                'component_class' => get_class($component),
                 'request_referer' => request()->headers->get('referer'),
                 'request_url' => $url,
                 'request_full_url' => request()->fullUrl(),
@@ -165,24 +169,43 @@ class OverlayBuilder
         return $overlay;
     }
 
-    public function renderer(OverlayComponent|string|null $component = null): OverlayRenderer
-    {
-        if (is_null($component)) {
-            $component = $this->component
-                ?? throw new InvalidArgumentException('Overlay component must be provided either via setComponent() or render() method.');
-        }
-
-        return OverlayRenderer::new($this->make(), $component);
-    }
-
     public function render(OverlayComponent|string|null $component = null): OverlayResponse
     {
-        return $this->renderer($component)->render();
+        if ($component != null) {
+            $this->setComponent($component);
+        }
+
+        return $this->make()->render();
     }
 
     # ----------[ Internal ]----------
 
-    private function resolveUrl(): string
+
+    protected function buildComponent(string $component, array $props = []): OverlayComponent
+    {
+        if (class_exists($component) || $this->componentRegistrar->isAliasRegistered($component)) {
+            return $this->componentFactory->make($component, $props);
+        }
+
+        return new PageOverlayComponent($component, $props);
+    }
+
+    protected function resolveComponent(): OverlayComponent
+    {
+        if (is_null($this->component)) {
+            throw new InvalidArgumentException('Overlay component must be provided either via setComponent() method.');
+        }
+
+        $component = $this->component;
+
+        if (is_string($component)) {
+            $component = $this->buildComponent($component, $this->props ?? []);
+        }
+
+        return $component;
+    }
+
+    protected function resolveUrl(): string
     {
         $request = request();
 

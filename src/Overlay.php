@@ -5,6 +5,7 @@ namespace JesseGall\InertiaOverlay;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
 class Overlay
 {
@@ -15,12 +16,18 @@ class Overlay
     public function __construct(
         public readonly Request $request,
         public readonly OverlayConfig $config,
+        public readonly OverlayComponent $component,
         public readonly string $id,
         public readonly string $url,
         public array $props,
     )
     {
         $this->session = new OverlaySession($this);
+    }
+
+    public function render(): OverlayResponse
+    {
+        return new OverlayResponse($this, $this->component);
     }
 
     public function append(array $props): void
