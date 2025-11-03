@@ -29,7 +29,7 @@ class OverlayBuilder
 
     public function __construct(
         public readonly ComponentFactory $componentFactory,
-        protected ComponentRegistry $componentRegistrar,
+        public readonly ComponentRegistry $componentRegistrar,
     ) {}
 
     public static function new(): static
@@ -123,11 +123,10 @@ class OverlayBuilder
 
         $id = $this->id ?? request()->header(Header::OVERLAY_ID);
 
-        if ($id && OverlaySession::exists($id)) {
-            $overlay = OverlaySession::load($id);
+        if ($id && Overlay::exists($id)) {
+            $overlay = Overlay::load($id);
 
-            if ($overlay->session->metadata('request_url') === $request->url()) {
-                $overlay->mergeProps($this->props ?? []);
+            if ($overlay->session->metadata('action_name') === $request->route()->getActionName()) {
                 return $overlay;
             } else {
                 $id = null;
@@ -136,12 +135,13 @@ class OverlayBuilder
 
         $url = $this->resolveUrl();
         $component = $this->resolveComponent();
+        $props = $this->resolveProps($component);
 
         $overlay = app(Overlay::class,
             [
                 'id' => $id ?? Str::random(8),
                 'url' => $url,
-                'props' => [...$this->props, ...get_object_vars($component)],
+                'props' => $props,
                 'component' => $component,
                 'config' => new OverlayConfig(
                     variant: $this->variant ?? OverlayVariant::MODAL,
@@ -154,11 +154,8 @@ class OverlayBuilder
         $overlay->session->set_metadata(
             [
                 'time' => time(),
-                'component_class' => get_class($component),
-                'request_referer' => request()->headers->get('referer'),
-                'request_url' => $url,
-                'request_full_url' => request()->fullUrl(),
-                'request_method' => request()->method(),
+                'referer' => request()->headers->get('referer'),
+                'action_name' => $request->route()->getActionName(),
             ]
         );
 
@@ -180,29 +177,26 @@ class OverlayBuilder
 
     # ----------[ Internal ]----------
 
-
-    protected function buildComponent(string $component, array $props = []): OverlayComponent
-    {
-        if (class_exists($component) || $this->componentRegistrar->isAliasRegistered($component)) {
-            return $this->componentFactory->make($component, $props);
-        }
-
-        return new PageOverlayComponent($component, $props);
-    }
-
     protected function resolveComponent(): OverlayComponent
     {
         if (is_null($this->component)) {
-            throw new InvalidArgumentException('Overlay component must be provided either via setComponent() method.');
+            throw new InvalidArgumentException('No overlay component must be provided before building the overlay.');
         }
 
-        $component = $this->component;
-
-        if (is_string($component)) {
-            $component = $this->buildComponent($component, $this->props ?? []);
+        if (is_string($this->component)) {
+            return $this->buildComponent($this->component, $this->props ?? []);
         }
 
-        return $component;
+        return $this->component;
+    }
+
+    protected function resolveProps(OverlayComponent $component): ?array
+    {
+        if (is_object($this->component)) {
+            return array_merge($this->props, get_object_vars($component));
+        }
+
+        return $this->props;
     }
 
     protected function resolveUrl(): string
@@ -221,4 +215,14 @@ class OverlayBuilder
             return $request->fullUrl();
         }
     }
+
+    protected function buildComponent(string $component, array $props = []): OverlayComponent
+    {
+        if (class_exists($component) || $this->componentRegistrar->isAliasRegistered($component)) {
+            return $this->componentFactory->make($component, $props);
+        }
+
+        return new PageOverlayComponent($component, $props);
+    }
+
 }

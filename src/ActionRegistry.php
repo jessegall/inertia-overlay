@@ -27,7 +27,7 @@ readonly class ActionRegistry
 
     public function register(Overlay $overlay, OverlayComponent $component): void
     {
-        $overlay->session->set('actions', []);
+        $overlay->session->put('actions', []);
 
         $actions = $this->resolveActions($component);
 
@@ -38,7 +38,7 @@ readonly class ActionRegistry
                 default => throw new InvalidArgumentException("Overlay action '{$name}' is not callable."),
             };
 
-            $overlay->session->set("actions.{$name}", $action);
+            $overlay->session->put("actions.{$name}", $action);
         }
     }
 

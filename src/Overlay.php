@@ -23,6 +23,11 @@ class Overlay
     )
     {
         $this->session = new OverlaySession($this);
+
+        if (! $this->session->has('keys')) {
+            $keys = collect($this->props)->keys()->all();
+            $this->session->put('keys', $keys);
+        }
     }
 
     public function render(): OverlayResponse
@@ -46,16 +51,6 @@ class Overlay
     {
         $current = $this->session->get('reload.page', []);
         $this->session->flash('reload.page', array_merge($current, Arr::wrap($keys)));
-    }
-
-    public function mergeProps(array $props)
-    {
-        $this->props = array_merge($this->props, $props);
-    }
-
-    public function restoreProps(): void
-    {
-        $this->props = $this->session->get('props', []);
     }
 
     public function scopeKey(mixed $key): string
@@ -104,11 +99,6 @@ class Overlay
         return $this->config;
     }
 
-    public function getProp(string $key, mixed $default = null): mixed
-    {
-        return Arr::get($this->props, $key, $default);
-    }
-
     public function getAppendedProps(): array
     {
         return $this->session->get('append', []);
@@ -130,6 +120,38 @@ class Overlay
     }
 
     # ----------[ Session ]----------
+
+
+    public function restoreProps(): void
+    {
+        $only = $this->session->get('keys');
+        $sessionProps = Arr::only($this->session->get('props'), $only);
+        $this->props = [...$sessionProps, ...$this->props];
+    }
+
+    public static function exists(string $id): bool
+    {
+        return OverlaySession::exists($id);
+    }
+
+    public static function load(string $id): Overlay|null
+    {
+        if (! OverlaySession::exists($id)) {
+            return null;
+        }
+
+        $data = OverlaySession::load($id);
+
+        $component = $data['component'];
+        $props = Arr::only($data['props'], $data['keys']);
+        $data['component'] = app(ComponentFactory::class)->make($component, $props);
+
+        /** @var Overlay $overlay */
+        $overlay = app()->make(Overlay::class, $data);
+        $overlay->restoreProps();
+
+        return $overlay;
+    }
 
     public function close(): void
     {

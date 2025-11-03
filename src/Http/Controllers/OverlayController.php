@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Inertia\Inertia;
 use JesseGall\InertiaOverlay\ActionRegistry;
 use JesseGall\InertiaOverlay\Header;
+use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlaySession;
 
 class OverlayController extends Controller
@@ -28,7 +29,7 @@ class OverlayController extends Controller
 
     public function action(Request $request, string $action)
     {
-        $overlay = OverlaySession::load($request->header(Header::OVERLAY_ID));
+        $overlay = Overlay::load($request->header(Header::OVERLAY_ID));
 
         if ($response = $this->actionRegistry->invoke($overlay, $overlay->component, $action)) {
             return $response;

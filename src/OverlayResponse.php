@@ -29,7 +29,7 @@ readonly class OverlayResponse implements Responsable
         $pageData = $this->buildPageData($response, $metaData);
 
         $this->registerActions();
-        $this->overlay->session->save();
+        $this->overlay->session->save($pageData);
 
         return $this->attachPage($response, $pageData);
     }
