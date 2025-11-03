@@ -14,7 +14,9 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     public function register(): void
     {
         $config = new Config();
+
         $this->app->singleton(Config::class, fn() => $config);
+        $this->app->singleton(OverlayResponseFactory::class);
 
         $this->registerRoutes($config);
         $this->registerComponentRegistrar($config);
@@ -57,7 +59,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 
     private function registerResponseMacros(): void
     {
-        Inertia::macro('overlay', function ($component, $props = []) {
+        Inertia::macro('overlay', function ($component = null, $props = []) {
             return InertiaOverlay::render($component, $props);
         });
     }

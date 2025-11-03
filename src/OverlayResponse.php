@@ -18,21 +18,18 @@ readonly class OverlayResponse implements Responsable
 {
 
     public function __construct(
-        protected Overlay $overlay,
-        protected OverlayComponent $component,
-        protected OverlayConfig $config = new OverlayConfig(),
+        public Overlay $overlay,
+        public OverlayComponent $component,
     ) {}
 
     public function toResponse($request)
     {
-        $baseUrl = $this->resolveBaseUrl($request);
-
-        $response = $this->buildResponse($request, $baseUrl);
-        $metaData = $this->buildOverlayMetaData($request, $baseUrl);
+        $response = $this->buildResponse($request);
+        $metaData = $this->buildOverlayMetaData($request);
         $pageData = $this->buildPageData($response, $metaData);
 
-        $this->overlay->session->setPage($pageData);
         $this->registerActions();
+        $this->overlay->session->save();
 
         return $this->attachPage($response, $pageData);
     }
@@ -42,8 +39,10 @@ readonly class OverlayResponse implements Responsable
         return $request->header(OverlayHeader::BASE_URL, $this->overlay->getBaseUrl());
     }
 
-    private function buildResponse(Request $request, string $baseUrl): InitialOverlayResponse|JsonResponse
+    private function buildResponse(Request $request): InitialOverlayResponse|JsonResponse
     {
+        $baseUrl = $this->resolveBaseUrl($request);
+
         if (! $request->hasHeader(InertiaHeader::INERTIA)) {
             return $this->buildInitialResponse($request, $baseUrl);
         }
@@ -153,8 +152,8 @@ readonly class OverlayResponse implements Responsable
                 ->merge(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
                 ->merge($this->overlay->getReloadedOverlayKeys())
                 ->merge($this->overlay->getAppendedPropKeys())
-                ->map($this->overlay->scopeKey(...))
                 ->filter()
+                ->map($this->overlay->scopeKey(...))
                 ->unique()
                 ->join(',');
 
@@ -179,29 +178,15 @@ readonly class OverlayResponse implements Responsable
         return in_array('*', $this->overlay->getReloadedOverlayKeys());
     }
 
-    public function buildOverlayMetaData(Request $request, string $baseUrl): array
+    public function buildOverlayMetaData(Request $request): array
     {
         // TODO: Revisit URL logic
-
-        if ($request->header(OverlayHeader::OVERLAY_ACTION)) {
-            $url = route('inertia-overlay.overlay', [
-                ...$this->overlay->getProps(),
-                'type' => $request->header(OverlayHeader::OVERLAY_COMPONENT)
-            ]);
-        } else {
-            $url = $request->fullUrl();
-        }
-
         return [
+            'url' => $this->overlay->getUrl(),
             'id' => $this->overlay->getId(),
-            'url' => $url,
             'component' => $this->component->name(),
-            'componentClass' => get_class($this->component),
-            'config' => $this->config->toArray(),
-            'baseUrl' => $baseUrl,
-            'method' => $request->method(),
+            'config' => $this->component->config($this->overlay),
             'closeRequested' => $this->overlay->isCloseRequested(),
-            'initialProps' => array_keys($this->overlay->getProps()),
         ];
     }
 

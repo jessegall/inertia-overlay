@@ -2,68 +2,46 @@
 
 namespace JesseGall\InertiaOverlay;
 
-use Illuminate\Http\Request;
-
 readonly class OverlaySession
 {
 
-    public string $key;
+    public string $handle;
 
     public function __construct(
-        public string $overlayId
+        public Overlay $overlay
     )
     {
-        $this->key = self::key($overlayId);
+        $this->handle = self::handle($this->overlay->id);
     }
 
-    public function setPage(array $page): void
+    public function save(): void
     {
-        $page = json_decode(json_encode($page), true);
-        session()->put("{$this->key}.page", $page);
-        $this->mergeProps($page['props'][$this->overlayId]);
+        $this->set('id', $this->overlay->id);
+        $this->set('url', $this->overlay->url);
+        $this->set('props', $this->overlay->props);
+        $this->set('config', $this->overlay->config);
     }
 
-    public function getPage(): array|null
+    # ----------[ Session ]----------
+
+    public function set(string $key, mixed $value): void
     {
-        return session()->get("{$this->key}.page");
+        session()->put("{$this->handle}.{$key}", $value);
     }
 
-    public function meta(string $key, mixed $default = null): mixed
+    public function has(string $key): bool
     {
-        return session()->get("{$this->key}.page.overlay.{$key}", $default);
-    }
-
-    public function props(string|null $key = null): mixed
-    {
-        if ($key) {
-            return session()->get("{$this->key}.props.{$key}");
-        }
-
-        return session()->get("{$this->key}.props", []);
-    }
-
-    public function put(string $key, mixed $value): void
-    {
-        session()->put("{$this->key}.{$key}", $value);
+        return session()->has("{$this->handle}.{$key}");
     }
 
     public function get(string $key, mixed $default = null): mixed
     {
-        return session()->get("{$this->key}.{$key}", $default);
+        return session()->get("{$this->handle}.{$key}", $default);
     }
 
     public function flash(string $key, mixed $value): void
     {
-        session()->flash("{$this->key}.{$key}", $value);
-    }
-
-    # ----------[ Internal ]----------
-
-    protected function mergeProps(array $props): void
-    {
-        $current = $this->props();
-        $merged = array_merge($current, $props);
-        session()->put("{$this->key}.props", $merged);
+        session()->flash("{$this->handle}.{$key}", $value);
     }
 
     # ----------[ Static ]----------
@@ -73,24 +51,46 @@ readonly class OverlaySession
         session()->forget('inertia-overlay');
     }
 
-    public static function load(string $overlayId): OverlaySession
+    public static function exists(string $id): bool
     {
-        return new static($overlayId);
+        return session()->has(self::handle($id));
     }
 
-    public static function loadFromRequest(Request $request): OverlaySession
+    public static function load(string $id): Overlay
     {
-        return new static($request->header(Header::OVERLAY_ID));
+        /** @var Overlay $overlay */
+        $overlay = app(Overlay::class, session(self::handle($id)));
+        $overlay->restoreProps();
+        return $overlay;
     }
 
-    public static function exists(string $overlayId): bool
-    {
-        return session()->has(self::key($overlayId));
-    }
-
-    public static function key(string $overlayId): string
+    public static function handle(string $overlayId): string
     {
         return "inertia-overlay.{$overlayId}";
     }
+
+    # ----------[ Metadata ]----------
+
+    public function metadata(string $key, mixed $default = null): mixed
+    {
+        return $this->get("__metadata.{$key}", $default);
+    }
+
+    public function set_metadata(string|array $key, mixed $value = null): void
+    {
+        if (is_array($key)) {
+            foreach ($key as $k => $v) {
+                $this->set_metadata($k, $v);
+            }
+            return;
+        }
+
+        if ($this->has("__metadata.{$key}")) {
+            return;
+        }
+
+        $this->set("__metadata.{$key}", $value);
+    }
+
 
 }

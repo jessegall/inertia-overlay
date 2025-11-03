@@ -4,12 +4,12 @@ namespace JesseGall\InertiaOverlay;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
-use RuntimeException;
 
 readonly class OverlayResponseFactory
 {
+
+    private array $resolved;
 
     public function __construct(
         protected ComponentRegistry $componentRegistrar,
@@ -17,144 +17,59 @@ readonly class OverlayResponseFactory
     ) {}
 
     /**
-     * Build an overlay with custom options
+     * Build an overlay with custom options.
      *
      * Use this method when you need to configure overlay-specific options before rendering.
      *
-     * Note: Overlays with an already existing session will be loaded from the session instead of creating a new one.
-     *
-     * @param (Closure(OverlayBuilder): (OverlayBuilder|OverlayResponse|Overlay)) | null $factory
-     * @return OverlayResponse|HigherOrderBuildProxy
+     * @param (Closure(OverlayBuilder $builder, Request $request): (OverlayBuilder|OverlayRenderer)) | null $apply
+     * @return OverlayBuilder|HigherOrderBuildProxy|OverlayRenderer|OverlayResponse
      */
-    public function build(Closure|null $factory = null): OverlayResponse|HigherOrderBuildProxy
+    public function build(Closure|null $apply = null): OverlayBuilder|HigherOrderBuildProxy|OverlayRenderer|OverlayResponse
     {
-        $builder = $this->makeBuilder();
+        $builder = OverlayBuilder::new();
+        $request = request();
 
-        if (is_null($factory)) {
+        if (is_null($apply)) {
             return new HigherOrderBuildProxy($builder, $this->build(...));
         }
 
-        $request = request();
-
-        if ($this->shouldCreateNewOverlay($request)) {
-            $result = $factory($builder);
-        } else {
-            $result = $this->buildOverlayFromSession($request);
-        }
-
-        if ($result instanceof OverlayBuilder) {
-            $result = $result->build();
-        }
-
-        if ($result instanceof Overlay) {
-            $session = OverlaySession::load($result->getId());
-            $componentClass = $session->meta('componentClass');
-
-            if (! $componentClass) {
-                throw new RuntimeException(sprintf(
-                    "Could not determine component class for overlay with ID %s. And no previous session exists. Did you forget to call render()?",
-                    $result->getId()
-                ));
-            }
-
-            return $this->renderOverlay($result, $componentClass);
-        }
-
-        return $result;
+        return $apply($builder, $request);
     }
 
-    public function render(OverlayComponent|string $component, array $props = []): OverlayResponse
+    public function render(OverlayComponent|string $component, array $props = []): OverlayRenderer|OverlayResponse|HigherOrderBuildProxy
     {
-        $request = request();
-
-        if ($this->shouldCreateNewOverlay($request)) {
-            $overlay = $this->buildNewOverlay($request, $props);
-        } else {
-            $overlay = $this->buildOverlayFromSession($request);
-        }
-
-        return $this->renderOverlay($overlay, $component);
-    }
-
-    public function renderOverlay(Overlay $overlay, OverlayComponent|string $component): OverlayResponse
-    {
-        if (is_string($component)) {
-            $component = $this->buildComponent($component, $overlay->getProps());
-        }
-
-        return $overlay->render($component);
-    }
-
-    # ---------[ Overlay Builders ]----------
-
-    public function buildNewOverlay(Request $request, array $props = []): Overlay
-    {
-        $id = $request->hasHeader(Header::OVERLAY_INITIALIZING)
-            ? $request->header(Header::OVERLAY_ID)
-            : Str::random(8);
-
-        return $this->makeBuilder()
-            ->setId($id)
-            ->setUrl($request->fullUrl())
-            ->setBaseUrl($request->header(Header::BASE_URL, url()->current()))
+        return $this
+            ->build($this->buildFreshOverlay())
             ->setProps($props)
-            ->setInitializing(true)
-            ->build();
+            ->render($component);
     }
 
-    public function buildOverlayFromSession(Request $request, array $props = []): Overlay
-    {
-        $session = OverlaySession::loadFromRequest($request);
+    # ---------[ Factory ]----------
 
-        return $this->makeBuilder()
-            ->setId($session->meta('id'))
-            ->setUrl($session->meta('url'))
-            ->setBaseUrl($session->meta('baseUrl'))
-            ->setProps([...$session->props(), ...$props])
-            ->setInitializing(false)
-            ->build();
+    public function buildFreshOverlay(): Closure
+    {
+        return function (OverlayBuilder $builder, Request $request) {
+
+            return $builder
+                ->setUrl($request->fullUrl())
+                ->setBaseUrl($request->header(Header::BASE_URL) ?? $request->header('referer'));
+
+        };
     }
 
-    # ---------[ Component ]----------
+    # ----------[ Helpers ]----------
 
-    public function buildComponentFromSession(Request $request): OverlayComponent
+    public function shouldLoadFromStorage(Request $request, string $overlayId): bool
     {
-        $session = OverlaySession::loadFromRequest($request);
-
-        $componentName = $session->meta('componentClass');
-        $props = $session->props();
-
-        return $this->componentFactory->make($componentName, $props);
-    }
-
-    public function buildComponent(string $component, array $props = []): OverlayComponent
-    {
-        if (class_exists($component) || $this->componentRegistrar->isAliasRegistered($component)) {
-            return $this->componentFactory->make($component, $props);
+        if (! OverlaySession::exists($overlayId)) {
+            return false;
         }
 
-        return new PageOverlayComponent($component, $props);
-    }
-
-    # ---------[ Helpers ]----------
-
-    private function makeBuilder(): OverlayBuilder
-    {
-        return app(OverlayBuilder::class);
-    }
-
-    private function shouldCreateNewOverlay(Request $request): bool
-    {
-        if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
-            return true;
+        if (array_key_exists($overlayId, $this->resolved)) {
+            return false;
         }
 
-        if (! OverlaySession::exists($request->header(Header::OVERLAY_ID))) {
-            return true;
-        }
-
-        $from = parse_url($request->header(Header::OVERLAY_URL), PHP_URL_PATH);
-        return ltrim($from, '/') !== ltrim($request->path(), '/');
+        return true;
     }
 
 }

@@ -147,7 +147,7 @@ export class OverlayPlugin {
         overlay.destroy();
 
         const rootUrl = this.router.resolveRootUrl();
-        if (this.stack.size() === 0 && overlay.baseUrl.href === rootUrl.href) {
+        if (this.stack.size() === 0 && overlay.baseUrl?.href === rootUrl.href) {
             this.router.reloadRoot();
         }
     }

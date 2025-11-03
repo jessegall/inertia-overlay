@@ -5,38 +5,22 @@ namespace JesseGall\InertiaOverlay;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 
 class Overlay
 {
 
     public readonly OverlaySession $session;
+    public bool $initializing = false;
 
     public function __construct(
-
-        # ----------[ Dependencies ]----------
-
         public readonly Request $request,
-
-        # ----------[ Input ]----------
-
-        protected string $id,
-        protected string $url,
-        protected string $baseUrl,
-        protected array $props = [],
-        protected bool $initializing = false,
-        protected OverlayConfig|null $config = null,
-
+        public readonly OverlayConfig $config,
+        public readonly string $id,
+        public readonly string $url,
+        public array $props,
     )
     {
-        $this->session = OverlaySession::load($this->id);
-    }
-
-    public function render(OverlayComponent $component): OverlayResponse
-    {
-        $config = $this->config ?? $component->config($this);
-
-        return new OverlayResponse($this, $component, $config);
+        $this->session = new OverlaySession($this);
     }
 
     public function append(array $props): void
@@ -55,6 +39,16 @@ class Overlay
     {
         $current = $this->session->get('reload.page', []);
         $this->session->flash('reload.page', array_merge($current, Arr::wrap($keys)));
+    }
+
+    public function mergeProps(array $props)
+    {
+        $this->props = array_merge($this->props, $props);
+    }
+
+    public function restoreProps(): void
+    {
+        $this->props = $this->session->get('props', []);
     }
 
     public function scopeKey(mixed $key): string
@@ -83,19 +77,24 @@ class Overlay
         return $this->url;
     }
 
-    public function isInitializing(): bool
-    {
-        return $this->initializing;
-    }
-
     public function getBaseUrl(): string|null
     {
-        return $this->baseUrl;
+        return $this->config->baseUrl;
     }
 
     public function getProps(): array
     {
         return $this->props;
+    }
+
+    public function isInitializing(): bool
+    {
+        return $this->initializing;
+    }
+
+    public function getConfig(): OverlayConfig
+    {
+        return $this->config;
     }
 
     public function getProp(string $key, mixed $default = null): mixed

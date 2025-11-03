@@ -10,7 +10,6 @@ readonly class PageOverlayComponent implements OverlayComponent
     public function __construct(
         public string $component,
         public array $props = [],
-        public OverlayConfig $config = new OverlayConfig(),
     ) {}
 
     public function name(): string
@@ -20,7 +19,7 @@ readonly class PageOverlayComponent implements OverlayComponent
 
     public function config(Overlay $overlay): OverlayConfig
     {
-        return $this->config;
+        return $overlay->config;
     }
 
     public function props(Overlay $overlay): array

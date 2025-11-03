@@ -95,7 +95,6 @@ export class OverlayRouter {
             handler: page => {
                 if (isOverlayPage(page)) {
                     this.onOverlayPageLoad.emit(page);
-                    this.baseUrl = new URL(page.overlay.baseUrl);
                 } else {
                     this.baseUrl = new URL(page.url, this.baseUrl);
                 }
@@ -141,8 +140,6 @@ export class OverlayRouter {
 
         visit.headers[header.PAGE_COMPONENT] = page.component;
         visit.headers[header.BASE_URL] = this.baseUrl.href;
-
-        console.log("loading overlay:", overlay);
 
         if (overlay && ! overlay.hasState('closing')) {
             visit.headers[header.INERTIA_OVERLAY] = 'true';

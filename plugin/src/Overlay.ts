@@ -12,7 +12,7 @@ export type OverlayState = 'created' | 'initializing' | 'initialized' | 'closed'
 export interface OverlayConfig {
     variant: OverlayVariant;
     size: OverlaySize;
-    displayUrl: boolean | string;
+    baseUrl: string;
 }
 
 export interface OverlayResponse {
@@ -80,6 +80,7 @@ export class Overlay {
 
             const page = await this.router.fetch(this.id);
             this.options.method = page.overlay.method;
+            this.baseUrl.value = page.overlay.config.baseUrl ? new URL(page.overlay.config.baseUrl) : null;
             this.applyPage(page);
 
             await nextTick();
@@ -120,7 +121,6 @@ export class Overlay {
 
     public focus(): void {
         if (this.focused.value) return;
-        console.log("focusing overlay:", this.id);
         this.focused.value = true;
         this.onFocused.emit(this.id);
     }
@@ -146,7 +146,6 @@ export class Overlay {
     public applyPage(page: OverlayPage): void {
         this.component.value = page.overlay.component;
         this.config.value = page.overlay.config;
-        this.baseUrl.value = new URL(page.overlay.baseUrl);
         this.updateUrl(new URL(page.overlay.url));
         this.updateProps(page.props[this.id]);
 
