@@ -9,7 +9,6 @@ use Inertia\Inertia;
 use JesseGall\InertiaOverlay\ActionRegistry;
 use JesseGall\InertiaOverlay\Header;
 use JesseGall\InertiaOverlay\Overlay;
-use JesseGall\InertiaOverlay\OverlaySession;
 
 class OverlayController extends Controller
 {

@@ -126,16 +126,16 @@ class OverlayBuilder
         if ($id && Overlay::exists($id)) {
             $overlay = Overlay::load($id);
 
-            if ($overlay->session->metadata('action_name') === $request->route()->getActionName()) {
+            if ($overlay->session->metadata('path') === $request->path()) {
                 return $overlay;
             } else {
                 $id = null;
             }
         }
 
-        $url = $this->resolveUrl();
         $component = $this->resolveComponent();
         $props = $this->resolveProps($component);
+        $url = $this->resolveUrl($props);
 
         $overlay = app(Overlay::class,
             [
@@ -153,9 +153,9 @@ class OverlayBuilder
 
         $overlay->session->set_metadata(
             [
-                'time' => time(),
+                'timestamp' => time(),
                 'referer' => request()->headers->get('referer'),
-                'action_name' => $request->route()->getActionName(),
+                'path' => ltrim(parse_url($url, PHP_URL_PATH), '/'),
             ]
         );
 
@@ -199,15 +199,14 @@ class OverlayBuilder
         return $this->props;
     }
 
-    protected function resolveUrl(): string
+    protected function resolveUrl(array $props = []): string
     {
         $request = request();
 
-        // TODO: Finding a better solution for resolving action URLs
         if ($request->header(OverlayHeader::OVERLAY_ACTION)) {
             return route('inertia-overlay.overlay',
                 [
-                    ...$this->props,
+                    ...$props,
                     'type' => $request->header(OverlayHeader::OVERLAY_COMPONENT)
                 ]
             );
