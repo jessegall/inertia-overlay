@@ -6,7 +6,6 @@ use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use JesseGall\InertiaOverlay\Header;
-use JesseGall\InertiaOverlay\OverlaySession;
 use Symfony\Component\HttpFoundation\Response;
 
 readonly class HandleInertiaOverlayRequests
@@ -16,7 +15,6 @@ readonly class HandleInertiaOverlayRequests
     public function handle(Request $request, Closure $next)
     {
         if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
-            OverlaySession::flush();
             return $next($request);
         }
 
