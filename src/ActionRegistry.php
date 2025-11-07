@@ -14,7 +14,11 @@ readonly class ActionRegistry
 
     public function invoke(Overlay $overlay, OverlayComponent $component, string $action)
     {
-        $callback = $overlay->session->get("actions.{$action}")->getClosure();
+        $callback = $overlay->session->get("actions.{$action}");
+
+        if (! $callback) {
+            return null;
+        }
 
         return app()->call($callback,
             [
