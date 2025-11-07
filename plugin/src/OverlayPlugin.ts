@@ -60,7 +60,7 @@ export class OverlayPlugin {
                     await overlay.open();
                 }
             },
-            priority: -1,
+            priority: 99,
         });
     }
 
