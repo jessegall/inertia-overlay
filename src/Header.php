@@ -11,6 +11,7 @@ class Header
     public const string BASE_URL = 'X-Inertia-Overlay-Base-Url';
 
     public const string OVERLAY_COMPONENT = 'X-Inertia-Overlay-Component';
+    public const string OVERLAY_PARENT = 'X-Inertia-Overlay-Parent';
     public const string OVERLAY_METHOD = 'X-Inertia-Overlay-Method';
     public const string OVERLAY_URL = 'X-Inertia-Overlay-Url';
     public const string OVERLAY_ID = 'X-Inertia-Overlay-Id';

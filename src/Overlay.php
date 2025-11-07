@@ -20,6 +20,7 @@ class Overlay
         public readonly string $id,
         public readonly string $url,
         public array $props,
+        public readonly string|null $parentId
     )
     {
         $this->session = new OverlaySession($this);
@@ -45,6 +46,12 @@ class Overlay
     {
         $current = $this->session->get('reload.overlay', []);
         $this->session->flash('reload.overlay', array_merge($current, Arr::wrap($keys)));
+    }
+
+    public function reloadParent(array|string $keys = '*'): void
+    {
+        $current = $this->session->get('reload.parent', []);
+        $this->session->flash('reload.parent', array_merge($current, Arr::wrap($keys)));
     }
 
     public function reloadPage(array|string $keys = '*'): void
@@ -107,6 +114,11 @@ class Overlay
     public function getReloadedOverlayKeys(): array
     {
         return $this->session->get('reload.overlay', []);
+    }
+
+    public function getReloadedParentKeys(): array
+    {
+        return $this->session->get('reload.parent', []);
     }
 
     public function getReloadedPageKeys(): array

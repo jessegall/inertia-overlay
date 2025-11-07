@@ -27,6 +27,7 @@ export const header = {
     OVERLAY_ID: 'X-Inertia-Overlay-Id',
     OVERLAY_URL: 'X-Inertia-Overlay-Url',
     OVERLAY_METHOD: 'X-Inertia-Overlay-Method',
+    OVERLAY_PARENT: 'X-Inertia-Overlay-Parent',
     BASE_URL: 'X-Inertia-Overlay-Base-Url',
     OVERLAY_ACTION: 'X-Inertia-Overlay-Action',
 
@@ -148,6 +149,10 @@ export class OverlayRouter {
             visit.headers[header.OVERLAY_METHOD] = overlay.method;
             visit.headers[header.OVERLAY_URL] = overlay.url.href;
             visit.headers[header.OVERLAY_ID] = overlay.id;
+
+            if (overlay.parentId) {
+                visit.headers[header.OVERLAY_PARENT] = overlay.parentId;
+            }
 
             visit.preserveScroll = true;
             visit.preserveState = true;

@@ -139,6 +139,7 @@ class OverlayBuilder
 
         $overlay = app(Overlay::class,
             [
+                'parentId' => $request->header(Header::OVERLAY_PARENT),
                 'id' => $id ?? Str::random(8),
                 'url' => $url,
                 'props' => $props,
