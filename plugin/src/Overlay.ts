@@ -184,7 +184,7 @@ export class Overlay {
         this.router.onOverlayPageLoad.listen({
             handler: page => this.applyPage(page),
             filter: page => page.overlay.id === this.id,
-            priority: () => 10 + this.index.value,
+            priority: () => this.index.value,
             subscription: this.subscription,
         });
     }
