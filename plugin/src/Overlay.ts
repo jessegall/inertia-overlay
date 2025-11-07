@@ -144,14 +144,16 @@ export class Overlay {
     }
 
     public applyPage(page: OverlayPage): void {
-        this.component.value = page.overlay.component;
-        this.config.value = page.overlay.config;
-        this.updateUrl(new URL(page.overlay.url));
-        this.updateProps(page.props[this.id]);
-
-        if (page.overlay.closeRequested) {
-            this.close();
+        if (page.overlay.id !== this.id) {
+            this.component.value = page.overlay.component;
+            this.config.value = page.overlay.config;
+            this.updateUrl(new URL(page.overlay.url));
+            if (page.overlay.closeRequested) {
+                this.close();
+            }
         }
+
+        this.updateProps(page.props[this.id]);
     }
 
     // ----------[ Accessors ]----------
@@ -183,8 +185,7 @@ export class Overlay {
     private subscribe(): void {
         this.router.onOverlayPageLoad.listen({
             handler: page => this.applyPage(page),
-            filter: page => page.overlay.id === this.id,
-            priority: () => 10 + this.index.value,
+            priority: () => this.index.value,
             subscription: this.subscription,
         });
     }
