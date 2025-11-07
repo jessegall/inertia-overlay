@@ -17,10 +17,19 @@ use Symfony\Component\HttpFoundation\Response;
 readonly class OverlayResponse implements Responsable
 {
 
+    private Overlay|null $parent;
+
     public function __construct(
         public Overlay $overlay,
         public OverlayComponent $component,
-    ) {}
+    )
+    {
+        if ($parentId = request()->header(Header::OVERLAY_PARENT)) {
+            $this->parent = Overlay::load($parentId);
+        } else {
+            $this->parent = null;
+        }
+    }
 
     public function toResponse($request)
     {
@@ -125,14 +134,25 @@ readonly class OverlayResponse implements Responsable
 
     private function buildScopedProps(): array
     {
-        return collect()
+        $props = collect()
             ->merge($this->overlay->getProps())
             ->merge($this->overlay->getAppendedProps())
             ->merge($this->component->props($this->overlay))
             ->mapWithKeys(fn($prop, $key) => [
                 $this->overlay->scopeKey($key) => $prop
             ])
-            ->all();
+            ->when($this->parent, function ($props) {
+                return $props->merge(
+                    collect()
+                        ->merge($this->parent->getProps())
+                        ->merge($this->parent->component->props($this->parent))
+                        ->mapWithKeys(fn($prop, $key) => [
+                            $this->parent->scopeKey($key) => $prop
+                        ])
+                );
+            });
+
+        return $props->all();
     }
 
     private function clearPartialHeaders(Request $request): void
@@ -148,12 +168,27 @@ readonly class OverlayResponse implements Responsable
         if ($this->shouldReloadAllOverlayProps()) {
             $request->headers->remove(InertiaHeader::PARTIAL_ONLY);
         } else {
+            if ($this->parent) {
+                $parentPartial = $this->overlay->getReloadedParentKeys();
+
+                if (in_array('*', $parentPartial)) {
+                    $parentPartial = collect($this->parent->getProps())->keys()->all();
+                }
+
+                $parentPartial = collect($parentPartial)
+                    ->map(fn($key) => $this->parent->scopeKey($key))
+                    ->all();
+            } else {
+                $parentPartial = [];
+            }
+
             $partial = collect()
                 ->merge(explode(',', $request->header(InertiaHeader::PARTIAL_ONLY, '')))
                 ->merge($this->overlay->getReloadedOverlayKeys())
                 ->merge($this->overlay->getAppendedPropKeys())
                 ->filter()
                 ->map($this->overlay->scopeKey(...))
+                ->merge($parentPartial)
                 ->unique()
                 ->join(',');
 

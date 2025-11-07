@@ -18,7 +18,7 @@ readonly class OverlaySession
     {
         $this->put('id', $this->overlay->id);
         $this->put('url', $this->overlay->url);
-        $this->put('props', [...$this->overlay->props, ...$page['props'][$this->overlay->id]]);
+        $this->put('props', [...$this->overlay->props, ...$page['props'][$this->overlay->id] ?? []]);
         $this->put('config', $this->overlay->config);
         $this->put('component', get_class($this->overlay->component));
     }
