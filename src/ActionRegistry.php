@@ -12,7 +12,7 @@ use ReflectionMethod;
 readonly class ActionRegistry
 {
 
-    public function invoke(Overlay $overlay, OverlayComponent $component, string $action)
+    public function invoke(Overlay $overlay, string $action)
     {
         $callback = $overlay->session->get("actions.{$action}");
 
@@ -23,7 +23,7 @@ readonly class ActionRegistry
         return app()->call($callback,
             [
                 'overlay' => $overlay,
-                'component' => $component,
+                'component' => $overlay->component,
                 'payload' => request()->all(),
             ]
         );

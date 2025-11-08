@@ -1,6 +1,6 @@
-import { computed, inject, nextTick, onUnmounted, reactive, shallowRef } from "vue";
+import { computed, getCurrentInstance, inject, onBeforeUnmount, reactive, shallowRef } from "vue";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
-import { OverlayProps, OverlayState } from "../Overlay.ts";
+import { OverlayProps, OverlayStatus } from "../Overlay.ts";
 import { ReactiveOverlay } from "../OverlayFactory.ts";
 import { VisitOptions } from "@inertiajs/core";
 
@@ -17,7 +17,7 @@ type OverlayFromComponentOptions = {
 
 export interface OverlayHandle {
     id: string | undefined;
-    state: OverlayState;
+    state: OverlayStatus;
     open: () => Promise<void>;
     close: () => Promise<void>;
 }
@@ -35,25 +35,17 @@ export function useOverlay() {
     // ----------[ Methods ]----------
 
     function createOverlay(url: string | URL, data: Record<string, any>): OverlayHandle {
-
-        // We create a fresh overlay instance on each open() to prevent memory leaks.
-        // While overlays can technically be reopened, destroying and recreating ensures
-        // event listeners, subscriptions, and state are properly cleaned up.
-
         return reactive({
             id: computed(() => instance.value?.id),
-            state: computed(() => instance.value?.state || 'closed'),
+            state: computed(() => instance.value?.status || 'closed'),
             open: async () => {
                 if (instance.value) return;
-
-                instance.value = plugin.newInstance(url, data, {
-                    onClosed() {
+                instance.value = await plugin.visitOverlay(url, {
+                    data,
+                    onClose() {
                         instance.value = null;
                     }
                 });
-
-                await instance.value.initialize();
-                await instance.value.open();
             },
             close: async () => {
                 if (! instance.value) return;
@@ -63,7 +55,7 @@ export function useOverlay() {
     }
 
     function createOverlayFromComponent(options: OverlayFromComponentOptions) {
-        const url = new URL(`/overlay/${ options.component }`, window.location.origin);
+        const url = new URL(`/overlay/render/${ options.component }`, window.location.origin);
         return createOverlay(url, options.props || {});
     }
 
@@ -80,11 +72,11 @@ export function useOverlay() {
 
     // ----------[ Lifecycle ]----------
 
-    onUnmounted(() => nextTick(() => {
+    onBeforeUnmount(() => {
         if (instance.value) {
             instance.value.close();
         }
-    }))
+    })
 
     return {
         createOverlay,

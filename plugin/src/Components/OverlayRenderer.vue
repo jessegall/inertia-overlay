@@ -1,10 +1,10 @@
 <script setup lang="ts">
 
-import { Component, defineAsyncComponent, inject, nextTick, ref, shallowRef, watch } from "vue";
+import { Component, computed, defineAsyncComponent, inject, nextTick, ref, watch } from "vue";
 import OverlayBackdrop from "./OverlayBackdrop.vue";
 import { ReactiveOverlay } from "../OverlayFactory.ts";
 import OverlayWrapper from "./OverlayWrapper.vue";
-import { OverlayState } from "../Overlay.ts";
+import { OverlayStatus } from "../Overlay.ts";
 import { OverlayPlugin } from "../OverlayPlugin.ts";
 
 interface Props {
@@ -22,30 +22,30 @@ const overlay = props.overlay;
 const shouldRenderComponent = ref(false);
 const shouldRenderBackdrop = ref(false);
 
-const component = shallowRef<Component>(null);
+const component = computed(() => {
+    console.log("Resolving component for overlay:", overlay.id, overlay.component);
+
+    if (overlay.component) {
+        return defineAsyncComponent(plugin!.resolveComponent(overlay.component));
+    }
+
+    return null;
+})
 
 // ----------[ Event Handlers ]----------
 
-function handleState(state: OverlayState) {
+function handleState(state: OverlayStatus) {
 
     switch (state) {
-
-        case 'opening':
-            shouldRenderBackdrop.value = true;
-            component.value = defineAsyncComponent(plugin.resolveComponent(overlay.component))
-            break;
 
         case 'open':
             shouldRenderBackdrop.value = true;
             shouldRenderComponent.value = true;
             break;
 
-        case 'closing':
-            shouldRenderComponent.value = false;
-            break;
-
         case 'closed':
             shouldRenderBackdrop.value = false;
+            shouldRenderComponent.value = false;
             break;
 
     }
@@ -53,7 +53,7 @@ function handleState(state: OverlayState) {
 
 // ----------[ Watchers ]----------
 
-watch(() => overlay.state, (state) => nextTick(() => handleState(state)), { immediate: true });
+watch(() => overlay.status, (state) => nextTick(() => handleState(state)), { immediate: true });
 
 </script>
 
@@ -69,13 +69,14 @@ watch(() => overlay.state, (state) => nextTick(() => handleState(state)), { imme
 
             <OverlayWrapper
                 :show="shouldRenderComponent"
-                :variant="overlay.config.variant"
-                :size="overlay.config.size"
+                :variant="overlay.variant"
+                :size="overlay.size"
             >
                 <Component
+                    v-if="component"
                     :is="component"
-                    :key="overlay.id"
                     v-bind="overlay.props"
+                    :key="overlay.id"
                     @close="overlay.close"
                 />
             </OverlayWrapper>

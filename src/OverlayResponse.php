@@ -14,22 +14,27 @@ use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
 use JesseGall\InertiaOverlay\Header as OverlayHeader;
 use Symfony\Component\HttpFoundation\Response;
 
-readonly class OverlayResponse implements Responsable
+class OverlayResponse implements Responsable
 {
 
-    private Overlay|null $parent;
+    private Overlay|null $parent {
+        get {
+            if (isset($this->parent)) {
+                return $this->parent;
+            }
+
+            $this->parent ??= request()->hasHeader(Header::OVERLAY_PARENT)
+                ? Overlay::load(request()->header(Header::OVERLAY_PARENT))
+                : null;
+
+            return $this->parent;
+        }
+    }
 
     public function __construct(
         public Overlay $overlay,
         public OverlayComponent $component,
-    )
-    {
-        if ($parentId = request()->header(Header::OVERLAY_PARENT)) {
-            $this->parent = Overlay::load($parentId);
-        } else {
-            $this->parent = null;
-        }
-    }
+    ) {}
 
     public function toResponse($request)
     {
@@ -56,7 +61,7 @@ readonly class OverlayResponse implements Responsable
             return $this->buildInitialResponse($request, $baseUrl);
         }
 
-        if ($this->overlay->isInitializing()) {
+        if ($this->overlay->isIsNewlyCreated()) {
             $this->clearPartialHeaders($request);
         } else {
             $this->setPartialHeaders($request);
@@ -128,11 +133,11 @@ readonly class OverlayResponse implements Responsable
 
     private function buildOverlayResponse(Request $request, string $component): Response|JsonResponse
     {
-        $props = $this->buildScopedProps();
+        $props = $this->buildScopedProps($request);
         return Inertia::render($component, $props)->toResponse($request);
     }
 
-    private function buildScopedProps(): array
+    private function buildScopedProps(Request $request): array
     {
         $props = collect()
             ->merge($this->overlay->getProps())
@@ -141,15 +146,27 @@ readonly class OverlayResponse implements Responsable
             ->mapWithKeys(fn($prop, $key) => [
                 $this->overlay->scopeKey($key) => $prop
             ])
-            ->when($this->parent, function ($props) {
-                return $props->merge(
-                    collect()
-                        ->merge($this->parent->getProps())
-                        ->merge($this->parent->component->props($this->parent))
-                        ->mapWithKeys(fn($prop, $key) => [
-                            $this->parent->scopeKey($key) => $prop
-                        ])
-                );
+            ->when($this->shouldReloadParentProps(), function ($props) use ($request) {
+                $parent = $this->parent;
+                $parentId = $parent->getId();
+                $url = $parent->getUrl();
+                $params = $parent->getProps();
+                $query = http_build_query($params);
+                $url = $query ? "{$url}?{$query}" : $url;
+                $switcher = ContextSwitcher::new($request, Request::create($url));
+
+                return $switcher->switch(function (Request $request) use ($props, $parentId) {
+                    $parent = Overlay::load($parentId);
+
+                    return $props->merge(
+                        collect()
+                            ->merge($parent->getProps())
+                            ->merge($parent->component->props($parent))
+                            ->mapWithKeys(fn($prop, $key) => [
+                                $parent->scopeKey($key) => $prop
+                            ])
+                    );
+                });
             });
 
         return $props->all();
@@ -168,7 +185,7 @@ readonly class OverlayResponse implements Responsable
         if ($this->shouldReloadAllOverlayProps()) {
             $request->headers->remove(InertiaHeader::PARTIAL_ONLY);
         } else {
-            if ($this->parent) {
+            if ($this->shouldReloadParentProps()) {
                 $parentPartial = $this->overlay->getReloadedParentKeys();
 
                 if (in_array('*', $parentPartial)) {
@@ -203,6 +220,11 @@ readonly class OverlayResponse implements Responsable
         return count($this->overlay->getReloadedPageKeys()) > 0;
     }
 
+    private function shouldReloadParentProps(): bool
+    {
+        return count($this->overlay->getReloadedParentKeys()) > 0 && $this->parent !== null;
+    }
+
     private function shouldReloadAllPageProps(): bool
     {
         return in_array('*', $this->overlay->getReloadedPageKeys());
@@ -215,13 +237,17 @@ readonly class OverlayResponse implements Responsable
 
     public function buildOverlayMetaData(Request $request): array
     {
-        // TODO: Revisit URL logic
         return [
+
             'url' => $this->overlay->getUrl(),
             'id' => $this->overlay->getId(),
             'component' => $this->component->name(),
-            'config' => $this->component->config($this->overlay),
-            'closeRequested' => $this->overlay->isCloseRequested(),
+
+            ...$this->component->config($this->overlay)->toArray(),
+
+            '__commands' => [
+                ...session()->get('__commands', []),
+            ]
         ];
     }
 

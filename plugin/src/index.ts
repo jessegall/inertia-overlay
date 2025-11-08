@@ -7,7 +7,7 @@ export { useOverlayFactory } from './Composables/useOverlayFactory.ts';
 export { useOverlayStack } from './Composables/useOverlayStack.ts';
 export { useOverlay } from './Composables/useOverlay.ts';
 export {
-    onOverlayFocus, onOverlayBlur, onBeforeOverlayClose, onOverlayClosed
+    onOverlayFocus, onOverlayBlur, onOverlayClose
 } from './Hooks.ts';
 
 export type * from "./Overlay.ts";

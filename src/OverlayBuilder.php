@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Closure;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
@@ -60,6 +61,12 @@ class OverlayBuilder
     public function setProps(array $props): self
     {
         $this->props = $props;
+        return $this;
+    }
+
+    public function setPropValue(string $key, mixed $value): self
+    {
+        $this->props[$key] = $value;
         return $this;
     }
 
@@ -121,43 +128,11 @@ class OverlayBuilder
     {
         $request = request();
 
-        $id = $this->id ?? request()->header(Header::OVERLAY_ID);
-
-        if ($id && Overlay::exists($id)) {
-            $overlay = Overlay::load($id);
-
-            if ($overlay->session->metadata('path') === $request->path()) {
-                return $overlay;
-            } else {
-                $id = null;
-            }
+        if ($overlay = $this->resolveActiveOverlay($request)) {
+            return $overlay;
         }
 
-        $component = $this->resolveComponent();
-        $props = $this->resolveProps($component);
-        $url = $this->resolveUrl($props);
-
-        $overlay = app(Overlay::class,
-            [
-                'id' => $id ?? Str::random(8),
-                'url' => $url,
-                'props' => $props,
-                'component' => $component,
-                'config' => new OverlayConfig(
-                    variant: $this->variant ?? OverlayVariant::MODAL,
-                    size: $this->size ?? OverlaySize::XL2,
-                    baseUrl: $this->baseUrl,
-                )
-            ]
-        );
-
-        $overlay->session->set_metadata(
-            [
-                'timestamp' => time(),
-                'referer' => request()->headers->get('referer'),
-                'path' => ltrim(parse_url($url, PHP_URL_PATH), '/'),
-            ]
-        );
+        $overlay = $this->makeNewOverlay();
 
         foreach ($this->createdCallbacks as $callback) {
             $callback($overlay);
@@ -176,6 +151,52 @@ class OverlayBuilder
     }
 
     # ----------[ Internal ]----------
+
+    protected function makeNewOverlay(): Overlay
+    {
+        $component = $this->resolveComponent();
+        $props = $this->resolveProps($component);
+        $url = $this->resolveUrl($props);
+
+        $overlay = app(Overlay::class,
+            [
+                'id' => $id ?? Str::random(8),
+                'url' => $url,
+                'props' => $props,
+                'component' => $component,
+                'config' => new OverlayConfig(
+                    variant: $this->variant ?? OverlayVariant::MODAL,
+                    size: $this->size ?? OverlaySize::XL2,
+                    baseUrl: $this->baseUrl,
+                ),
+            ]
+        );
+
+        $overlay->session->set_metadata(
+            [
+                'timestamp' => time(),
+                'referer' => request()->headers->get('referer'),
+                'path' => ltrim(parse_url($url, PHP_URL_PATH), '/'),
+            ]
+        );
+
+        return $overlay;
+    }
+
+    protected function resolveActiveOverlay(Request $request): Overlay|null
+    {
+        $id = $this->id ?? request()->header(Header::OVERLAY_ID);
+
+        if ($id && Overlay::exists($id)) {
+            $overlay = Overlay::load($id);
+
+            if ($overlay->session->metadata('path') === $request->path()) {
+                return $overlay;
+            }
+        }
+
+        return null;
+    }
 
     protected function resolveComponent(): OverlayComponent
     {

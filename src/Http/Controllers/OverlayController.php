@@ -30,7 +30,7 @@ class OverlayController extends Controller
     {
         $overlay = Overlay::load($request->header(Header::OVERLAY_ID));
 
-        if ($response = $this->actionRegistry->invoke($overlay, $overlay->component, $action)) {
+        if ($response = $this->actionRegistry->invoke($overlay, $action)) {
             return $response;
         }
 

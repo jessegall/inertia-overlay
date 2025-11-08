@@ -5,6 +5,7 @@ namespace JesseGall\InertiaOverlay;
 readonly class OverlaySession
 {
 
+    private(set) bool $isNewlyCreated;
     public string $handle;
 
     public function __construct(
@@ -12,6 +13,10 @@ readonly class OverlaySession
     )
     {
         $this->handle = self::handle($this->overlay->id);
+
+        if ($this->isNewlyCreated = ! $this->has('initialized')) {
+            $this->put('initialized', true);
+        }
     }
 
     public function save(array $page): void

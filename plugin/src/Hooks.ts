@@ -5,7 +5,6 @@ import { Unsubscribe } from "./event.ts";
 
 type Hook = (overlay: ReactiveOverlay, callback: () => void) => Unsubscribe;
 
-
 function hookFactory(hook: Hook) {
     return (callback: () => void) => {
         const stack = inject<OverlayStack>('overlay.stack');
@@ -21,24 +20,14 @@ function hookFactory(hook: Hook) {
     };
 }
 
-export const onBeforeOverlayClose = hookFactory((overlay, callback) => {
-    return overlay.onStatusChange.listen({
-        handler: callback,
-        filter: state => state === 'closing',
-    })
-});
-
-export const onOverlayClosed = hookFactory((overlay, callback) => {
-    return overlay.onStatusChange.listen({
-        handler: callback,
-        filter: state => state === 'closed',
-    })
+export const onOverlayClose = hookFactory((overlay, callback) => {
+    return overlay.onClose.listen(callback);
 });
 
 export const onOverlayFocus = hookFactory((overlay, callback) => {
-    return overlay.onFocused.listen(callback);
+    return overlay.onFocus.listen(callback);
 });
 
 export const onOverlayBlur = hookFactory((overlay, callback) => {
-    return overlay.onBlurred.listen(callback);
+    return overlay.onBlur.listen(callback);
 });

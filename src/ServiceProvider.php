@@ -32,8 +32,8 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                 'middleware' => $config->getMiddleware(),
             ],
             function (Router $router) use ($config) {
-                $router->post('/{action}', [OverlayController::class, 'action'])->name('action');
-                $router->get('/{type}', [OverlayController::class, 'overlay'])->name('overlay');
+                $router->any('/action/{action}', [OverlayController::class, 'action'])->name('action');
+                $router->get('/render/{type}', [OverlayController::class, 'overlay'])->name('overlay');
             }
         );
     }

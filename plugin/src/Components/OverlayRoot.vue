@@ -2,12 +2,14 @@
 
 import { useOverlayStack } from "../Composables/useOverlayStack.ts";
 import OverlayRenderer from "./OverlayRenderer.vue";
-import { onBeforeMount, ref } from "vue";
+import { inject, nextTick, onBeforeMount, ref } from "vue";
 import { ReactiveOverlay } from "../OverlayFactory.ts";
+import { OverlayPlugin } from "../OverlayPlugin.ts";
 
 // ----------[ Setup ]----------
 
 const stack = useOverlayStack();
+const plugin = inject<OverlayPlugin>("overlay.plugin");
 
 // ----------[ Data ]----------
 
@@ -16,11 +18,11 @@ const overlays = ref<ReactiveOverlay[]>([]);
 // ----------[ Lifecycle ]----------
 
 onBeforeMount(() => {
-    stack.onOverlayPushed.listen(overlay => {
-        overlays.value.push(overlay);
+    stack.onPushed.listen(overlay => {
+        nextTick(() => overlays.value.push(overlay))
     });
 
-    stack.onOverlayRemoved.listen(overlay => setTimeout(
+    stack.onRemoved.listen(overlay => setTimeout(
         () => overlays.value = overlays.value.filter(o => o.id !== overlay.id),
         300
     ));
