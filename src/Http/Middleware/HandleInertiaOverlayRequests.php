@@ -16,6 +16,7 @@ readonly class HandleInertiaOverlayRequests
     public function handle(Request $request, Closure $next)
     {
         if (! $request->hasHeader(Header::INERTIA_OVERLAY)) {
+            OverlaySession::flush();
             return $next($request);
         }
 

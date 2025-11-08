@@ -11,16 +11,16 @@ class Overlay
 {
 
     public readonly OverlaySession $session;
-    public bool $initializing = false;
+    private bool $initializing = false;
 
     public function __construct(
         public readonly Request $request,
         public readonly OverlayConfig $config,
         public readonly OverlayComponent $component,
+        public readonly string|null $parentId = null,
         public readonly string $id,
         public readonly string $url,
         public array $props,
-        public readonly string|null $parentId
     )
     {
         $this->session = new OverlaySession($this);
@@ -133,7 +133,6 @@ class Overlay
 
     # ----------[ Session ]----------
 
-
     public function restoreProps(): void
     {
         $only = $this->session->get('keys');
@@ -170,9 +169,10 @@ class Overlay
         $this->session->flash('close', true);
     }
 
-    public function isCloseRequested(): bool
+    public function shouldClose(): bool
     {
         return $this->session->get('close', false);
     }
+
 
 }

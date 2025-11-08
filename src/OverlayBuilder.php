@@ -3,6 +3,7 @@
 namespace JesseGall\InertiaOverlay;
 
 use Closure;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use JesseGall\InertiaOverlay\Contracts\OverlayComponent;
@@ -60,6 +61,12 @@ class OverlayBuilder
     public function setProps(array $props): self
     {
         $this->props = $props;
+        return $this;
+    }
+
+    public function setPropValue(string $key, mixed $value): self
+    {
+        $this->props[$key] = $value;
         return $this;
     }
 
@@ -121,21 +128,39 @@ class OverlayBuilder
     {
         $request = request();
 
-        $id = $this->id ?? request()->header(Header::OVERLAY_ID);
-
-        if ($id && Overlay::exists($id)) {
-            $overlay = Overlay::load($id);
-
-            if ($overlay->session->metadata('path') === $request->path()) {
-                return $overlay;
-            } else {
-                $id = null;
-            }
+        if ($overlay = $this->resolveActiveOverlay($request)) {
+            return $overlay;
         }
 
+        $overlay = $this->makeNewOverlay();
+
+        foreach ($this->createdCallbacks as $callback) {
+            $callback($overlay);
+        }
+
+        return $overlay;
+    }
+
+    public function render(OverlayComponent|string|null $component = null): OverlayResponse
+    {
+        if ($component != null) {
+            $this->setComponent($component);
+        }
+
+        return $this->make()->render();
+    }
+
+    # ----------[ Internal ]----------
+
+    protected function makeNewOverlay(): Overlay
+    {
         $component = $this->resolveComponent();
         $props = $this->resolveProps($component);
         $url = $this->resolveUrl($props);
+
+        $id = $this->id ?? request()->header(Header::OVERLAY_INITIALIZING)
+            ? request()->header(Header::OVERLAY_ID)
+            : null;
 
         $overlay = app(Overlay::class,
             [
@@ -159,23 +184,23 @@ class OverlayBuilder
             ]
         );
 
-        foreach ($this->createdCallbacks as $callback) {
-            $callback($overlay);
-        }
-
         return $overlay;
     }
 
-    public function render(OverlayComponent|string|null $component = null): OverlayResponse
+    protected function resolveActiveOverlay(Request $request): Overlay|null
     {
-        if ($component != null) {
-            $this->setComponent($component);
+        $id = $this->id ?? request()->header(Header::OVERLAY_ID);
+
+        if ($id && Overlay::exists($id)) {
+            $overlay = Overlay::load($id);
+
+            if ($overlay->session->metadata('path') === $request->path()) {
+                return $overlay;
+            }
         }
 
-        return $this->make()->render();
+        return null;
     }
-
-    # ----------[ Internal ]----------
 
     protected function resolveComponent(): OverlayComponent
     {

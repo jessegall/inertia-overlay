@@ -1,13 +1,11 @@
-import { EventEmitter, EventSubscription } from "./event.ts";
-import { nextTick, reactive, ref } from "vue";
+import { EventEmitter } from "./event.ts";
+import { reactive, ref } from "vue";
 import { Page } from "@inertiajs/core";
-import { OverlayRouter } from "./OverlayRouter.ts";
-import { HttpMethod } from "./InertiaRouterAdapter.ts";
 
 export type OverlayVariant = 'modal' | 'drawer';
 export type OverlaySize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | '80%' | 'full';
 export type OverlayProps = Record<string, any>;
-export type OverlayState = 'created' | 'initializing' | 'initialized' | 'closed' | 'closing' | 'open' | 'opening';
+export type OverlayStatus = 'created' | 'closed' | 'open';
 
 export interface OverlayConfig {
     variant: OverlayVariant;
@@ -15,105 +13,75 @@ export interface OverlayConfig {
     baseUrl: string;
 }
 
-export interface OverlayResponse {
+export interface OverlayData {
     id: string;
     url: string;
     component: string;
-    config: OverlayConfig;
-    baseUrl?: string;
-    method?: HttpMethod;
+    variant: OverlayVariant;
+    size: OverlaySize;
+    baseUrl: string;
     closeRequested: boolean;
+    __commands: {
+        close?: boolean;
+    }
 }
 
-export type OverlayPage = Page & { overlay: OverlayResponse };
+export type OverlayPage = Page & { overlay: OverlayData };
 
 export interface OverlayOptions {
     id: string;
     url: URL;
-    method?: HttpMethod;
-    data?: Record<string, any>;
+    component: string;
+    size: OverlaySize;
+    variant: OverlayVariant;
+    baseUrl?: URL;
 }
-
-const activeTransitions = reactive<string[]>([]);
 
 export class Overlay {
 
-    private readonly subscription = new EventSubscription();
     private readonly destroyed = ref(false);
 
     // ----------[ Events ]----------
 
-    public readonly onStatusChange = new EventEmitter<OverlayState>();
-    public readonly onFocused = new EventEmitter<string>();
-    public readonly onBlurred = new EventEmitter<string>();
+    public readonly onOpen = new EventEmitter<void>();
+    public readonly onClose = new EventEmitter<void>();
+    public readonly onFocus = new EventEmitter<string>();
+    public readonly onBlur = new EventEmitter<string>();
 
     // ----------[ State ]----------
 
-    public url = ref<URL>(this.options.url);
-    public baseUrl = ref<URL | null>(null);
-    public parentId = ref<string | null>(null);
+    public url = ref<URL>();
     public index = ref(0);
-    public state = ref<OverlayState>('created');
+    public parentId = ref<string | null>(null);
+    public status = ref<OverlayStatus>('created');
     public focused = ref(false);
     public props = ref<OverlayProps>({});
-    public component = ref<string | null>(null);
-    public config = ref<OverlayConfig | null>(null);
 
     // ----------[ Constructor ]----------
 
-    constructor(
-        private readonly router: OverlayRouter,
+    public constructor(
         public readonly options: OverlayOptions,
     ) {
-        this.url.value = this.options.url;
-        this.baseUrl.value = null;
+        this.url.value = options.url;
     }
 
     // ----------[ Lifecycle ]----------
 
-    public async initialize(): Promise<void> {
-        if (this.notInState('created')) return;
-
-        await this.transition(async () => {
-            this.subscribe();
-            this.setState('initializing');
-
-            const page = await this.router.fetch(this.id);
-            this.options.method = page.overlay.method;
-            this.baseUrl.value = page.overlay.config.baseUrl ? new URL(page.overlay.config.baseUrl) : null;
-            this.applyPage(page);
-
-            await nextTick();
-            this.setState('initialized');
-        });
+    public open() {
+        this.setState('open');
     }
 
-    public async open(): Promise<void> {
-        if (this.notInState('initialized', 'closed')) return;
-
-        await this.transition(async () => {
-            this.setState('opening');
-            await nextTick();
-            this.setState('open');
-        });
-    }
-
-    public async close(): Promise<void> {
-        if (this.notInState('open')) return;
-
-        await this.transition(async () => {
-            this.setState('closing');
-            await nextTick();
-            this.setState('closed');
-        });
+    public close() {
+        this.setState('closed');
     }
 
     public destroy(): void {
         if (this.destroyed.value) return;
-        this.unsubscribe();
-        this.onStatusChange.clear();
-        this.onFocused.clear();
-        this.onBlurred.clear();
+        console.log('destroying overlay', this.id, this.index.value);
+        this.onOpen.clear();
+        this.onClose.clear();
+        this.onFocus.clear();
+        this.onBlur.clear();
         this.destroyed.value = true;
     }
 
@@ -121,41 +89,48 @@ export class Overlay {
 
     public focus(): void {
         if (this.focused.value) return;
+        console.log('focusing overlay', this.index.value);
         this.focused.value = true;
-        this.onFocused.emit(this.id);
+        this.onFocus.emit(this.id);
     }
 
     public blur(): void {
         if (! this.focused.value) return;
+        console.log('blurring overlay', this.index.value);
         this.focused.value = false;
-        this.onBlurred.emit(this.id);
-    }
-
-    // ----------[ Updates ]----------
-
-    public updateUrl(url: URL): void {
-        const _url = this.url.value;
-        url.searchParams.forEach((value, key) => _url.searchParams.set(key, value));
-        this.url.value = _url;
+        this.onBlur.emit(this.id);
     }
 
     public updateProps(props: OverlayProps): void {
-        Object.assign(this.props.value, props);
+        this.props.value = { ...this.props.value, ...props };
     }
 
-    public applyPage(page: OverlayPage): void {
-        if (page.overlay.id === this.id) {
-            this.component.value = page.overlay.component;
-            this.config.value = page.overlay.config;
-            this.updateUrl(new URL(page.overlay.url));
-            if (page.overlay.closeRequested) {
-                this.close();
-            }
+    public handleCommands(commands: OverlayData['__commands']): void {
+        if (commands.close) {
+            this.close();
         }
+    }
 
-        if (page.props[this.id]) {
-            this.updateProps(page.props[this.id]);
+    // ----------[ State ]----------
+
+    private setState(status: OverlayStatus): void {
+        if (this.status.value === status) return;
+
+        this.status.value = status;
+        switch (status) {
+            case 'open':
+                this.onOpen.emit();
+                break;
+            case 'closed':
+                this.onClose.emit();
+                break;
         }
+    }
+
+    // ----------[ Helpers ]----------s
+
+    public unscope(key: string): string {
+        return key.startsWith(`${ this.id }.`) ? key.slice(this.id.length + 1) : key;
     }
 
     // ----------[ Accessors ]----------
@@ -164,64 +139,16 @@ export class Overlay {
         return this.options.id;
     }
 
-    public get method(): HttpMethod {
-        return this.options.method ?? 'get';
+    public get component(): string {
+        return this.options.component;
     }
 
-    // ----------[ Helpers ]----------
-
-    public hasState(...states: OverlayState[]): boolean {
-        return states.includes(this.state.value);
+    public get variant(): OverlayVariant {
+        return this.options.variant;
     }
 
-    public notInState(...states: OverlayState[]): boolean {
-        return ! this.hasState(...states);
+    public get size(): OverlaySize {
+        return this.options.size;
     }
 
-    public unscope(key: string): string {
-        return key.startsWith(`${ this.id }.`) ? key.slice(this.id.length + 1) : key;
-    }
-
-    // ----------[ Internal ]----------
-
-    private subscribe(): void {
-        this.router.onOverlayPageLoad.listen({
-            handler: page => this.applyPage(page),
-            priority: () => this.index.value,
-            subscription: this.subscription,
-        });
-    }
-
-    private unsubscribe(): void {
-        this.subscription.unsubscribe();
-    }
-
-    private setState(state: OverlayState): void {
-        if (this.state.value === state) return;
-        this.state.value = state;
-        this.onStatusChange.emit(state);
-    }
-
-    private async transition(callback: () => Promise<void>): Promise<void> {
-
-        // Queue this overlay's transition and wait for its turn to execute.
-        // This ensures overlay state transitions happen sequentially, preventing
-        // race conditions when multiple overlays change state simultaneously.
-
-        if (activeTransitions.includes(this.id)) {
-            throw new Error(`Overlay "${ this.id }" is already performing a state transition.`);
-        }
-
-        activeTransitions.push(this.id);
-
-        while (activeTransitions[0] !== this.id) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-
-        try {
-            await callback();
-        } finally {
-            activeTransitions.splice(activeTransitions.indexOf(this.id), 1);
-        }
-    }
 }

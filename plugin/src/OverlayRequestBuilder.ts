@@ -18,30 +18,27 @@ export class OverlayRequestBuilder {
         return true;
     }
 
-    public buildOverlayInitializeRequest(overlay: ReactiveOverlay): RequestConfig<OverlayPage> {
+    public buildOverlayVisitRequest(data: Record<string, any>, options: VisitOptions = {}): RequestConfig<OverlayPage> {
         return {
-            data: {},
+            data,
             options: {
+                ...options,
                 async: true,
                 preserveUrl: true,
                 preserveState: true,
                 preserveScroll: true,
                 headers: {
+                    ...(options.headers || {}),
                     [header.INERTIA_OVERLAY]: 'true',
-                    [header.OVERLAY_INITIALIZING]: 'true',
-                    [header.OVERLAY_ID]: overlay.id,
-                },
-            },
-            validator: this.isOverlayPage,
+                }
+            }
         }
     }
 
     public buildOverlayActionRequest(overlay: ReactiveOverlay, action: string, options: VisitOptions = {}): RequestConfig<OverlayPage> {
-        console.log(options);
         return {
             data: {
                 ...(options.data || {}),
-                __overlay: overlay.props,
             },
             options: {
                 ...options,
