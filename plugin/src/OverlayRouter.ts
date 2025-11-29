@@ -120,7 +120,6 @@ export class OverlayRouter {
 
     // ----------[ Internal ]----------
 
-
     private prepareRouteVisit(visit: PendingVisit): void {
         const page = usePage();
         const overlay = this.stack.peek();

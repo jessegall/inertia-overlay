@@ -3,6 +3,7 @@ import { OverlayStack } from "./OverlayStack.ts";
 import { OverlayFactory, ReactiveOverlay } from "./OverlayFactory.ts";
 import { OverlayPage } from "./Overlay.ts";
 import { nextTick } from "vue";
+import { router } from "@inertiajs/vue3";
 
 export class OverlayManager {
 
@@ -63,11 +64,19 @@ export class OverlayManager {
     }
 
     private attachLifecycleListeners(overlay: ReactiveOverlay): void {
-        overlay.onOpen.listen(() => this.stack.push(overlay.id));
-        overlay.onClose.listen(() => {
-            this.stack.remove(overlay.id);
-            overlay.destroy();
-        });
+        overlay.onOpen.listen(() => this.handleOpen(overlay));
+        overlay.onClose.listen(() => this.handleClose(overlay));
     }
 
+    private async handleOpen(overlay: ReactiveOverlay): Promise<void> {
+        this.stack.push(overlay.id);
+    }
+
+    private async handleClose(overlay: ReactiveOverlay): Promise<void> {
+        this.stack.remove(overlay.id);
+        overlay.destroy();
+        if (this.stack.size() === 0) {
+            await router.reload();
+        }
+    }
 }
