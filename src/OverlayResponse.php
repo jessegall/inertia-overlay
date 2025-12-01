@@ -67,7 +67,7 @@ class OverlayResponse implements Responsable
             $this->setPartialHeaders($request);
         }
 
-        if ($this->shouldReloadPageProps()) {
+        if ($this->shouldReloadPageProps($request)) {
             return $this->buildMergedResponse($request, $baseUrl);
         }
 
@@ -215,7 +215,7 @@ class OverlayResponse implements Responsable
         $request->headers->set(InertiaHeader::PARTIAL_COMPONENT, $pageComponent);
     }
 
-    private function shouldReloadPageProps(): bool
+    private function shouldReloadPageProps(Request $request): bool
     {
         return count($this->overlay->getReloadedPageKeys()) > 0;
     }

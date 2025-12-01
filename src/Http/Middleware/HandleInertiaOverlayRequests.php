@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use JesseGall\InertiaOverlay\Header;
+use JesseGall\InertiaOverlay\Overlay;
 use JesseGall\InertiaOverlay\OverlaySession;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -20,8 +21,16 @@ readonly class HandleInertiaOverlayRequests
             return $next($request);
         }
 
+        if ($request->method() !== Request::METHOD_GET) {
+//            Overlay::reloadPage();
+        }
+
         $response = $next($request);
         $referrer = $request->headers->get('referer', '');
+
+        if ($response->isRedirection()) {
+            Overlay::reflash();
+        }
 
         if ($response instanceof RedirectResponse && $response->getTargetUrl() == $referrer) {
             $response->setTargetUrl($request->header(Header::OVERLAY_URL));

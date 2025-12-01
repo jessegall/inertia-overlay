@@ -37,26 +37,26 @@ class Overlay
 
     public function append(array $props): void
     {
-        $current = $this->session->get('append', []);
-        $this->session->flash('append', array_merge($current, $props));
+        $current = session()->get("inertia-overlay.append.{$this->id}", []);
+        session()->flash("inertia-overlay.append.{$this->id}", [...$current, ...$props]);
     }
 
     public function reloadOverlay(array|string $keys = '*'): void
     {
-        $current = $this->session->get('reload.overlay', []);
-        $this->session->flash('reload.overlay', array_merge($current, Arr::wrap($keys)));
+        $current = session()->get("inertia-overlay.reload.overlay.{$this->id}", []);
+        session()->flash("inertia-overlay.reload.overlay.{$this->id}", array_merge($current, Arr::wrap($keys)));
     }
 
     public function reloadParent(array|string $keys = '*'): void
     {
-        $current = $this->session->get('reload.parent', []);
-        $this->session->flash('reload.parent', array_merge($current, Arr::wrap($keys)));
+        $current = session()->get("inertia-overlay.reload.parent.{$this->id}", []);
+        session()->flash("inertia-overlay.reload.parent.{$this->id}", array_merge($current, Arr::wrap($keys)));
     }
 
-    public function reloadPage(array|string $keys = '*'): void
+    public static function reloadPage(array|string $keys = '*'): void
     {
-        $current = $this->session->get('reload.page', []);
-        $this->session->flash('reload.page', array_merge($current, Arr::wrap($keys)));
+        $current = session()->get("inertia-overlay.reload.page", []);
+        session()->flash("inertia-overlay.reload.page", array_merge($current, Arr::wrap($keys)));
     }
 
     public function scopeKey(mixed $key): string
@@ -112,22 +112,22 @@ class Overlay
 
     public function getReloadedOverlayKeys(): array
     {
-        return $this->session->get('reload.overlay', []);
+        return session()->get("inertia-overlay.reload.overlay.{$this->id}", []);
     }
 
     public function getReloadedParentKeys(): array
     {
-        return $this->session->get('reload.parent', []);
+        return session()->get("inertia-overlay.reload.parent.{$this->id}", []);
     }
 
     public function getReloadedPageKeys(): array
     {
-        return $this->session->get('reload.page', []);
+        return session()->get("inertia-overlay.reload.page", []);
     }
 
     public function getAppendedPropKeys(): array
     {
-        return array_keys($this->session->get('append', []));
+        return session()->get("inertia-overlay.append.{$this->id}", []);
     }
 
     # ----------[ Session ]----------
@@ -171,6 +171,12 @@ class Overlay
     public function shouldClose(): string|null
     {
         return session()->get("__commands.$this->id.close");
+    }
+
+    public static function reflash(): void
+    {
+        session()->flash('inertia-overlay.reload', session()->get('inertia-overlay.reload'));
+        session()->flash('__commands', session()->get('__commands', []));
     }
 
 
